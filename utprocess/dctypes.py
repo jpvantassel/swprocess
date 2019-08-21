@@ -36,7 +36,7 @@ import numpy as np
 import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import tkinter as tk
+# import tkinter as tk
 import shotgathers
 
 
@@ -46,7 +46,7 @@ mhght = 4.25
 
 # Class containing full dispersion processing results (including power)
 # Results can be derived from FK, FDBF, slant-stack transform, or Park transform
-class DispersionPower(object):
+class DispersionPower():
     
     # Class attributes**********************************************************
     def __init__(self, freq, peak_vals, trial_vals, val_type, kres, pnorm):
@@ -294,7 +294,7 @@ class DispersionPower(object):
 
             
 # Class containing raw dispersion processing results for one or more source offsets    
-class RawDispersion(object):
+class RawDispersion():
 
     # Class attributes**********************************************************
     def __init__(self, frequency, velocity, offset):

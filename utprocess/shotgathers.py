@@ -65,15 +65,15 @@ class ShotGather(object):
 
     # Method to print attributes of time histories
     def print_attributes(self):
-        print " "
-        print "Shot Gather:"
-        print "dt:          "+str(self.dt)
-        print "n_channels:  "+str(self.n_channels)
-        print "n_samples:   "+str(self.n_samples)
-        print "position:    "+str(self.position[0])+", "+str(self.position[1])+", ...,"+str(self.position[len(self.position)-1])
-        print "offset:      "+str(self.offset)
-        print "delay:       "+str(self.delay)
-        print "timeHistories"+str(np.shape(self.timeHistories))
+        print(" ")
+        print("Shot Gather:")
+        print("dt:          "+str(self.dt))
+        print("n_channels:  "+str(self.n_channels))
+        print("n_samples:   "+str(self.n_samples))
+        print("position:    "+str(self.position[0])+", "+str(self.position[1])+", ...,"+str(self.position[len(self.position)-1]))
+        print("offset:      "+str(self.offset))
+        print("delay:       "+str(self.delay))
+        print("timeHistories"+str(np.shape(self.timeHistories)))
 
     # Method to cut waveforms at specified time
     def cut(self, max_time, newDelay=0):
@@ -220,7 +220,7 @@ class ShotGather(object):
 def importAndStackWaveforms( start_file, end_file, file_path=os.getcwd(), exclude_files=[], print_status='yes' ):
 
     # Import data from first seg2 file
-    waveforms = read( file_path+"/"+str(start_file)+".dat", 'seg2' ) 
+    waveforms = read( file_path+"\\"+str(start_file)+".dat", 'seg2' ) 
 
     # Determine acquisition parameters
     dt = waveforms[0].stats.delta    
@@ -242,17 +242,17 @@ def importAndStackWaveforms( start_file, end_file, file_path=os.getcwd(), exclud
     n_files = 0
     for cfile in range( start_file, end_file+1 ):
         # Ensure that file exists and that it's not in the list of excluded files
-        if os.path.isfile( file_path+"/"+str(cfile)+".dat" ) and (not (cfile in exclude_files)):
+        if os.path.isfile( file_path+"\\"+str(cfile)+".dat" ) and (not (cfile in exclude_files)):
             if print_status=='yes':
-                print "Importing file: "+str(cfile)+".dat"
+                print("Importing file: "+str(cfile)+".dat")
             n_files += 1
             if cfile > start_file:
-                waveforms = read( file_path+"/"+str(cfile)+".dat", 'seg2' ) 
+                waveforms = read( file_path+"\\"+str(cfile)+".dat", 'seg2' ) 
             for k in range(0, n_channels):
                 indvTimeHist[k][:] = waveforms[k]
             timeHistories += indvTimeHist
         else:
-            print "WARNING: File named "+str(cfile)+".dat does not exist or was omitted from the analysis."
+            print("WARNING: File named "+str(cfile)+".dat does not exist or was omitted from the analysis.")
     
     # Transpose so that matrix is (n_samples x n_channels)
     timeHistories = np.transpose( timeHistories )/n_files

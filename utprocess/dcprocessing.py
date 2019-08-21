@@ -187,7 +187,7 @@ def fdbf( shotGather, weightType='none', steeringVector='plane', numv=2048, min_
             else:
                 expterm = np.exp( 1j * k_vals[k] * shotGather.position )
             # power[k,m] = expterm' * Wf * R[m,:,:] * Wf' * expterm
-            power[k,m] = np.dot( np.dot( np.dot( np.dot( np.conj(expterm).transpose(),Wf ),R[m,:,:] ),Wf.transpose()),expterm)
+            power[k,m] = np.dot( np.dot( np.dot( np.dot( np.conj(expterm).transpose(), Wf),R[m,:,:] ), Wf.transpose()),expterm)
             power[alias_id,m] = 0
         # Index of wavenumber corresponding to maximum power at freq[m]
         max_id = np.argmax( np.abs(power[:,m]) ) 
@@ -261,7 +261,7 @@ def tau_p( shotGather, num_vel=2048, min_frequency=5, max_frequency=100, min_vel
         
     # Ensure that min_velocity is greater than zero
     if min_velocity<80:
-        print 'Warning: minimum velocity may result in loss of precision, 80 m/s recommended for slant-stack transform'
+        print('Warning: minimum velocity may result in loss of precision, 80 m/s recommended for slant-stack transform')
         if min_velocity<1:
             min_velocity = 1
     
