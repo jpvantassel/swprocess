@@ -1,7 +1,7 @@
 """This file contains the derived class Array1D for organizing data for
 a one-dimensional array."""
 
-from utprocess import TimeSeries, ReceiverArray, Receiver1D
+from utprocess import TimeSeries, ReceiverArray, Receiver1D, Source
 import numpy as np
 import obspy
 import matplotlib.pyplot as plt
@@ -16,11 +16,13 @@ class Array1D(ReceiverArray):
         self.nsensor: Number of sensors in 1D array.
     """
 
-    def __init__(self, receivers):
+    def __init__(self, receivers, source):
         """Initialize an Array1D object from a list of receivers.
 
         Args:
             receivers: List of Receiver1D arrays.
+
+            source: Source object.
 
         Returns:
             Initiaize Array1D object.
@@ -44,6 +46,7 @@ class Array1D(ReceiverArray):
             self.position.append(receiver.position["x"])
         self.kres = 2*np.pi / min(np.diff(self.position))
         assert(self.kres > 0)
+        self.source = source
 
     def plot_waterfall(self, scale_factor=1.0, timelength=1, plot_ax='x'):
         """
@@ -108,6 +111,9 @@ class Array1D(ReceiverArray):
             ax.tick_params('x', length=4, width=1, which='major')
         return (fig, ax)
 
+    def plot_array(self):
+        pass
+
     @property
     def spacing(self):
         min_spacing = min(np.diff(self.position))
@@ -136,7 +142,10 @@ class Array1D(ReceiverArray):
         receivers = []
         for trace in stream.traces:
             receivers.append(Receiver1D.from_trace(trace))
-        return cls(receivers)
+        source = Source({"x": float(trace.stats.seg2.SOURCE_LOCATION),
+                         "y": 0,
+                         "z": 0})
+        return cls(receivers, source)
 
     @classmethod
     def from_seg2s(cls, fnames):
@@ -158,7 +167,10 @@ class Array1D(ReceiverArray):
         receivers = []
         for trace in stream.traces:
             receivers.append(Receiver1D.from_trace(trace))
-        arr = cls(receivers)
+        source = Source({"x": float(trace.stats.seg2.SOURCE_LOCATION),
+                         "y": 0,
+                         "z": 0})
+        arr = cls(receivers, source)
 
         for fname in fnames[1:]:
             stream = obspy.read(fname)
@@ -166,5 +178,6 @@ class Array1D(ReceiverArray):
                 arr.receivers[rid].timeseries.stack_append(amplitude=trace.data,
                                                            dt=trace.stats.delta,
                                                            nstacks=int(trace.stats.seg2.STACK))
+                assert(arr.source.x == float(trace.stats.seg2.SOURCE_LOCATION))
         # TODO (jpv): Alllow you to index an array will return receiver
         return arr

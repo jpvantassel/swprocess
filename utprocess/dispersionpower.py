@@ -3,11 +3,17 @@ manipulating measurements of dipserison power."""
 
 import numpy as np
 import matplotlib.pyplot as plt
+import json
 
 
 class DispersionPower():
 
     def __init__(self, freq, peak_vals, trial_vals, val_type, kres, pnorm):
+
+        if str.lower(val_type) != "wavenumber" and str.lower(val_type) != "velocity":
+            raise ValueError(
+                "Invalid val_type. Should be \"wavenumber\" or \"velocity\".")
+
         self.freq = freq
         self.peak_vals = peak_vals
         self.trial_vals = trial_vals
@@ -15,10 +21,45 @@ class DispersionPower():
         self.kres = kres
         self.pnorm = pnorm
 
+    def save_peaks(self, fname, source_location):
+        if self.val_type == "wavenumber":
+            v_peak = 2*np.pi / self.peak_vals*self.freq
+        elif self.val_type == "velocity":
+            v_peak = self.peak_vals
+        else:
+            raise NotImplementedError()
+
+        # # print(self.freq.tolist())
+        # print(v_peak.tolist())
+        # print(source_location)
+
+        try:
+            print("Attempt opening file ...")
+            f = open(f"{fname}.json", "r")
+        except FileNotFoundError:
+            print("There was an exception ...")
+            data = {}
+        else:
+            print("File opened correctly ...")
+            data = json.load(f)
+            f.close()
+
+        print("Existing Data ", data)
+        with open(f"{fname}.json", "w") as fp:
+            if source_location in data:
+                raise KeyError(
+                    f"Source location {source_location} is repeated.")
+            else:
+                data.update({source_location: {"frequency": self.freq.tolist(),
+                                               "velocity": v_peak.tolist()}})
+            print("Updated Data ", data)
+            json.dump(data, fp)
+
     def plot_spec(self, plot_type="fv", plot_limit=None):
         if plot_limit != None and len(plot_limit) != 4:
             raise ValueError("plotLim should be a four element list")
-        if str.lower(self.val_type) == "wavenumber":
+
+        if self.val_type == "wavenumber":
             k_vals = self.trial_vals
             freq_grid, wavenum_grid = np.meshgrid(self.freq, k_vals)
             vel_grid = 2*np.pi*freq_grid / wavenum_grid
@@ -26,7 +67,7 @@ class DispersionPower():
             k_peak = self.peak_vals
             wavel_peak = 2*np.pi / k_peak
             v_peak = wavel_peak*self.freq
-        elif str.lower(self.val_type) == "velocity":
+        elif self.val_type == "velocity":
             v_vals = self.trial_vals
             freq_grid, vel_grid = np.meshgrid(self.freq, v_vals)
             wavel_grid = vel_grid / freq_grid
@@ -35,8 +76,8 @@ class DispersionPower():
             k_peak = 2*np.pi*self.freq / v_peak
             wavel_peak = 2*np.pi / k_peak
         else:
-            raise ValueError(
-                "Invalid val_type. Should be \"wavenumber\" or \"velocity\".")
+            raise NotImplementedError()
+
         if str.lower(plot_type) == "fk":
             xgrid = freq_grid
             ygrid = wavenum_grid

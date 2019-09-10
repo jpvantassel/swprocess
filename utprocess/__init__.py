@@ -6,6 +6,7 @@ from .fouriertransform import *
 
 from .receiver import *
 from .receiver1d import *
+from .source import *
 
 from .receiverarray import *
 from .array1d import *

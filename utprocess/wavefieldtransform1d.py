@@ -15,8 +15,9 @@ class WavefieldTransform1D():
 
         method: Type of wavefield transformation.
 
-        f_trial: Dictionary of the form {'min': ,'max': , 'npts': } which
-            defines the minimum, maximum, and number of frequency points.
+        f_trial: Dictionary of the form {'min': ,'max': , 'npts': } 
+            which defines the minimum, maximum, and number of frequency
+            points.
 
         weighting: Type of weighting vector, can be ['none', ...]
 
@@ -31,8 +32,8 @@ class WavefieldTransform1D():
         Args:
             array: Instance of an Array1D class.
 
-            settings: Name of a .json file that descibes the settings to be
-                used for the 1D wavefield transformation.
+            settings: Name of a .json file that descibes the settings to
+                be used for the 1D wavefield transformation.
 
         Returns:
 
