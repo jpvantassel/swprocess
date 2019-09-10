@@ -1,31 +1,45 @@
-"""
-This file contains the class TimeSeries for working with time series
-objects.
+"""This file contains the class TimeSeries for creating and working with
+time series objects.
 """
 
 import numpy as np
+import obspy
 
 
 class TimeSeries():
     """A class for editing and manipulating time series.
 
     Attributes:
+        amp: np.array denoting the recordings amplitude.
 
         dt: Float denoting the time step between samples in seconds.
-
-        amp: np.array denoting the recordings amplitude.
     """
+    @staticmethod
+    def __check_input(name, values):
+        if type(values) not in [np.ndarray, list, tuple]:
+            raise TypeError("{} must be of type np.array, list, or tuple not {}".format(
+                name, type(values)))
 
-    def __init__(self, dt, amplitude):
+        if isinstance(values, (list, tuple)):
+            values = np.array(values)
+
+        if len(values.shape) > 1:
+            raise TypeError("{} must be 1-dimensional, not {}-dimensional".format(
+                name, values.shape))
+
+    def __init__(self, amplitude, dt, nstacks=1):
         """Initialize a TimeSeries object.
 
         Args:
+            amplitude: Any type that can be transformed into an np.array
+                denoting the records amplitude with time. The first value
+                is associated with time=0 seconds and the last is associate
+                with (len(amplitude)-1)*dt seconds.
+
             dt: Float denoting the time step between samples in seconds.
 
-            amplitude: Any type that can be transformed into an np.array
-             denoting the recordings amplitude with time, where the
-             first value is associated with time=0 seconds and the last
-             is associate with (len(amplitude)-1)*dt seconds.
+            nstacks: Number of stacks used to produce the amplitude.
+                The default value is 1.
 
         Returns:
             Intialized TimeSeries object.
@@ -33,49 +47,68 @@ class TimeSeries():
         Exceptions:
             This method raises no exceptions.
         """
-        self.amp = np.array(amplitude)
-        self.dt = dt
+        TimeSeries.__check_input("amplitude", amplitude)
 
-    def fft(self, normalize=False):
-        """Compute the Fast Fourier Transform for TimeSeries.
+        if type(amplitude) == np.ndarray:
+            self.amp = amplitude
+        else:
+            self.amp = np.array(amplitude)
+        self.dt = dt
+        self.fs = 1/self.dt
+        self.fnyq = 0.5*self.fs
+        self._nstack = 1
+        self.nsamples = len(self.amp)
+
+    @classmethod
+    def from_trace(cls, filename):
+        pass
+
+    @classmethod
+    def from_miniseed(cls, filename):
+        pass
+
+    def stack_append(self, new_timeseries, dt, nstacks=1):
+        """Stack (i.e., average) a new time series to the current time series.
 
         Args:
-            normalize: Boolean to control whether the amplitude of the 
-                fft is normalized.
+            new_timeseries: This time series will be stacked (i.e., 
+                averaged with the current time series).
+
+            dt: Time step of the new time series. Only used for
+                comparison with the current time series.
+
+            nstacks: Number of stacks used to produce the new_timeseries.
+                The default value is 1.
 
         Returns:
-            Returns a tuple of the form (freq, pos_fft) where freq is a 
-            numpy array of frequencies and pos_fft is a numpy array of
-            magniutde of the fft over its postive frequencies, which may
-            or may not be normalized.
+            This method returns no value, but rather updates the state 
+            of the attribute amp.            
 
         Raises:
-            This method raises no exceptions.
+            TypeError: If new_timeseries is not an np.array or list.
+
+            IndexError: If length of the new_timeseries does not match 
+                the length of the current time series.
         """
-        # TODO (jpv): Build fft class.
+        TimeSeries.__check_input("new_timeseries", new_timeseries)
 
-        # Ensure an even number of samples.
-        if (len(self.amp) % 2) != 0:
-            amp = np.append(self.dt, 0)
-        else:
-            amp = self.amp
+        if len(new_timeseries) != len(self.amp):
+            raise IndexError("Length of two waveforms must be the same.")
 
-        complete_fft = np.fft.fft(amp)
-        n = len(complete_fft)
+        if type(new_timeseries) is list:
+            new_timeseries = np.array(new_timeseries)
 
-        pos_fft = np.abs(complete_fft[0:int(n/2)+1])
-
-        freq = np.linspace(0, 1/(2*self.dt), int(n/2)+1)
-
-        if normalize:
-            return (freq, pos_fft/np.max(pos_fft))
-        else:
-            return (freq, pos_fft)
+        self.amp = (self.amp*self._nstack + new_timeseries *
+                    nstacks)/(self._nstack+nstacks)
+        # print(self.amp)
+        self._nstack += nstacks
+        # print(self._nstack)
 
     def __repr__(self):
-        """ Valid python expression to reproduce the object"""
+        # """Valid python expression to reproduce the object"""
         return "TimeSeries(dt, amplitude)"
 
     def __str__(self):
-        """Informal representation of the object."""
-        pass
+        # """Informal representation of the object."""
+        return f"TimerSeries object\namp = {self.amp}\ndt = {self.dt}"
+                  

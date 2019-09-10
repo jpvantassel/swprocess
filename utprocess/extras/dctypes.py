@@ -1,11 +1,11 @@
 """
     Classes:
         DispersionPower: 
-        Stores processed dispersion data for a given source-offset. This class
-        stores the relevent processing paramters (e.g., frequency, trial values 
-        of k or v, kres, etc.). This class contains methods to plot (1) contours  
-        of power in various domians and/or (2) 1D "slices" of power at user- 
-        defined frequencies.  
+        Stores processed dispersion data for a given source-offset. This
+        class stores the relevent processing paramters (e.g., frequency,
+        trial values of k or v, kres, etc.). This class contains methods
+        to plot (1) contours of power in various domians and/or (2) 1D 
+        "slices" of power at user-defined frequencies.  
 
         RawDispersion:
         Stores the "raw" dispersion data (i.e., frequency, velocity, and offset) 
