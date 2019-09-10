@@ -34,13 +34,13 @@ class DispersionPower():
         # print(source_location)
 
         try:
-            print("Attempt opening file ...")
+            # print("Attempt opening file ...")
             f = open(f"{fname}.json", "r")
         except FileNotFoundError:
-            print("There was an exception ...")
+            # print("There was an exception ...")
             data = {}
         else:
-            print("File opened correctly ...")
+            # print("File opened correctly ...")
             data = json.load(f)
             f.close()
 
