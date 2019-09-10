@@ -61,7 +61,7 @@ class Receiver1D(Receiver):
         Raises:
 
         """
-        # TODO: Much more information to timeseriestract here if desired
+        # TODO: Much more information to extract here if desired
 
         # logging.info("Receiver1D.from_trace")
         # logging.info("data = {}".format(trace.data))
@@ -77,3 +77,24 @@ class Receiver1D(Receiver):
                    position={"x": float(trace.stats.seg2.RECEIVER_LOCATION),
                              "y": 0.,
                              "z": 0.})
+
+    # @classmethod
+    # def from_traces(cls, traces):
+    #     """Create a Receiver1D object from multiple trace objects that 
+    #     will be stacked.
+
+    #     Args:
+
+    #     Returns:
+    #         An intialized one-dimension receiver object.
+
+    #     Raises:
+
+    #     """
+
+    #     return cls(recordings={"amp": trace.data,
+    #                            "dt": trace.stats.delta,
+    #                            "nstacks": int(trace.stats.seg2.STACK)},
+    #                position={"x": float(trace.stats.seg2.RECEIVER_LOCATION),
+    #                          "y": 0.,
+    #                          "z": 0.})

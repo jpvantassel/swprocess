@@ -60,45 +60,48 @@ class TimeSeries():
         self.nsamples = len(self.amp)
 
     @classmethod
-    def from_trace(cls, filename):
-        pass
+    def from_trace(cls, trace):
+        return cls(amplitude=trace.data,
+                   dt=trace.stats.delta,
+                   nstacks=int(trace.stats.seg2.STACK))
 
     @classmethod
     def from_miniseed(cls, filename):
         pass
 
-    def stack_append(self, new_timeseries, dt, nstacks=1):
-        """Stack (i.e., average) a new time series to the current time series.
+    def stack_append(self, amplitude, dt, nstacks=1):
+        """Stack (i.e., average) a new time series to the current time
+        series.
 
         Args:
-            new_timeseries: This time series will be stacked (i.e., 
+            amplitude: This new amplitiude will be stacked (i.e.,
                 averaged with the current time series).
 
             dt: Time step of the new time series. Only used for
                 comparison with the current time series.
 
-            nstacks: Number of stacks used to produce the new_timeseries.
-                The default value is 1.
+            nstacks: Number of stacks used to produce the
+                amplitude. The default value is 1.
 
         Returns:
-            This method returns no value, but rather updates the state 
-            of the attribute amp.            
+            This method returns no value, but rather updates the state
+            of the attribute amp.
 
         Raises:
-            TypeError: If new_timeseries is not an np.array or list.
+            TypeError: If amplitude is not an np.array or list.
 
-            IndexError: If length of the new_timeseries does not match 
+            IndexError: If length of the amplitude does not match
                 the length of the current time series.
         """
-        TimeSeries.__check_input("new_timeseries", new_timeseries)
+        TimeSeries.__check_input("amplitude", amplitude)
 
-        if len(new_timeseries) != len(self.amp):
+        if len(amplitude) != len(self.amp):
             raise IndexError("Length of two waveforms must be the same.")
 
-        if type(new_timeseries) is list:
-            new_timeseries = np.array(new_timeseries)
+        if type(amplitude) is list:
+            amplitude = np.array(amplitude)
 
-        self.amp = (self.amp*self._nstack + new_timeseries *
+        self.amp = (self.amp*self._nstack + amplitude *
                     nstacks)/(self._nstack+nstacks)
         # print(self.amp)
         self._nstack += nstacks
@@ -111,4 +114,3 @@ class TimeSeries():
     def __str__(self):
         # """Informal representation of the object."""
         return f"TimerSeries object\namp = {self.amp}\ndt = {self.dt}"
-                  

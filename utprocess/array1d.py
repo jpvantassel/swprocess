@@ -28,6 +28,7 @@ class Array1D(ReceiverArray):
         Raises:
 
         """
+        self.receivers = receivers
         self.nchannels = len(receivers)
         self.nsamples = receivers[0].nsamples
         self.dt = receivers[0].dt
@@ -136,3 +137,34 @@ class Array1D(ReceiverArray):
         for trace in stream.traces:
             receivers.append(Receiver1D.from_trace(trace))
         return cls(receivers)
+
+    @classmethod
+    def from_seg2s(cls, fnames):
+        """Initialize an Array1D object from multiple seg2 file which 
+        will be stacked, each file should have one stream and multiple 
+        traces.
+
+        Args:
+            fnames: List of input file names (should be of type seg2).
+
+        Returns:
+            Initialized Array1D object.
+
+        Raises:
+            This method raises no exceptions.
+        """
+
+        stream = obspy.read(fnames[0])
+        receivers = []
+        for trace in stream.traces:
+            receivers.append(Receiver1D.from_trace(trace))
+        arr = cls(receivers)
+
+        for fname in fnames[1:]:
+            stream = obspy.read(fname)
+            for rid, trace in enumerate(stream.traces):
+                arr.receivers[rid].timeseries.stack_append(amplitude=trace.data,
+                                                           dt=trace.stats.delta,
+                                                           nstacks=int(trace.stats.seg2.STACK))
+        # TODO (jpv): Alllow you to index an array will return receiver
+        return arr
