@@ -20,12 +20,12 @@ class Array1D(ReceiverArray):
         """Initialize an Array1D object from a list of receivers.
 
         Args:
-            receivers: List of Receiver1D arrays.
+            receivers: List of initialized Receiver1D objects.
 
-            source: Source object.
+            source: Initialized Source object.
 
         Returns:
-            Initiaize Array1D object.
+            Initialize an Array1D object.
 
         Raises:
 
@@ -33,6 +33,7 @@ class Array1D(ReceiverArray):
         self.receivers = receivers
         self.nchannels = len(receivers)
         self.nsamples = receivers[0].nsamples
+        self.delay = receivers[0].delay
         self.dt = receivers[0].dt
         self.fs = 1/self.dt
         self.df = self.fs/self.nsamples
@@ -49,18 +50,35 @@ class Array1D(ReceiverArray):
         self.source = source
 
     def plot_waterfall(self, scale_factor=1.0, timelength=1, plot_ax='x'):
-        """
+        """Create waterfall plot for the shot or stack of shots for this
+        array setup.
 
-        Args:
+        Creates a waterfall plot from the timehistories belonging to
+        this array. The waterfall includes normalized timeseries plotted
+        vertically with distance. The abscissa (cartesian x-axis) is the
+        relative receiver location in meters, and the ordinate 
+        (cartesian y-axis) is time in seconds.
+
+        Args: 
+            scale_factor: Float denoting the scale of the nomalized
+                timeseries height (peak-to-trough). Half the receiver
+                spacing is generally a good value.
+
+            timelength: Float denoting the length of the time series 
+                to plot in seconds.
+
+            plot_ax: {'x' or 'y'} denoting on which axis the waterfall
+                plot should be plotted on.
 
         Returns:
-            This method returns no value.
+            This method returns a tuple of the form (figure, axes) where
+            figure is the figure object and axes is the axes object on
+            which the schematic is plotted.
 
         Raises:
             This method raises no exceptions.
         """
         # TODO (jpv): Include delay attribute in receiver class.
-        self.delay = 0
 
         time = np.arange(self.delay, (self.nsamples *
                                       self.dt + self.delay), self.dt)
@@ -112,7 +130,63 @@ class Array1D(ReceiverArray):
         return (fig, ax)
 
     def plot_array(self):
-        pass
+        """Plot a schematic of the Array1D object.
+
+        The schematic shows the relative position of the receivers and
+        the source and lists the total number of receivers. The figure
+        and axes are returned to the user for use in further editing if
+        desired.
+
+        Example:
+            >>import matplotlib.pyplot as plt
+            >>import utprocess
+            >>
+            >># 1.dat is a seg2 file from an MASW survey
+            >>my_array = utprocess.Array1D.from_seg2s("1.dat")
+            >>fig, ax = my_array.plot_array()
+            >>plt.show()
+
+        Args:
+            This method takes no arguements.
+
+        Returns:
+            This method returns a tuple of the form (figure, axes) where
+            figure is the figure object and axes is the axes object on
+            which the schematic is plotted.
+
+        Raises:
+            This method raises no exceptions.
+        """
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 2))
+        
+        for n_rec, receiver in enumerate(self.receivers):
+            label = "Receiver" if n_rec == 1 else None
+            ax.plot(receiver.position["x"],
+                    receiver.position["y"],
+                    marker="^",
+                    color="k",
+                    linestyle="None",
+                    label=label)
+
+        try:
+            spacing_txt = f"Receiver spacing is {self.spacing}m."
+        except ValueError:
+            spacing_txt = f"Receiver spacings are not equal."
+        ax.text(min(self.receivers[0].position["x"], self.source.position["x"]),
+                3,
+                f"Number of Receivers: {self.nchannels}\n{spacing_txt}")
+
+        ax.plot(self.source.position["x"],
+                self.source.position["y"],
+                marker="D",
+                color="b",
+                linestyle="None",
+                label=f"Source at {self.source.position['x']}m")
+
+        ax.legend()
+        ax.set_ylim([-2, 5])
+        ax.set_xlabel("Distance Along Array (m)")
+        return (fig, ax)
 
     @property
     def spacing(self):
@@ -125,43 +199,30 @@ class Array1D(ReceiverArray):
                 "spacing is not defined for non-equally spaced arrays")
 
     @classmethod
-    def from_seg2(cls, fname):
-        """Initialize an Array1D object from seg2 file with one stream
-        and multiple traces.
-
-        Args:
-            fname: Name of input file (should be of type seg2).
-
-        Returns:
-            Initialized Array1D object.
-
-        Raises:
-            This method raises no exceptions.
-        """
-        stream = obspy.read(fname)
-        receivers = []
-        for trace in stream.traces:
-            receivers.append(Receiver1D.from_trace(trace))
-        source = Source({"x": float(trace.stats.seg2.SOURCE_LOCATION),
-                         "y": 0,
-                         "z": 0})
-        return cls(receivers, source)
-
-    @classmethod
     def from_seg2s(cls, fnames):
-        """Initialize an Array1D object from multiple seg2 file which 
-        will be stacked, each file should have one stream and multiple 
-        traces.
+        """Initialize an Array1D object from one or more seg2 files.
+
+        The seg2 file(s) should be provided as a list of file names,
+        the full path may be provided if desired. Each file should
+        contain multiple traces where each trace corresponds to a single
+        receiver.
 
         Args:
-            fnames: List of input file names (should be of type seg2).
+            fnames: A single str or a list of str where each str is an 
+                input file name. These files should be of type seg2.
 
         Returns:
             Initialized Array1D object.
 
         Raises:
-            This method raises no exceptions.
+            TypeError: if fnames is not of type list or string.
         """
+        if type(fnames) in [list, str]:
+            if type(fnames) in [str]:
+                fnames = [fnames]
+        else:
+            raise TypeError(
+                f"fnames should be of type list or str, not {type(fnames)}.")
 
         stream = obspy.read(fnames[0])
         receivers = []
@@ -172,12 +233,18 @@ class Array1D(ReceiverArray):
                          "z": 0})
         arr = cls(receivers, source)
 
-        for fname in fnames[1:]:
-            stream = obspy.read(fname)
-            for rid, trace in enumerate(stream.traces):
-                arr.receivers[rid].timeseries.stack_append(amplitude=trace.data,
-                                                           dt=trace.stats.delta,
-                                                           nstacks=int(trace.stats.seg2.STACK))
-                assert(arr.source.x == float(trace.stats.seg2.SOURCE_LOCATION))
-        # TODO (jpv): Alllow you to index an array will return receiver
+        if len(fnames) > 0:
+            for fname in fnames[1:]:
+                stream = obspy.read(fname)
+                for rid, trace in enumerate(stream.traces):
+                    arr.receivers[rid].timeseries.stack_append(amplitude=trace.data,
+                                                               dt=trace.stats.delta,
+                                                               nstacks=int(trace.stats.seg2.STACK))
+                    # TODO (jpv): Alllow you to index an array will return receiver
+                    assert(arr.source.position["x"] ==
+                           float(trace.stats.seg2.SOURCE_LOCATION))
+                    assert(arr.delay ==
+                           float(trace.stats.seg2.DELAY))
+                    # if rid == 1:
+                    #     print(np.mean(arr.receivers[rid].timeseries.amp))
         return arr

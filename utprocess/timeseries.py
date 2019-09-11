@@ -27,19 +27,22 @@ class TimeSeries():
             raise TypeError("{} must be 1-dimensional, not {}-dimensional".format(
                 name, values.shape))
 
-    def __init__(self, amplitude, dt, nstacks=1):
+    def __init__(self, amplitude, dt, nstacks=1, delay=0):
         """Initialize a TimeSeries object.
 
         Args:
             amplitude: Any type that can be transformed into an np.array
-                denoting the records amplitude with time. The first value
-                is associated with time=0 seconds and the last is associate
-                with (len(amplitude)-1)*dt seconds.
+                denoting the records amplitude with time. The first 
+                value is associated with time=0 seconds and the last is 
+                associate with (len(amplitude)-1)*dt seconds.
 
             dt: Float denoting the time step between samples in seconds.
 
             nstacks: Number of stacks used to produce the amplitude.
                 The default value is 1.
+
+            delay: Float indicating the delay to the start of the record
+                in seconds.
 
         Returns:
             Intialized TimeSeries object.
@@ -57,6 +60,7 @@ class TimeSeries():
         self.fs = 1/self.dt
         self.fnyq = 0.5*self.fs
         self._nstack = 1
+        self.delay = delay
         self.nsamples = len(self.amp)
 
     @classmethod
@@ -90,8 +94,8 @@ class TimeSeries():
         Raises:
             TypeError: If amplitude is not an np.array or list.
 
-            IndexError: If length of the amplitude does not match
-                the length of the current time series.
+            IndexError: If length of the amplitude does not match the 
+                length of the current time series.
         """
         TimeSeries.__check_input("amplitude", amplitude)
 

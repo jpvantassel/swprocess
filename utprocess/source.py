@@ -25,6 +25,4 @@ class Source():
         Raises:
             This method raises no exceptions.
         """
-        self.x = position["x"]
-        self.y = position["y"]
-        self.z = position["z"]
+        self.position = position

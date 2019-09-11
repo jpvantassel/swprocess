@@ -19,17 +19,17 @@ class Peaks():
             self.wav += [self.vel[-1]/self.frq[-1]]
         self.ids = identifier
 
-    def to_txt_dinver(self, fname):
+    def write_to_txt_dinver(self, fname):
         pass
 
-    def to_csv_utinvert(self, fname):
+    def write_to_csv_utinvert(self, fname):
         with open(fname, "w") as f:
             f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)")
-            for f_set, v_set, s_set, id_set in zip(self.frq, self.vel, self.std, self.ids):
-                for f, v, s in zip(f_set, v_set, s_set):
-                    f.write(f"{f},{v},{s}")
+            for f_set, v_set, s_set in zip(self.frq, self.vel, self.std):
+                for fr, ve, st in zip(f_set, v_set, s_set):
+                    f.write(f"{fr},{ve},{st}")
 
-    def to_json(self, fname):
+    def write_to_json(self, fname):
         pass
 
     def party_time(self):
@@ -59,7 +59,7 @@ class Peaks():
                     prs = False
 
         # Ask user if they would like to continue cutting data
-            cont = bool(input("Enter 1 to continue, 0 to export data to text file: '))
+            cont = int(input("Enter 1 to continue, 0 to quit: "))
 
 
 # # Create files with final processed data ***************************************
@@ -182,10 +182,10 @@ class Peaks():
 
 
 # Function to plot dispersion data along with averages and standard deviations.
-# (Note that the min(k) and kmax curves are used for passive-source FK processing,
-# thus, min(k) and kmax are set equal to NaN for MASW testing to avoid plotting.)
+# (Note that the min(klimits) and max(klimits) curves are used for passive-source FK processing,
+# thus, min(klimits) and max(klimits) are set equal to NaN for MASW testing to avoid plotting.)
     @staticmethod
-    def plotDCforRmv(frequency, velocity, meanDisp, setLeg, markType=[], colorSpec=[], xScaleType="log", k=()):
+    def plotDCforRmv(frequency, velocity, meanDisp, setLeg, markType=[], colorSpec=[], xScaleType="log", klimits=()):
 
         n_off = len(velocity)
 
@@ -201,7 +201,7 @@ class Peaks():
         fsize = 11
         cfig = plt.figure(figsize=(mwdth, mhght))
 
-        # Curves for min(k) and kmax (if min(k) and kmax are provided)
+        # Curves for min(klimits) and max(klimits) (if min(klimits) and max(klimits) are provided)
         minF = np.min(meanDisp[:, 0])
         maxF = np.max(meanDisp[:, 0])
         maxV = 0
@@ -212,20 +212,21 @@ class Peaks():
             if max(velocity[k]/frequency[k]) > maxW:
                 maxW = max(velocity[k]/frequency[k])
 
-        # min(k) and kmax curves for frequency vs velocity
-        freq_klim = np.logspace(np.log10(minF), np.log10(maxF), 100)
-        vel_klimF = np.vstack((2*np.pi*freq_klim/kmax, 2*np.pi*freq_klim /
-                               (kmax/2), 2*np.pi*freq_klim/min(k), 2*np.pi*freq_klim/(min(k)/2)))
-        vel_klimF = vel_klimF.transpose()
-        # Don't plot higher than maximum velocity of dispersion data
-        if not(np.isnan(kmax)):
-            for j in range(np.shape(vel_klimF)[1]):
-                rmvID = np.where(vel_klimF[:, j] > maxV)[0]
-                vel_klimF[rmvID, j] = float('nan')
-        # min(k) and kmax curves for wavelength vs velocity
-        wave_lim = np.hstack((2*np.pi/kmax*np.array([[1], [1]]), 2*np.pi/(kmax/2)*np.array(
-            [[1], [1]]), 2*np.pi/min(k)*np.array([[1], [1]]), 2*np.pi/(min(k)/2)*np.array([[1], [1]])))
-        vel_klimW = np.array([0, maxV])
+        if klimits:
+            # min(klimits) and max(klimits) curves for frequency vs velocity
+            freq_klim = np.logspace(np.log10(minF), np.log10(maxF), 100)
+            vel_klimF = np.vstack((2*np.pi*freq_klim/max(klimits), 2*np.pi*freq_klim /
+                                   (max(klimits)/2), 2*np.pi*freq_klim/min(klimits), 2*np.pi*freq_klim/(min(klimits)/2)))
+            vel_klimF = vel_klimF.transpose()
+            # Don't plot higher than maximum velocity of dispersion data
+            if not(np.isnan(max(klimits))):
+                for j in range(np.shape(vel_klimF)[1]):
+                    rmvID = np.where(vel_klimF[:, j] > maxV)[0]
+                    vel_klimF[rmvID, j] = float('nan')
+            # min(klimits) and max(klimits) curves for wavelength vs velocity
+            wave_lim = np.hstack((2*np.pi/max(klimits)*np.array([[1], [1]]), 2*np.pi/(max(klimits)/2)*np.array(
+                [[1], [1]]), 2*np.pi/min(klimits)*np.array([[1], [1]]), 2*np.pi/(min(klimits)/2)*np.array([[1], [1]])))
+            vel_klimW = np.array([0, maxV])
 
         # Velocity vs frequency plot
         axf = cfig.add_subplot(1, 2, 1)
@@ -234,8 +235,8 @@ class Peaks():
                      markeredgecolor=colorSpec[r], markerfacecolor="none", linestyle="none")
         axf.errorbar(meanDisp[:, 0], meanDisp[:, 1], meanDisp[:, 2],
                      marker="o", markersize=5, color="k", linestyle="none")
-        # min(k) and kmax lines
-        if k:
+        # min(klimits) and max(klimits) lines
+        if klimits:
             axf.plot(freq_klim, vel_klimF[:, 0], linestyle=":")
             axf.plot(freq_klim, vel_klimF[:, 1], linestyle="-")
             axf.plot(freq_klim, vel_klimF[:, 2], linestyle="--")
@@ -249,19 +250,20 @@ class Peaks():
 
         # Velocity vs wavelength
         axw = cfig.add_subplot(1, 2, 2)
+        
         # Raw data and error bars
         for r in range(len(velocity)):
             axw.plot(velocity[r]/frequency[r], velocity[r], marker=markType[r], markersize=5,
                      markeredgecolor=colorSpec[r], markerfacecolor="none", linestyle="none", label=setLeg[r])
         axw.errorbar(meanDisp[:, 5], meanDisp[:, 1], meanDisp[:, 2],
                      marker="o", markersize=5, color="k", linestyle="none")
-        # min(k) and kmax lines
-        if k:
+
+        if klimits:
             axw.plot(wave_lim[:, 0], vel_klimW, linestyle=":", label='kmax')
             axw.plot(wave_lim[:, 1], vel_klimW, linestyle="-", label='kmax/2')
-            axw.plot(wave_lim[:, 2], vel_klimW, linestyle="--", label='min(k)')
-            axw.plot(wave_lim[:, 3], vel_klimW,
-                     linestyle="-.", label='min(k)/2')
+            axw.plot(wave_lim[:, 2], vel_klimW, linestyle="--", label='kmin')
+            axw.plot(wave_lim[:, 3], vel_klimW, linestyle="-.", label='kmin/2')
+
         handles, labels = axw.get_legend_handles_labels()
         axw.legend(handles, labels, loc='upper left')
         axw.set_xlabel("Wavelength (m)", fontsize=fsize, fontname="arial")
@@ -270,20 +272,15 @@ class Peaks():
         axw.set_yticklabels(axw.get_yticks(), fontsize=fsize, fontname="arial")
         axw.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
         cfig.show()
-
         axf.set_autoscale_on(False)
         axw.set_autoscale_on(False)
-
-        # Return figure handle
         return cfig
 
     # Function to prompt user to draw a box on a dispersion curve figure. Data points
     # inside of the box are removed and data points outside of the box are kept.
     @staticmethod
     def rmvDCpoints(frequency, velocity, wavelength, offset, cfig):
-        # Point elimination loop
         while True:
-            # Determine which axis was clicked
             axclick = []
 
             def on_click(event):
@@ -291,7 +288,7 @@ class Peaks():
                     if len(axclick) < 2:
                         axclick.append(event.inaxes)
             cid = cfig.canvas.mpl_connect('button_press_event', on_click)
-            # Draw box, determine upper and lower bounds
+
             rawBounds = np.asarray(cfig.ginput(2, timeout=0))
             cfig.canvas.mpl_disconnect(cid)
             xmin = np.min(rawBounds[:, 0])
@@ -299,7 +296,6 @@ class Peaks():
             ymin = np.min(rawBounds[:, 1])
             ymax = np.max(rawBounds[:, 1])
 
-            # Total removed points
             n_rmv = 0
             for g in range(len(frequency)):
                 # Arrays containing data for current offset
@@ -315,14 +311,8 @@ class Peaks():
                     print("WARNING: BOTH CLICKS MUST BE ON SAME AXIS")
                     return
 
-                # Identify axes
                 axf = cfig.axes[0]
                 axw = cfig.axes[1]
-                # assert(axf.get_xlabel == 'Frequency (Hz)')
-                # if axf.get_xlabel() != 'Frequency (Hz)':
-                #     axf = max(cfig.axes)
-                #     axw = min(cfig.axes)
-                # Determine if points fall within box
                 for i in range(len(f)):
                     condition1 = (axclick[0] == axf) and (
                         xmin < f[i] and f[i] < xmax and ymin < v[i] and v[i] < ymax)
@@ -347,10 +337,8 @@ class Peaks():
                 wrmv = w[(rmv_id-1)]
                 n_rmv += len(vrmv)
                 # Plot deleted data with black x's
-                axf.plot(frmv, vrmv, marker="x", color="k",
-                         markersize=5, linestyle="none")
-                axw.plot(wrmv, vrmv, marker="x", color="k",
-                         markersize=5, linestyle="none")
+                axf.plot(frmv, vrmv, marker="x", color="k", markersize=5, linestyle="none")
+                axw.plot(wrmv, vrmv, marker="x", color="k", markersize=5, linestyle="none")
                 cfig.canvas.draw_idle()
 
                 # Retained data
@@ -366,7 +354,3 @@ class Peaks():
                 break
 
             del cid
-
-        # return (frequency, velocity, offset)
-        # rawDC = dctypes.RawDispersion(frequency, velocity, offset)
-        # return

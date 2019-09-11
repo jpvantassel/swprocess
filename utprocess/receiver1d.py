@@ -18,15 +18,12 @@ class Receiver1D(Receiver):
 
     """
 
-    def __init__(self, recordings, position):
+    def __init__(self, timeseries, position):
         """Initialize a one-dimensional (i.e., single components) 
         receiver.
 
         Args:
-            recordings: Recordings performed on this receiver.
-                Each receiver should be of the form 
-                {'amp':ampvals, 'dt':dtval, 'nstacks':nstackval}.
-                TODO (jpv): add type info here.
+            timeseries: Initialized TimeSeries object.
 
             position: Relative position of this receiver of the form
                 {'x': xval, 'y':yval, 'z':zval}
@@ -38,14 +35,10 @@ class Receiver1D(Receiver):
         Raises:
 
         """
-        if "nstacks" in recordings:
-            self.timeseries = TimeSeries(recordings["amp"],
-                                         recordings["dt"],
-                                         recordings["nstacks"])
-        else:
-            self.timeseries = TimeSeries(recordings["amp"], recordings["dt"])
+        self.timeseries = timeseries
         self.amp = self.timeseries.amp
         self.dt = self.timeseries.dt
+        self.delay = self.timeseries.delay
         self.nsamples = len(self.amp)
         self.position = position
 
@@ -71,16 +64,17 @@ class Receiver1D(Receiver):
         # logging.info("delta = {}".format(trace.stats.delta))
         # logging.info("stack = {}".format(trace.stats.seg2.STACK))
 
-        return cls(recordings={"amp": trace.data,
-                               "dt": trace.stats.delta,
-                               "nstacks": int(trace.stats.seg2.STACK)},
+        return cls(TimeSeries(amplitude=trace.data,
+                              dt=trace.stats.delta,
+                              nstacks=int(trace.stats.seg2.STACK),
+                              delay=float(trace.stats.seg2.DELAY)),
                    position={"x": float(trace.stats.seg2.RECEIVER_LOCATION),
                              "y": 0.,
                              "z": 0.})
 
     # @classmethod
     # def from_traces(cls, traces):
-    #     """Create a Receiver1D object from multiple trace objects that 
+    #     """Create a Receiver1D object from multiple trace objects that
     #     will be stacked.
 
     #     Args:
