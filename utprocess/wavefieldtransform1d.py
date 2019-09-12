@@ -4,6 +4,9 @@ wavefield transformation for a 1D array."""
 from utprocess import DispersionPower
 import json
 import numpy as np
+import logging  
+logger = logging.getLogger(__name__)
+
 
 
 class WavefieldTransform1D():
@@ -42,6 +45,10 @@ class WavefieldTransform1D():
 
         """
         self.array = array
+        inside_array = (array.source.position["x"] > 0 and
+                        array.source.position["x"] < (array.nchannels-1)*array.spacing)
+        if inside_array:
+            raise ValueError("Source is inside the array.")
 
         with open(settings_file, "r") as f:
             settings = json.load(f)
@@ -57,19 +64,18 @@ class WavefieldTransform1D():
             kres = self.array.kres
             dk = 2*np.pi / (numk*self.array.spacing)
             k_vals = np.arange(dk, kres, dk)
-            
+
             fk = np.fft.fft2(self.array.timeseriesmatrix,
                              s=(self.array.nsamples, numk))
             fk = np.fliplr(np.abs(fk))
             fk = fk[0:len(freq), 1::]
 
             # Remove frequencies above/below specificied max/min frequencies and downsample (if required by zero padding)
-            # TODO (jpv): I think there is cleaner syntax for this.
-            # fminID = np.argmin(np.absolute(freq-min_frequency))
-            # fmaxID = np.argmin(np.absolute(freq-max_frequency))
+            fminID = np.argmin(np.absolute(freq-min_frequency))
+            fmaxID = np.argmin(np.absolute(freq-max_frequency))
             # freq_id = range(fminID, (fmaxID+1), shotGather.multiple)
-            # freq = freq[freq_id]
-            # fk = fk[freq_id, :]
+            freq = freq[freq_id]
+            fk = fk[freq_id, :]
 
             # Identify wavenumber associated with maximum in fk domain..................
             pnorm = np.zeros(np.shape(fk))

@@ -1,11 +1,13 @@
 """File defining the Peaks class that allows for read and modifying
 peak values from the dispersion data."""
 
+import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib as mpl
 from utprocess import plot_tools
 mpl.use('Qt4Agg')
+logger = logging.getLogger(__name__)
 
 
 class Peaks():
@@ -231,10 +233,20 @@ class Peaks():
         # Velocity vs frequency plot
         axf = cfig.add_subplot(1, 2, 1)
         for r in range(len(velocity)):
-            axf.plot(frequency[r], velocity[r], marker=markType[r], markersize=5,
-                     markeredgecolor=colorSpec[r], markerfacecolor="none", linestyle="none")
-        axf.errorbar(meanDisp[:, 0], meanDisp[:, 1], meanDisp[:, 2],
-                     marker="o", markersize=5, color="k", linestyle="none")
+            axf.plot(frequency[r],
+                     velocity[r],
+                     marker=markType[r],
+                     markersize=5,
+                     markeredgecolor=colorSpec[r],
+                     markerfacecolor="none",
+                     linestyle="none")
+        axf.errorbar(meanDisp[:, 0],
+                     meanDisp[:, 1],
+                     meanDisp[:, 2],
+                     marker="o",
+                     markersize=5,
+                     color="k",
+                     linestyle="none")
         # min(klimits) and max(klimits) lines
         if klimits:
             axf.plot(freq_klim, vel_klimF[:, 0], linestyle=":")
@@ -250,7 +262,7 @@ class Peaks():
 
         # Velocity vs wavelength
         axw = cfig.add_subplot(1, 2, 2)
-        
+
         # Raw data and error bars
         for r in range(len(velocity)):
             axw.plot(velocity[r]/frequency[r], velocity[r], marker=markType[r], markersize=5,
@@ -308,7 +320,8 @@ class Peaks():
 
                 # If user clicked on two different axes, warn user and return
                 if axclick[0] != axclick[1]:
-                    print("WARNING: BOTH CLICKS MUST BE ON SAME AXIS")
+                    logging.warning(
+                        "WARNING: BOTH CLICKS MUST BE ON SAME AXIS")
                     return
 
                 axf = cfig.axes[0]
@@ -337,8 +350,10 @@ class Peaks():
                 wrmv = w[(rmv_id-1)]
                 n_rmv += len(vrmv)
                 # Plot deleted data with black x's
-                axf.plot(frmv, vrmv, marker="x", color="k", markersize=5, linestyle="none")
-                axw.plot(wrmv, vrmv, marker="x", color="k", markersize=5, linestyle="none")
+                axf.plot(frmv, vrmv, marker="x", color="k",
+                         markersize=5, linestyle="none")
+                axw.plot(wrmv, vrmv, marker="x", color="k",
+                         markersize=5, linestyle="none")
                 cfig.canvas.draw_idle()
 
                 # Retained data

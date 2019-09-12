@@ -4,9 +4,6 @@ for a receiver with only one component."""
 from utprocess import Receiver, TimeSeries
 import logging
 
-# logging.basicConfig()
-
-
 class Receiver1D(Receiver):
     """Derived receiver class for sensors with only one component.
 

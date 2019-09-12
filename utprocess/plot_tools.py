@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
+import logging
 
 # Create an array, where each row contains an RGBA color equally spaced in a colormap
 def makecolormap( N, maptype='jet' ):

@@ -1,24 +1,33 @@
 import utprocess
 import matplotlib.pyplot as plt
 import os
+import logging
+# # import warnings
+# warnings.filterwarnings("ignore")
+logging.basicConfig(level=logging.DEBUG)
+
 
 folder = "test/data/vuws/"
-filegroup = [["1.dat", "2.dat", "3.dat", "4.dat", "5.dat"],
-             ["6.dat", "7.dat", "8.dat", "9.dat", "10.dat"],
-             ["11.dat", "12.dat", "13.dat", "14.dat", "15.dat"]
+filegroup = [[f"{x}.dat" for x in range(1, 6)],
+             [f"{x}.dat" for x in range(6, 11)],
+             [f"{x}.dat" for x in range(11, 16)],
+             [f"{x}.dat" for x in range(16, 26)],
+             [f"{x}.dat" for x in range(26, 36)],
+             [f"{x}.dat" for x in range(36, 46)],
              ]
-settings_file = "test/test_fksettings.json"
 
-os.remove("test_output_new.json")
+settings_file = "test/test_fksettings.json"
 
 for group in filegroup:
     for fnum, fname in enumerate(group):
         group[fnum] = folder+fname
     array = utprocess.Array1D.from_seg2s(group)
-
+    array.plot_array()
+    array.plot_waterfall()
     fk = utprocess.WavefieldTransform1D(array=array,
                                         settings_file=settings_file)
     fk.disp_power.plot_spec(plot_limit=[5, 100, 0, 500])
     fk.disp_power.save_peaks(fname="test_output_new",
-                             source_location=array.source.x)
+                             identifier=array.source.position["x"],
+                             append=False if fnum == 1 else True)
 plt.show()
