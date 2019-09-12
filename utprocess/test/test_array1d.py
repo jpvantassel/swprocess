@@ -5,14 +5,17 @@ import obspy
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+import copy
 import logging
-logging.basicConfig(level=logging.CRITICAL)
+logging.basicConfig(level=logging.DEBUG)
 
 
-def make_dummy_array(timeseries, nreceivers, spacing, source_location):
+def make_dummy_array(amp, dt, nstacks, delay, nreceivers, spacing, source_location):
     """Make simple dummy array from timeseries for testing."""
     recs = []
     for receiever_number in range(nreceivers):
+        amp = copy.deepcopy(amp)
+        timeseries = utprocess.TimeSeries(amp, dt, nstacks, delay)
         pos = {'x': receiever_number*spacing, 'y': 0, 'z': 0}
         rec = utprocess.Receiver1D(timeseries=timeseries, position=pos)
         recs.append(rec)
@@ -34,9 +37,9 @@ class Test_Array1D(unittest.TestCase):
         arr = utprocess.Array1D(receivers=[rec1, rec2],
                                 source=source)
         self.assertEqual(arr.nchannels, 2)
-        self.assertEqual(arr.nsamples, 3)
-        self.assertEqual(arr.dt, 1)
-        self.assertEqual(arr.delay, 0)
+        self.assertEqual(arr.ex_rec.timeseries.nsamples, 3)
+        self.assertEqual(arr.ex_rec.timeseries.dt, 1)
+        self.assertEqual(arr.ex_rec.timeseries.delay, 0)
         self.assertListEqual(arr.timeseriesmatrix.tolist(),
                              [[1, 1], [2, 2], [3, 3]])
 
@@ -69,7 +72,7 @@ class Test_Array1D(unittest.TestCase):
         fnames = [f"test/data/vuws/{x}.dat" for x in range(16, 20)]
         array4 = utprocess.Array1D.from_seg2s(fnames)
         array4.plot_waterfall()
-        plt.show()
+        # plt.show()
 
     def test_plot_array(self):
         # Basic case (near-side, 2m spacing)
@@ -95,53 +98,50 @@ class Test_Array1D(unittest.TestCase):
         # Basic case (far-side, 2m spacing)
         fname = "test/data/vuws/20.dat"
         utprocess.Array1D.from_seg2s(fname).plot_array()
-        plt.show()
+        # plt.show()
 
     def test_trim_timeseries(self):
         # Standard case (0.5s delay, 1s record -> 0.5s record)
-        recording = utprocess.TimeSeries(amplitude=np.sin(2*np.pi*1*np.arange(-1, 1, 0.01)).tolist(),
-                                         dt=0.01,
-                                         nstacks=1,
-                                         delay=-1)
-        arr = make_dummy_array(timeseries=recording,
+        arr = make_dummy_array(amp=np.sin(2*np.pi*1*np.arange(-1, 1, 0.01)).tolist(),
+                               dt=0.01,
+                               nstacks=1,
+                               delay=-1,
                                nreceivers=2,
                                spacing=2,
                                source_location=-5)
-        self.assertEqual(arr.delay, -1)
-        self.assertEqual(arr.nsamples, 200)
+        self.assertEqual(arr.ex_rec.timeseries.delay, -1)
+        self.assertEqual(arr.ex_rec.timeseries.nsamples, 200)
         arr.trim_timeseries(0, 0.5)
-        self.assertEqual(arr.delay, 0)
-        self.assertEqual(arr.nsamples, 51)
+        self.assertEqual(arr.ex_rec.timeseries.delay, 0)
+        self.assertEqual(arr.ex_rec.timeseries.nsamples, 50)
 
         # Long record (-1s delay, 1s record -> 1s record)
-        recording = utprocess.TimeSeries(amplitude=np.sin(2*np.pi*1*np.arange(-1, 2, 0.01)).tolist(),
-                                         dt=0.01,
-                                         nstacks=1,
-                                         delay=-1)
-        arr = make_dummy_array(timeseries=recording,
+        arr = make_dummy_array(amp=np.sin(2*np.pi*1*np.arange(-1, 2, 0.01)).tolist(),
+                               dt=0.01,
+                               nstacks=1,
+                               delay=-1,
                                nreceivers=2,
                                spacing=2,
                                source_location=-5)
-        self.assertEqual(arr.delay, -1)
-        self.assertEqual(arr.nsamples, 300)
+        self.assertEqual(arr.ex_rec.timeseries.delay, -1)
+        self.assertEqual(arr.ex_rec.timeseries.nsamples, 300)
         arr.trim_timeseries(0, 1)
-        self.assertEqual(arr.delay, 0)
-        self.assertEqual(arr.nsamples, 101)
+        self.assertEqual(arr.ex_rec.timeseries.delay, 0)
+        self.assertEqual(arr.ex_rec.timeseries.nsamples, 100)
 
         # Bad trigger (-0.5s delay, 0.5s record -> 0.2s record)
-        recording = utprocess.TimeSeries(amplitude=np.sin(2*np.pi*1*np.arange(-0.5, 0.5, 0.01)).tolist(),
-                                         dt=0.01,
-                                         nstacks=1,
-                                         delay=-0.5)
-        arr = make_dummy_array(timeseries=recording,
+        arr = make_dummy_array(amp=np.sin(2*np.pi*1*np.arange(-0.5, 0.5, 0.01)).tolist(),
+                               dt=0.01,
+                               nstacks=1,
+                               delay=-0.5,
                                nreceivers=2,
                                spacing=2,
                                source_location=-5)
-        self.assertEqual(arr.delay, -0.5)
-        self.assertEqual(arr.nsamples, 100)
+        self.assertEqual(arr.ex_rec.timeseries.delay, -0.5)
+        self.assertEqual(arr.ex_rec.timeseries.nsamples, 100)
         arr.trim_timeseries(-0.1, 0.1)
-        self.assertEqual(arr.delay, -0.1)
-        self.assertEqual(arr.nsamples, 21)
+        self.assertEqual(arr.ex_rec.timeseries.delay, -0.1)
+        self.assertEqual(arr.ex_rec.timeseries.nsamples, 20)
 
 
 if __name__ == '__main__':

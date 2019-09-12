@@ -6,7 +6,7 @@ import numpy as np
 import obspy
 import matplotlib.pyplot as plt
 from scipy import signal
-import logging  
+import logging
 import warnings
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,25 @@ class Array1D(ReceiverArray):
     Attributes:
         self.nsensor: Number of sensors in 1D array.
     """
+
+    def __make_timeseries_matrix(self):
+        self.ex_rec = self.receivers[0]
+        self.nsamples = self.ex_rec.timeseries.nsamples
+        self.timeseriesmatrix = np.zeros((self.nsamples, self.nchannels))
+        self.position = []
+        for current_receiver, receiver in enumerate(self.receivers):
+            assert(self.ex_rec.timeseries.nsamples ==
+                   receiver.timeseries.nsamples)
+            assert(self.ex_rec.timeseries.dt == receiver.timeseries.dt)
+            self.timeseriesmatrix[:,
+                                  current_receiver] = receiver.timeseries.amp
+            self.position.append(receiver.position["x"])
+        logger.info("\tAll dt and nsamples are equal.")
+
+        self.flipped = False if self.source.position['x'] < 0 else True
+        if self.flipped:
+            self.timeseriesmatrix = np.fliplr(self.timeseriesmatrix)
+            logger.info("\ttimeseriesmatrix is flipped.")
 
     def __init__(self, receivers, source):
         """Initialize an Array1D object from a list of receivers.
@@ -31,32 +50,17 @@ class Array1D(ReceiverArray):
             Initialize an Array1D object.
 
         Raises:
+            This method raises no exceptions.
 
         """
-        logger.info(" Initalize an Array1D object.")
+        logger.info("Initalize an Array1D object.")
         self.receivers = receivers
-        self.nchannels = len(receivers)
-        self.nsamples = receivers[0].nsamples
-        self.delay = receivers[0].delay
-        self.dt = receivers[0].dt
-        # self.fs = 1/self.dt
-        # self.fnyq = 0.5*self.fs
-        self.timeseriesmatrix = np.zeros((self.nsamples, self.nchannels))
-        self.position = []
-        for current_receiver, receiver in enumerate(receivers):
-            assert(self.nsamples == receiver.nsamples)
-            assert(self.dt == receiver.dt)
-            self.timeseriesmatrix[:, current_receiver] = receiver.amp
-            self.position.append(receiver.position["x"])
-        logger.info("\tAll dt and nsamples are equal.")
+        self.nchannels = len(self.receivers)
+        self.source = source
+        self.__make_timeseries_matrix()
         self.kres = 2*np.pi / min(np.diff(self.position))
         assert(self.kres > 0)
         logger.info("\tkres > 0")
-        self.source = source
-        self.flipped = False if self.source.position['x'] < 0 else True
-        if self.flipped:
-            self.timeseriesmatrix = np.fliplr(self.timeseriesmatrix)
-            logger.info("\ttimeseriesmatrix is flipped.")
 
     def trim_timeseries(self, start_time, end_time):
         """Trim excess off of the time series.
@@ -80,37 +84,10 @@ class Array1D(ReceiverArray):
                 pretrigger delay or after end_time, and the end_time is
                 before the start_time or after the end of the record.
         """
-        current_time = np.arange(self.delay,
-                                 self.nsamples * self.dt + self.delay,
-                                 self.dt)
-        start = min(current_time)
-        end = max(current_time)
-        if start_time < start or start_time > end_time:
-            raise IndexError("Illogical start_time, see doctring")
-        if end_time > end or end_time < start_time:
-            raise IndexError("Illogical end_time, see doctring")
-
-        logger.info(f"start = {start}, moving to start_time = {start_time}")
-        logger.info(f"start = {end}, moving to end_time = {end_time}")
-
-        start_residual = current_time - start_time
-        end_residual = current_time - end_time
-        start_index = int(np.where(abs(start_residual) ==
-                                   min(abs(start_residual)))[0])
-        end_index = int(np.where(abs(end_residual) ==
-                                 min(abs(end_residual)))[0])
-
-        logger.debug(f"start_index = {start_index}")
-        logger.debug(f"start_index = {end_index}")
-
-        self.timeseriesmatrix = self.timeseriesmatrix[start_index:end_index+1, :]
-        self.nsamples = self.timeseriesmatrix.shape[0]
-        self.df = self.fs/self.nsamples
-        self.delay = 0 if start_time >= 0 else start_time
-
-        logger.info(f"nsamples = {self.nsamples}")
-        logger.info(f"df = {self.df}")
-        logger.info(f"delay = {self.delay}")
+        for rec_num, receiver in enumerate(self.receivers):
+            logging.debug(f"Starting to trim receiver {rec_num}")
+            receiver.timeseries.trim(start_time, end_time)
+        self.__make_timeseries_matrix()
 
     def plot_waterfall(self, scale_factor=1.0, plot_ax='x'):
         """Create waterfall plot for the shot or stack of shots for this
@@ -138,13 +115,14 @@ class Array1D(ReceiverArray):
         Raises:
             This method raises no exceptions.
         """
-        time = np.arange(self.delay,
-                         self.nsamples*self.dt + self.delay,
-                         self.dt)
+        time = np.arange(self.ex_rec.timeseries.delay,
+                         self.ex_rec.timeseries.nsamples *
+                         self.ex_rec.timeseries.dt + self.ex_rec.timeseries.delay,
+                         self.ex_rec.timeseries.dt)
 
         # Length of time vector may become longer than nsamples, due to
         # numerical imprecision, if so remove the last sample.
-        if len(time) > self.nsamples:
+        if len(time) > self.ex_rec.timeseries.nsamples:
             time = time[:-1]
 
         # Normalize and detrend
@@ -313,7 +291,7 @@ class Array1D(ReceiverArray):
                     # TODO (jpv): Alllow you to index an array will return receiver
                     assert(arr.source.position["x"] ==
                            float(trace.stats.seg2.SOURCE_LOCATION))
-                    assert(arr.delay ==
+                    assert(arr.ex_rec.timeseries.delay ==
                            float(trace.stats.seg2.DELAY))
                     # if rid == 1:
                     #     print(np.mean(arr.receivers[rid].timeseries.amp))

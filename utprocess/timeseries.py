@@ -79,6 +79,60 @@ class TimeSeries():
         logging.info(f"\tdelay = {delay}")
         logging.info(f"\tnsamples = {self.nsamples}")
 
+    def trim(self, start_time, end_time):
+        """Trim excess off of TimeSeries object in the half open
+        interval [start_time, end_time).
+
+        Args: 
+            start_time: Float denoting the desired start time in seconds 
+                from the point the acquisition was triggered.
+
+            end_time: Float denoting the desired end time in seconds 
+                from the point the acquisition was triggered. Note that 
+                the interval is half-open.
+
+        Returns:
+            Returns no value, but may update the state of attributes:
+                nsamples
+                delay
+                df
+
+        Raises:
+            IndexError if the start_time and end_time is illogical.
+                For example, start_time is before the start of the
+                pretrigger delay or after end_time, or the end_time is
+                before the start_time or after the end of the record.
+        """
+        current_time = np.arange(self.delay,
+                                 self.nsamples * self.dt + self.delay,
+                                 self.dt)
+        start = min(current_time)
+        end = max(current_time)
+        if start_time < start or start_time > end_time:
+            logger.debug(f"This must be true: {start} < {start_time} < {end_time}")
+            raise IndexError("Illogical start_time, see doctring")
+        if end_time > end or end_time < start_time:
+            logger.debug(f"This must be true: {start_time} < {end_time} < {end}")
+            raise IndexError("Illogical end_time, see doctring")
+
+        logger.info(f"start = {start}, moving to start_time = {start_time}")
+        logger.info(f"start = {end}, moving to end_time = {end_time}")
+
+        start_index = np.argmin(np.absolute(current_time - start_time))
+        end_index = np.argmin(np.absolute(current_time - end_time))
+
+        logger.debug(f"start_index = {start_index}")
+        logger.debug(f"start_index = {end_index}")
+
+        self.amp = self.amp[start_index:end_index]
+        self.nsamples = len(self.amp)
+        self.df = self.fs/self.nsamples
+        self.delay = 0 if start_time >= 0 else start_time
+
+        logger.info(f"nsamples = {self.nsamples}")
+        logger.info(f"df = {self.df}")
+        logger.info(f"delay = {self.delay}")
+
     def zero_pad(self, df=0.2):
         """Append zeros to the end of the TimeSeries object to achieve a
         desired frequency step.

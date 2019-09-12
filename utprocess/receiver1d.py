@@ -3,12 +3,14 @@ for a receiver with only one component."""
 
 from utprocess import Receiver, TimeSeries
 import logging
+logger = logging.getLogger(__name__)
+
 
 class Receiver1D(Receiver):
     """Derived receiver class for sensors with only one component.
 
     Attributes:
-        timeeries: TimeSeries corresponding to this reciever.
+        timseeries: TimeSeries corresponding to this reciever.
         amp:
         dt: 
         position: 
@@ -30,13 +32,13 @@ class Receiver1D(Receiver):
             An intialized one-dimensional receiver object.
 
         Raises:
-
+            This method raises no exceptions.
         """
         self.timeseries = timeseries
-        self.amp = self.timeseries.amp
-        self.dt = self.timeseries.dt
-        self.delay = self.timeseries.delay
-        self.nsamples = len(self.amp)
+        # self.amp = self.timeseries.amp
+        # self.dt = self.timeseries.dt
+        # self.delay = self.timeseries.delay
+        # self.nsamples = len(self.amp)
         self.position = position
 
     @classmethod

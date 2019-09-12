@@ -88,6 +88,29 @@ class TestTimeSeries(unittest.TestCase):
         self.assertEqual(thist.multiple, 4)
         self.assertEqual(len(thist.amp)/thist.multiple, 1/(0.02*1))
 
+    def test_trim(self):
+        # Standard
+        thist = utprocess.TimeSeries(amplitude=list(np.arange(0, 2, 0.01)),
+                                     dt=0.01)
+        self.assertEqual(len(thist.amp), 200)
+        thist.trim(0, 1)
+        self.assertEqual(len(thist.amp), 100)
+        self.assertEqual(thist.nsamples, 100)
+
+        # With pre-trigger delay
+        thist = utprocess.TimeSeries(amplitude=list(np.arange(0, 2, 0.01)),
+                                     dt=0.01,
+                                     delay=-.5)
+        # Remove part of pre-trigger
+        thist.trim(-0.25, 0.25)
+        self.assertEqual(thist.nsamples, 50)
+        self.assertEqual(thist.delay, -0.25)
+        # Remove all of pre-trigger
+        thist.trim(0, 0.2)
+        self.assertEqual(thist.nsamples, 20)
+        self.assertEqual(thist.delay, 0)
+
+
 
 if __name__ == '__main__':
     unittest.main()
