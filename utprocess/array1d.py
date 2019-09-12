@@ -6,6 +6,9 @@ import numpy as np
 import obspy
 import matplotlib.pyplot as plt
 from scipy import signal
+import logging  
+import warnings
+logger = logging.getLogger(__name__)
 
 
 class Array1D(ReceiverArray):
@@ -30,14 +33,14 @@ class Array1D(ReceiverArray):
         Raises:
 
         """
+        logger.info(" Initalize an Array1D object.")
         self.receivers = receivers
         self.nchannels = len(receivers)
         self.nsamples = receivers[0].nsamples
         self.delay = receivers[0].delay
         self.dt = receivers[0].dt
-        self.fs = 1/self.dt
-        self.df = self.fs/self.nsamples
-        self.fnyq = 0.5*self.fs
+        # self.fs = 1/self.dt
+        # self.fnyq = 0.5*self.fs
         self.timeseriesmatrix = np.zeros((self.nsamples, self.nchannels))
         self.position = []
         for current_receiver, receiver in enumerate(receivers):
@@ -45,11 +48,71 @@ class Array1D(ReceiverArray):
             assert(self.dt == receiver.dt)
             self.timeseriesmatrix[:, current_receiver] = receiver.amp
             self.position.append(receiver.position["x"])
+        logger.info("\tAll dt and nsamples are equal.")
         self.kres = 2*np.pi / min(np.diff(self.position))
         assert(self.kres > 0)
+        logger.info("\tkres > 0")
         self.source = source
+        self.flipped = False if self.source.position['x'] < 0 else True
+        if self.flipped:
+            self.timeseriesmatrix = np.fliplr(self.timeseriesmatrix)
+            logger.info("\ttimeseriesmatrix is flipped.")
 
-    def plot_waterfall(self, scale_factor=1.0, timelength=1, plot_ax='x'):
+    def trim_timeseries(self, start_time, end_time):
+        """Trim excess off of the time series.
+
+        Args: 
+            start_time: Float denoting the desired start time in seconds 
+                from the point the acquisition was triggered.
+
+            end_time: Float denoting the desired end time in seconds 
+                from the point the acquisition was triggered.
+
+        Returns:
+            Returns no value, but may update the state of attributes:
+                nsamples
+                delay
+                df
+
+        Raises:
+            IndexError if the start_time and end_time is illogical.
+                For example, start_time is before the start of the
+                pretrigger delay or after end_time, and the end_time is
+                before the start_time or after the end of the record.
+        """
+        current_time = np.arange(self.delay,
+                                 self.nsamples * self.dt + self.delay,
+                                 self.dt)
+        start = min(current_time)
+        end = max(current_time)
+        if start_time < start or start_time > end_time:
+            raise IndexError("Illogical start_time, see doctring")
+        if end_time > end or end_time < start_time:
+            raise IndexError("Illogical end_time, see doctring")
+
+        logger.info(f"start = {start}, moving to start_time = {start_time}")
+        logger.info(f"start = {end}, moving to end_time = {end_time}")
+
+        start_residual = current_time - start_time
+        end_residual = current_time - end_time
+        start_index = int(np.where(abs(start_residual) ==
+                                   min(abs(start_residual)))[0])
+        end_index = int(np.where(abs(end_residual) ==
+                                 min(abs(end_residual)))[0])
+
+        logger.debug(f"start_index = {start_index}")
+        logger.debug(f"start_index = {end_index}")
+
+        self.timeseriesmatrix = self.timeseriesmatrix[start_index:end_index+1, :]
+        self.nsamples = self.timeseriesmatrix.shape[0]
+        self.df = self.fs/self.nsamples
+        self.delay = 0 if start_time >= 0 else start_time
+
+        logger.info(f"nsamples = {self.nsamples}")
+        logger.info(f"df = {self.df}")
+        logger.info(f"delay = {self.delay}")
+
+    def plot_waterfall(self, scale_factor=1.0, plot_ax='x'):
         """Create waterfall plot for the shot or stack of shots for this
         array setup.
 
@@ -64,9 +127,6 @@ class Array1D(ReceiverArray):
                 timeseries height (peak-to-trough). Half the receiver
                 spacing is generally a good value.
 
-            timelength: Float denoting the length of the time series 
-                to plot in seconds.
-
             plot_ax: {'x' or 'y'} denoting on which axis the waterfall
                 plot should be plotted on.
 
@@ -78,10 +138,14 @@ class Array1D(ReceiverArray):
         Raises:
             This method raises no exceptions.
         """
-        # TODO (jpv): Include delay attribute in receiver class.
+        time = np.arange(self.delay,
+                         self.nsamples*self.dt + self.delay,
+                         self.dt)
 
-        time = np.arange(self.delay, (self.nsamples *
-                                      self.dt + self.delay), self.dt)
+        # Length of time vector may become longer than nsamples, due to
+        # numerical imprecision, if so remove the last sample.
+        if len(time) > self.nsamples:
+            time = time[:-1]
 
         # Normalize and detrend
         norm_traces = np.zeros(np.shape(self.timeseriesmatrix))
@@ -127,6 +191,9 @@ class Array1D(ReceiverArray):
             ax.tick_params(labelsize=11)
             ax.tick_params('y', length=4, width=1, which='major')
             ax.tick_params('x', length=4, width=1, which='major')
+        if self.flipped:
+            ax.text(
+                0, 0, "This is a far-offset shot.\nTraces have been flipped to\nappear as if they were from\na near-offset shot.")
         return (fig, ax)
 
     def plot_array(self):
@@ -158,7 +225,7 @@ class Array1D(ReceiverArray):
             This method raises no exceptions.
         """
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 2))
-        
+
         for n_rec, receiver in enumerate(self.receivers):
             label = "Receiver" if n_rec == 1 else None
             ax.plot(receiver.position["x"],
@@ -195,8 +262,7 @@ class Array1D(ReceiverArray):
         if min_spacing == max_spacing:
             return min_spacing
         else:
-            raise ValueError(
-                "spacing is not defined for non-equally spaced arrays")
+            raise ValueError("spacing undefined for non-equally spaced arrays")
 
     @classmethod
     def from_seg2s(cls, fnames):
@@ -221,10 +287,12 @@ class Array1D(ReceiverArray):
             if type(fnames) in [str]:
                 fnames = [fnames]
         else:
-            raise TypeError(
-                f"fnames should be of type list or str, not {type(fnames)}.")
+            raise TypeError(f"fnames must be list or str, not {type(fnames)}.")
 
-        stream = obspy.read(fnames[0])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            stream = obspy.read(fnames[0])
+
         receivers = []
         for trace in stream.traces:
             receivers.append(Receiver1D.from_trace(trace))
@@ -235,7 +303,9 @@ class Array1D(ReceiverArray):
 
         if len(fnames) > 0:
             for fname in fnames[1:]:
-                stream = obspy.read(fname)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    stream = obspy.read(fname)
                 for rid, trace in enumerate(stream.traces):
                     arr.receivers[rid].timeseries.stack_append(amplitude=trace.data,
                                                                dt=trace.stats.delta,
