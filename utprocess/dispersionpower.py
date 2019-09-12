@@ -4,6 +4,8 @@ manipulating measurements of dipserison power."""
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+import logging  
+logger = logging.getLogger(__name__)
 
 
 class DispersionPower():
@@ -21,7 +23,32 @@ class DispersionPower():
         self.kres = kres
         self.pnorm = pnorm
 
-    def save_peaks(self, fname, source_location):
+    def save_peaks(self, fname, identifier, append=False):
+        """Save the peak disperison values frequency and velocity to
+        json file.
+
+        Args: 
+            fname: String denoting the name of the output file, may be
+                a full path if desired. Do not include the '.json'
+                extension.
+
+            identifier: Any immutable/hashable type to denote the object
+                (i.e., array) to which this data belongs. For MASW this
+                may be the offset, for MAM this may be the array name.
+
+            append: Boolean to denote whether a file with the same name
+                as fname (if it exists) should be appended to or that
+                the file should be overwritten.
+
+        Returns:
+            Do not return a value, instead write dispersion to json file
+            fname.
+
+        Raises:
+            This method raises no exceptions.
+        """
+        logging.info("DispersionPower.save_peaks")
+
         if self.val_type == "wavenumber":
             v_peak = 2*np.pi / self.peak_vals*self.freq
         elif self.val_type == "velocity":
@@ -29,30 +56,22 @@ class DispersionPower():
         else:
             raise NotImplementedError()
 
-        # # print(self.freq.tolist())
-        # print(v_peak.tolist())
-        # print(source_location)
-
-        try:
-            # print("Attempt opening file ...")
-            f = open(f"{fname}.json", "r")
-        except FileNotFoundError:
-            # print("There was an exception ...")
-            data = {}
-        else:
-            # print("File opened correctly ...")
-            data = json.load(f)
-            f.close()
-
-        print("Existing Data ", data)
-        with open(f"{fname}.json", "w") as fp:
-            if source_location in data:
-                raise KeyError(
-                    f"Source location {source_location} is repeated.")
+        data = {}
+        if append:
+            try:
+                f = open(f"{fname}.json", "r")
+            except FileNotFoundError:
+                pass
             else:
-                data.update({source_location: {"frequency": self.freq.tolist(),
-                                               "velocity": v_peak.tolist()}})
-            print("Updated Data ", data)
+                data = json.load(f)
+                f.close()
+
+        with open(f"{fname}.json", "w") as fp:
+            if identifier in data:
+                raise KeyError(f"identifier {identifier} is repeated.")
+            else:
+                data.update({identifier: {"frequency": self.freq.tolist(),
+                                           "velocity": v_peak.tolist()}})
             json.dump(data, fp)
 
     def plot_spec(self, plot_type="fv", plot_limit=None):
