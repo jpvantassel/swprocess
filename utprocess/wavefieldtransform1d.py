@@ -2,7 +2,6 @@
 wavefield transformation for a 1D array."""
 
 import matplotlib.pyplot as plt
-from utprocess import DispersionPower
 import json
 import numpy as np
 import logging
@@ -52,17 +51,17 @@ class WavefieldTransform1D():
 
         with open(settings_file, "r") as f:
             settings = json.load(f)
-            general = settings["general"]
+            self.general = settings["general"]
 
-        if general["start_time"] != None and general["end_time"] != None:
-            array.trim_timeseries(start_time=general["start_time"],
-                                  end_time=general["end_time"])
+        if self.general["start_time"] != None and self.general["end_time"] != None:
+            array.trim_timeseries(start_time=self.general["start_time"],
+                                  end_time=self.general["end_time"])
 
         if settings["type"] == "fk":
-            numk = general["n_trial"]
+            numk = self.general["n_trial"]
             if numk % 2 != 0:
                 numk += 1
-            # TODO (jpv) generalize numk to be n_trial, so move above outside of if statement
+            # TODO (jpv) self.generalize numk to be n_trial, so move above outside of if statement
 
             freq = np.arange(0,
                              self.array.ex_rec.timeseries.fnyq+self.array.ex_rec.timeseries.df,
@@ -78,9 +77,10 @@ class WavefieldTransform1D():
             fk = fk[0:len(freq), 1::]
 
             # Remove frequencies above/below specificied max/min frequencies and downsample (if required by zero padding)
-            fminID = np.argmin(np.absolute(freq-general["min_freq"]))
-            fmaxID = np.argmin(np.absolute(freq-general["max_freq"]))
-            freq_id = range(fminID, (fmaxID+1),
+            fminID = np.argmin(np.absolute(freq-self.general["min_freq"]))
+            fmaxID = np.argmin(np.absolute(freq-self.general["max_freq"]))
+            freq_id = range(fminID,
+                            (fmaxID+1),
                             array.ex_rec.timeseries.multiple)
             freq = freq[freq_id]
             fk = fk[freq_id, :]
@@ -201,7 +201,8 @@ class WavefieldTransform1D():
             xpeak = self.freq
             ypeak = v_peak
             if plot_limit == None:
-                plot_limit = [0, np.max(self.freq), 0, 1000]
+                plot_limit = [
+                    0, np.max(self.freq), self.general["min_vel"], self.general["max_vel"]]
             xscale = "linear"
             yscale = "linear"
             xLabText = "Frequency (Hz)"
@@ -265,8 +266,8 @@ class WavefieldTransform1D():
         ax.set_ylabel(yLabText, fontsize=12, fontname="arial")
         ax.set_xscale(xscale)
         ax.set_yscale(yscale)
-        ax.set_xticklabels(ax.get_xticks(), fontsize=12, fontname="arial")
-        ax.set_yticklabels(ax.get_yticks(), fontsize=12, fontname="arial")
+        # ax.set_xticklabels(ax.get_xticks(), fontsize=12, fontname="arial")
+        # ax.set_yticklabels(ax.get_yticks(), fontsize=12, fontname="arial")
         return fig, ax
 
     # # TODO (jpv) Pythonize this

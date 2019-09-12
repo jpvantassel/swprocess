@@ -2,8 +2,6 @@ import utprocess
 import matplotlib.pyplot as plt
 import os
 import logging
-# # import warnings
-# warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -18,16 +16,17 @@ filegroup = [[f"{x}.dat" for x in range(1, 6)],
 
 settings_file = "test/test_fksettings.json"
 
-for group in filegroup:
+for gnum, group in enumerate(filegroup):
     for fnum, fname in enumerate(group):
         group[fnum] = folder+fname
     array = utprocess.Array1D.from_seg2s(group)
-    array.plot_array()
-    array.plot_waterfall()
+    # array.plot_array()
+    # array.plot_waterfall()
     fk = utprocess.WavefieldTransform1D(array=array,
                                         settings_file=settings_file)
-    fk.disp_power.plot_spec(plot_limit=[5, 100, 0, 500])
-    fk.disp_power.save_peaks(fname="test_output_new",
-                             identifier=array.source.position["x"],
-                             append=False if fnum == 1 else True)
+    # array.plot_waterfall()
+    fk.plot_spec()
+    fk.save_peaks(fname="test_output_new",
+                  identifier=array.source.position["x"],
+                  append=False if gnum == 0 else True)
 plt.show()

@@ -20,16 +20,20 @@ class Peaks():
             self.frq += [(freq_in[np.where(freq_in != 0)])]
             self.wav += [self.vel[-1]/self.frq[-1]]
         self.ids = identifier
+        self.meanDisp = False #TODO (jpv) remove this hack and fix mixed state issue
 
     def write_to_txt_dinver(self, fname):
         pass
 
     def write_to_csv_utinvert(self, fname):
-        with open(fname, "w") as f:
-            f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)")
-            for f_set, v_set, s_set in zip(self.frq, self.vel, self.std):
-                for fr, ve, st in zip(f_set, v_set, s_set):
-                    f.write(f"{fr},{ve},{st}")
+        if isinstance(self.meanDisp, np.ndarray):
+            with open(fname, "w") as f:
+                f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)\n")
+                # for f_set, v_set, s_set in zip(self.meanDisp[:,0], self.meanDisp[:,1], self.meanDisp[:,2]):
+                for fr, ve, st in zip(self.meanDisp[:,0], self.meanDisp[:,1], self.meanDisp[:,2]):
+                    f.write(f"{fr},{ve},{st}\n")
+        else:
+            raise ValueError("party_time not run self.meanDisp not defined.")
 
     def write_to_json(self, fname):
         pass
@@ -40,8 +44,8 @@ class Peaks():
         while cont:
             if cfig:
                 plt.close(cfig)
-            meanDisp = self.computeDCstats(self.frq, self.vel)
-            cfig = self.plotDCforRmv(self.frq, self.vel, meanDisp, self.ids)
+            self.meanDisp = self.computeDCstats(self.frq, self.vel)
+            cfig = self.plotDCforRmv(self.frq, self.vel, self.meanDisp, self.ids)
             self.rmvDCpoints(self.frq, self.vel, self.wav, self.ids, cfig)
 
         # If all data is removed for a given offset, delete corresponding entries
@@ -255,8 +259,8 @@ class Peaks():
             axf.plot(freq_klim, vel_klimF[:, 3], linestyle="-.")
         axf.set_xlabel("Frequency (Hz)", fontsize=fsize, fontname="arial")
         axf.set_ylabel("Velocity (m/s)", fontsize=fsize, fontname="arial")
-        axf.set_xticklabels(axf.get_xticks(), fontsize=fsize, fontname="arial")
-        axf.set_yticklabels(axf.get_yticks(), fontsize=fsize, fontname="arial")
+        # axf.set_xticklabels(axf.get_xticks(), fontsize=fsize, fontname="arial")
+        # axf.set_yticklabels(axf.get_yticks(), fontsize=fsize, fontname="arial")
         axf.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
         axf.set_xscale(xScaleType)
 
@@ -280,8 +284,8 @@ class Peaks():
         axw.legend(handles, labels, loc='upper left')
         axw.set_xlabel("Wavelength (m)", fontsize=fsize, fontname="arial")
         axw.set_xscale(xScaleType)
-        axw.set_xticklabels(axw.get_xticks(), fontsize=fsize, fontname="arial")
-        axw.set_yticklabels(axw.get_yticks(), fontsize=fsize, fontname="arial")
+        # axw.set_xticklabels(axw.get_xticks(), fontsize=fsize, fontname="arial")
+        # axw.set_yticklabels(axw.get_yticks(), fontsize=fsize, fontname="arial")
         axw.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
         cfig.show()
         axf.set_autoscale_on(False)
