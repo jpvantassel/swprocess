@@ -13,7 +13,6 @@ from .source import *
 from .receiverarray import *
 from .array1d import *
 
-from .dispersionpower import *
 from .wavefieldtransform1d import *
 
 from .peaks import *
