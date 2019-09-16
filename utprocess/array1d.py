@@ -136,15 +136,15 @@ class Array1D(ReceiverArray):
 
         # Plotting
         if str.lower(plot_ax) == 'y':
-            fig = plt.figure(figsize=(2.75, 6))
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 6))
             ax = fig.add_axes([0.14, 0.20, 0.8, 0.8])
             for m in range(self.nchannels):
                 ax.plot(time, norm_traces[:, m], 'b-', linewidth=0.5)
             ax.set_xlim((min(time), max(time)))
             ax.set_ylim(
                 (-self.position[1], self.position[1]+self.position[len(self.position)-1]))
-            ax.set_xticklabels(ax.get_xticks(), fontsize=11, fontname='arial')
-            ax.set_yticklabels(ax.get_yticks(), fontsize=11, fontname='arial')
+            # ax.set_xticklabels(ax.get_xticks(), fontsize=11, fontname='arial')
+            # ax.set_yticklabels(ax.get_yticks(), fontsize=11, fontname='arial')
             ax.grid(axis='x', linestyle='--')
             ax.set_xlabel('Time (s)', fontsize=11, fontname="arial")
             ax.set_ylabel('Normalized Amplitude',
@@ -153,15 +153,14 @@ class Array1D(ReceiverArray):
             ax.tick_params('x', length=4, width=1, which='major')
             ax.tick_params('y', length=4, width=1, which='major')
         elif str.lower(plot_ax) == 'x':
-            fig = plt.figure(figsize=(6, 2.75))
-            ax = fig.add_axes([0.14, 0.20, 0.8, 0.75])
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
             for m in range(self.nchannels):
                 ax.plot(norm_traces[:, m], time, 'b-', linewidth=0.5)
             ax.set_ylim((max(time), min(time)))
             ax.set_xlim(
                 (-self.position[1], self.position[1]+self.position[len(self.position)-1]))
-            ax.set_yticklabels(ax.get_yticks(), fontsize=11, fontname='arial')
-            ax.set_xticklabels(ax.get_xticks(), fontsize=11, fontname='arial')
+            # ax.set_yticklabels(ax.get_yticks(), fontsize=11, fontname='arial')
+            # ax.set_xticklabels(ax.get_xticks(), fontsize=11, fontname='arial')
             ax.grid(axis='y', linestyle='--')
             ax.set_ylabel('Time (s)', fontsize=11, fontname="arial")
             ax.set_xlabel('Normalized Amplitude',
@@ -170,8 +169,10 @@ class Array1D(ReceiverArray):
             ax.tick_params('y', length=4, width=1, which='major')
             ax.tick_params('x', length=4, width=1, which='major')
         if self.flipped:
-            ax.text(
-                0, 0, "This is a far-offset shot.\nTraces have been flipped to\nappear as if they were from\na near-offset shot.")
+            ax.text(0,
+                    1.1,
+                    "This is a far-offset shot. Traces have been flipped.",
+                    transform=ax.transAxes)
         return (fig, ax)
 
     def plot_array(self):

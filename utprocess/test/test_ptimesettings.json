@@ -1,0 +1,7 @@
+{
+    "bintype": "frequency",
+    "binscale": "log",
+    "minval": 1,
+    "maxval": 100,
+    "nbins": 96
+}
