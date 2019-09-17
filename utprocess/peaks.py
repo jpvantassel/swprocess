@@ -21,73 +21,77 @@ class Peaks():
         frq = List of np.arrays with frequency values (one per peak).
         wav = List of np.arrays with wavelength values (one per peak).
         ids = List of strings to uniquely identity each array.
+        ext
+        mean_disp
     """
 
-    @staticmethod
-    def __check_inputs(freqs, vels, ids):
-        if isinstance(ids, str):
-            ids = [ids]
-
-        if isinstance(freqs, list) and (isinstance(freqs[0], float) or isinstance(freqs[0], int)):
-            freqs = [np.array(freqs)]
-            vels = [np.array(vels)]
-        elif isinstance(freqs, list) and isinstance(freqs[0], list):
-            freq_list, vel_list = freqs, vels
-            freqs, vels = [], []
-            for frq, vel in zip(freq_list, vel_list):
-                freqs.append(np.array(frq))
-                vels.append(np.array(vel))
-        elif isinstance(freqs, list) and isinstance(freqs[0], np.ndarray):
-            pass
-        else:
-            raise NotImplementedError("Unknown input type.")
-        return (freqs, vels, ids)
-
-    def __init__(self, frequency_list, velocity_list, identifiers):
-        """Initialize an instance of Peaks.
+    def __init__(self, frequency, velocity, identifier, **kwargs):
+        """Initialize an instance of Peaks from a list of frequency
+        and velocity values.
 
         Args:
-            frequency_list = List of lists with frequency values
-                (one per peaks).
-            velocity_list = List of lists with velocity values (one
-                per peak)
-            identifiers = List of strings to uniquely identify each
-                array.
+            frequency = List of frequency values (one per peaks).
+            velocit = List of velocity values (one per peak)
+            identifiers = Strings to uniquely identify the array.
+            **kwargs = Optional keyword arguement(s) these may include
+                additional details about the dispersion peaks such as:
+                azimuth (azi), ellipticity (ell), power (pwr), and noise
+                (pwr). Will generally not be used directly.
+
         Returns:
-            Instataiated Peaks object.
+            Instantiated Peaks object.
 
         Raises:
             This method raises no exceptions.
         """
 
-        freqs, vels, self.ids = Peaks.__check_inputs(frequency_list,
-                                                     velocity_list,
-                                                     identifiers)
-        logging.debug(freqs)
-        logging.debug(vels)
-        logging.debug(self.ids)
-        self.frq, self.vel, self.wav = [], [], []
-        for freq_in, vel_in in zip(freqs, vels):
-            self.vel += [(vel_in[np.where(freq_in != 0)])]
-            self.frq += [(freq_in[np.where(freq_in != 0)])]
-            self.wav += [self.vel[-1]/self.frq[-1]]
-
+        self.frq = [np.array(frequency)]
+        self.vel = [np.array(velocity)]
+        self.wav = [self.vel[-1]/self.frq[-1]]
+        self.ids = [identifier]
+        self.ext = {}
+        logging.debug(f"**kwargs {kwargs}")
+        for key, val in kwargs.items():
+            self.ext.update({key: [np.array(val)]})
+        logging.debug(f"self.ext {self.ext}")
         self.mean_disp = self.compute_dc_stats(self.frq, self.vel)
 
-    @classmethod
-    def from_peak_data_dicts(cls, peak_data_dicts):
-        """Alternate constructor to initialize an instance of the Peaks
-        class.
+    def append(self, frequency, velocity, indentifier, **kwargs):
+        """Method to append frequency and velocity data into the object.
 
         Args:
-            peak_data_dicts: List of dictionaries or a single dictionary
-                of the form {"array_id":{"frequency":freq,
-                "velocity":vel}} where:
-                    array_id is a string denoting some unique info about
-                        the array.
+            For details regarding the input arguement refer to __inti__.
+
+        Returns:
+            Returns None, but updates object's state.
+
+        Raises:
+            This method raises no exceptions.
+        """
+        self.frq.append(np.array(frequency))
+        self.vel.append(np.array(velocity))
+        self.wav.append(self.vel[-1]/self.frq[-1])
+        self.ids.append(indentifier)
+        for key, val in kwargs.items():
+            self.ext[key].append(np.array(val))
+        self.mean_disp = self.compute_dc_stats(self.frq, self.vel)
+        
+        logging.debug(f"self.ext {self.ext}")
+    @classmethod
+    def from_dict(cls, peak_dict):
+        """Alternate constructor to initialize an instance of the Peaks
+        class from a dictionary.
+
+        Args:
+            peak_dict: Dictionary of the form
+                {"identifier": {"frequency":freq, "velocity":vel,
+                "kwarg1": kwarg1}}
+                where:
+                    identifier is a string identifying the data.
                     freq is a list of floats denoting frequency values.
                     vel is a list of floats denoting velocity values.
-                TODO (jpv) Add the optional arguements.
+                    kwarg1 is one of the optional keyword arguements,
+                        may use all of those listed in __init__.
 
         Returns:
             Initialized Peaks instance.
@@ -95,48 +99,54 @@ class Peaks():
         Raises:
             This method raises no exceptions.
         """
-        if isinstance(peak_data_dicts, dict):
-            peak_data_dicts = [peak_data_dicts]
 
-        ids, frq, vel = [], [], []
-        for peak_data_dict in peak_data_dicts:
-            for key, val in peak_data_dict.items():
-                ids.append(key)
-                frq.append(np.array(val["frequency"]))
-                vel.append(np.array(val["velocity"]))
-        return cls(frq, vel, ids)
+        for num, (key, value) in enumerate(peak_dict.items()):
+            if num == 0:
+                obj = cls(value["frequency"],
+                          value["velocity"],
+                          key,
+                          azi=value.get("azi"),
+                          ell=value.get("ell"),
+                          noi=value.get("noi"),
+                          pwr=value.get("pwr"))
+            else:
+                obj.append(value["frequency"],
+                           value["velocity"],
+                           key,
+                           azi=value.get("azi"),
+                           ell=value.get("ell"),
+                           noi=value.get("noi"),
+                           pwr=value.get("pwr"))
+        return obj
+
+    # @classmethod
+    # def from_json(cls, fname):
+    #     with open(fname, "r") as f:
+    #         data = json.load(f)
+
+    #     frequency, velocity, offset = [], [], []
+    #     for key, value in data.items():
+    #         frequency.append(np.array(value["frequency"]))
+    #         velocity.append(np.array(value["velocity"]))
+    #         offset.append(key)
+    #     return cls(frequency, velocity, offset)
+
+    # @classmethod
+    # def from_hfk_historical(cls, fname):
+    #     pass
 
     @classmethod
-    def from_json(cls, fname):
-        with open(fname, "r") as f:
-            data = json.load(f)
-
-        frequency, velocity, offset = [], [], []
-        for key, value in data.items():
-            # frq = np.array(value["frequency"])
-            # vel = np.array(value["velocity"])
-            # frequency += [frq[np.where(vel<max_vel)]]
-            # velocity += [vel[np.where(vel<max_vel)]]
-            frequency.append(np.array(value["frequency"]))
-            velocity.append(np.array(value["velocity"]))
-            offset.append(key)
-        return cls(frequency, velocity, offset)
-
-    @classmethod
-    def from_hfk_historical(cls, fname):
-        pass
-
-    @classmethod
-    def from_hfks(cls, fnames, array_names, rayleigh=True, love=False):
-        """Alternate constructor for PeaksPassive object.
+    def from_maxs(cls, fnames, identifiers, rayleigh=True, love=False):
+        """Alternate constructor to initialize a Peaks object from
+        .max file(s). .max files are output from the Geopsy FK
+        processing.
 
         Args:
-            fname = String or list of string to denote the filename(s)
-                for the .max. Can be with respect to the relative or
-                full path.
+            fname = String or list of strings to denote the filename(s)
+                for the .max. Can be the relative or full path.
 
-            array_name = String or list of strings unqiuely identifying
-                the dispersion data.
+            identifiers = String or list of strings unqiuely identifying
+                the dispersion data from each file.
 
             rayleigh = Boolean to denote if rayleigh data should be
                 extracted.
@@ -149,7 +159,10 @@ class Peaks():
         Raises:
             ValueError if both rayleigh and love are true or false.
 
+            ValueError if `fnames` and `identifiers` are not the same
+                length.
         """
+
         if rayleigh and love:
             raise ValueError("`rayleigh` and `love` cannot both be True.")
 
@@ -158,58 +171,53 @@ class Peaks():
 
         if isinstance(fnames, str):
             fnames = [fnames]
-
-        if isinstance(array_names, str):
-            array_names = [array_names]
+        if isinstance(identifiers, str):
+            identifiers = [identifiers]
+        if len(fnames) != len(identifiers):
+            raise ValueError("`len(fnames)` must equal `len(identifiers)`.")
 
         disp_type = "Rayleigh" if rayleigh else "Love"
         pattern = r"^\d+\.?\d* (\d+\.?\d*) (Rayleigh|Love) (\d+\.?\d*) (\d+\.?\d*) (-?\d+\.?\d*) (\d+\.?\d*|-?inf|nan) (\d+\.?\d*) (0|1)$"
-        frequency_list, velocity_list, azimuth_list, ell_list, noise_list, power_list = [
-        ], [], [], [], [], []
-        for fname in fnames:
+
+        for fnum, (fname, identifier) in enumerate(zip(fnames, identifiers)):
             logging.debug(f"Attempting to Open File: {fname}")
             with open(fname, "r") as f:
                 lines = f.read().splitlines()
 
             for line_number, line in enumerate(lines):
                 if line.startswith("# BEGIN DATA"):
-                    start_line = line_number + 3
+                    start = line_number + 3
                     break
 
             frqs, vels, azis, ells, nois, pwrs = [], [], [], [], [], []
-            for line_number, line in enumerate(lines[start_line:]):
-                # logging.debug(line)
-                # logging.debug(re.findall(pattern, line)[0])
-                frq, pol, slo, azi, ell, noi, pwr, valid = re.findall(pattern, line)[
-                    0]
-                if pol == disp_type and valid == "1":
-                    frqs.append(float(frq))
-                    vels.append(1/float(slo))
-                    azis.append(float(azi))
-                    ells.append(float(ell))
+            for line_number, line in enumerate(lines[start:]):
+                fr, pol, sl, az, el, noi, pw, ok = re.findall(pattern, line)[0]
+                if pol == disp_type and ok == "1":
+                    frqs.append(float(fr))
+                    vels.append(1/float(sl))
+                    azis.append(float(az))
+                    ells.append(float(el))
                     nois.append(float(noi))
-                    pwrs.append(float(pwr))
+                    pwrs.append(float(pw))
                 elif pol != disp_type:
                     continue
-                elif valid == "0":
-                    logging.warn(
-                        f"Invalid point found! Line #{line_number+start_line+1}")
+                elif ok == "0":
+                    logging.warn(f"Invalid point! Line #{line_number+start+1}")
                 else:
                     logging.debug(pol)
-                    logging.debug(valid)
+                    logging.debug(ok)
                     raise ValueError("Check line")
 
-            frequency_list.append(frqs)
-            velocity_list.append(vels)
-            azimuth_list.append(azis)
-            ell_list.append(ells)
-            noise_list.append(nois)
-            power_list.append(pwrs)
+            if fnum == 0:
+                obj = cls(frqs, vels, identifier,
+                          azi=azis, ell=ells, noi=nois, pwr=pwrs)
+            else:
+                obj.append(frqs, vels, identifier,
+                           azi=azis, ell=ells, noi=nois, pwr=pwrs)
+        return obj
 
-        return cls(frequency_list, velocity_list, array_names)
-
-    def write_to_txt_dinver(self, fname):
-        pass
+    # def write_to_txt_dinver(self, fname):
+    #     pass
 
     def write_stat_utinvert(self, fname):
         """Write statistics (mean and standard deviation) to csv file
@@ -223,7 +231,7 @@ class Peaks():
             Method returns None, but saves file to disk.
 
         Raises:
-            ValueError if part_time has not been run.
+            This method raies no exceptions.
         """
         if fname.endswith(".csv"):
             fname = fname[:-4]
@@ -247,13 +255,18 @@ class Peaks():
         Raises:
             This method raises no exceptions.
         """
-        if fname.endswith(".json"):
-            fname = fname[:-4]
-
         data = {}
-        for f, v, label in zip(self.frq, self.vel, self.ids):
+        for num, (f, v, label) in enumerate(zip(self.frq, self.vel, self.ids)):
             data.update({label: {"frequency": f.tolist(),
-                                 "velocity": v.tolist()}})
+                                 "velocity": v.tolist(),
+                                 }})
+            ext_dict = {}
+            for key, value in self.ext.items():
+                ext_dict.update({key: value[num].tolist()})
+            data[label].update(ext_dict)
+
+        if fname.endswith(".json"):
+            fname = fname[:-5]
         with open(fname+".json", "w") as f:
             json.dump(data, f)
 
@@ -261,11 +274,12 @@ class Peaks():
         """Create plot of dispersion data.
 
         Args:
-            xtype = String denoting either frequency or velocity.
+            xtype = String denoting whether the x-axis should be either
+                frequency or wavelength.
 
         Returns:
             Tuple of the form (fig, ax) where fig is the figure handle
-            and ax is the axes handles.
+            and ax is the axes handle.
 
         Raises:
             This method raises no exceptions.
@@ -316,14 +330,16 @@ class Peaks():
                                                    numbins=settings["nbins"],
                                                    binscale=settings["binscale"],
                                                    bintype=settings["bintype"])
-            cfig = self.plotDCforRmv(self.frq,
-                                     self.vel,
-                                     self.mean_disp,
-                                     self.ids)
-            self.rmvDCpoints(self.frq,
-                             self.vel,
-                             self.wav,
-                             self.ids, cfig)
+            cfig = self.plot_dc_for_rmv(self.frq,
+                                        self.vel,
+                                        self.mean_disp,
+                                        self.ids)
+            self.rmv_dc_points(self.frq,
+                               self.vel,
+                               self.wav,
+                               self.ids,
+                               cfig,
+                               extras=self.ext)
 
         # If all data is removed for a given offset, delete corresponding entries
         # (Only delete entries for one offset at a time because indices change after
@@ -374,7 +390,7 @@ class Peaks():
         elif binscale.lower() == "log":
             binedges = np.logspace(np.log10(minp), np.log10(maxp), numbins+1)
         else:
-            raise ValueError(f"Invalid binscale `{binscale}`.")
+            raise ValueError(f"Inok binscale `{binscale}`.")
         logging.debug(f"binedges = {binedges}")
 
         if bintype.lower() == "frequency":
@@ -382,7 +398,7 @@ class Peaks():
         elif bintype.lower() == "wavelength":
             bin_indices = np.digitize(wav, binedges)
         else:
-            raise ValueError(f"Invalid bintype `{bintype}")
+            raise ValueError(f"Inok bintype `{bintype}")
         logging.debug(f"bin_indices = {bin_indices}")
 
         # bin_cnt = np.zeros(numbins)
@@ -403,25 +419,33 @@ class Peaks():
             cwgt = wgt[bin_id]
             ccnt = len(bin_id)
 
-            logging.debug(f"bin_id = {bin_id}")
-            logging.debug(f"cfrq = {cfrq}")
-            logging.debug(f"cvel = {cvel}")
-            logging.debug(f"cslo = {cslo}")
-            logging.debug(f"cwav = {cwav}")
-            logging.debug(f"cwgt = {cwgt}")
-
             if ccnt != 0:
+
+                logging.debug(f"ccnt = {ccnt}")
+                logging.debug(f"bin_id = {bin_id}")
+                logging.debug(f"cfrq = {cfrq}")
+                logging.debug(f"cvel = {cvel}")
+                logging.debug(f"cslo = {cslo}")
+                logging.debug(f"cwav = {cwav}")
+                logging.debug(f"cwgt = {cwgt}")
+
                 bin_wgt[cbin] = sum(cwgt)
-                bin_vel_mean[cbin] = sum(cvel*cwgt) / sum(cwgt)
-                vel_res = sum(cwgt * ((cvel-bin_vel_mean[cbin])**2))
-                bin_vel_std[cbin] = np.sqrt(
-                    (ccnt*vel_res)/((ccnt-1)*bin_wgt[cbin]))
-                bin_slo_mean[cbin] = sum(cslo*cwgt) / sum(cwgt)
-                slo_res = sum(cwgt * ((cslo-bin_slo_mean[cbin])**2))
-                bin_slo_std[cbin] = np.sqrt(
-                    (ccnt*slo_res)/((ccnt-1)*bin_wgt[cbin]))
+
                 bin_frq_mean[cbin] = sum(cfrq*cwgt) / sum(cwgt)
+                bin_vel_mean[cbin] = sum(cvel*cwgt) / sum(cwgt)
+                bin_slo_mean[cbin] = sum(cslo*cwgt) / sum(cwgt)
                 bin_wav_mean[cbin] = sum(cwav*cwgt) / sum(cwgt)
+
+                if ccnt > 1:
+                    vres = sum(cwgt * ((cvel-bin_vel_mean[cbin])**2))
+                    bin_vel_std[cbin] = np.sqrt(
+                        (ccnt*vres)/((ccnt-1)*sum(cwgt)))
+                    sres = sum(cwgt * ((cslo-bin_slo_mean[cbin])**2))
+                    bin_slo_std[cbin] = np.sqrt(
+                        (ccnt*sres)/((ccnt-1)*sum(cwgt)))
+                else:
+                    bin_vel_std[cbin] = 0
+                    bin_slo_std[cbin] = 0
 
         keep_ids = np.where(bin_wgt > 0)[0]
         bin_frq_mean = bin_frq_mean[keep_ids]
@@ -433,13 +457,13 @@ class Peaks():
         bin_wgt = bin_wgt[keep_ids]
         # cov = bin_vel_mean / bin_vel_std
 
-        # meanDisp = np.vstack(
+        # mean_disp = np.vstack(
         #     (freqMean, velMean, velStd, slowMean, slowStd, waveMean, binWeight, cov))
-        # meanDisp = meanDisp.transpose()
+        # mean_disp = mean_disp.transpose()
         # # Remove rows corresponding to empty bins (meanFreq==0)
-        # z_ids = np.where(meanDisp[:, 0] == 0)[0]
-        # meanDisp = np.delete(meanDisp, z_ids, 0)
-        # return meanDisp
+        # z_ids = np.where(mean_disp[:, 0] == 0)[0]
+        # mean_disp = np.delete(mean_disp, z_ids, 0)
+        # return mean_disp
 
         meandisp = {"mean": {"frq": bin_frq_mean,
                              "vel": bin_vel_mean,
@@ -452,93 +476,89 @@ class Peaks():
         return meandisp
 
     @staticmethod
-    def plotDCforRmv(frequency, velocity, meanDisp, setLeg, markType=[], colorSpec=[], xScaleType="log", klimits=()):
+    def plot_dc_for_rmv(frequency, velocity, mean_disp, legend, marker_type=None, color_spec=None, xscaletype="log", klimits=None):
         """Function to plot dispersion data along with averages and standard deviations.
         (Note that the min(klimits) and max(klimits) curves are used for passive-source FK processing,
         thus, min(klimits) and max(klimits) are set equal to NaN for MASW testing to avoid plotting.)
-
         """
 
         n_off = len(velocity)
 
-        # Default markers and colors
-        if not markType:
-            markType = ['o']*n_off
-        if not colorSpec:
-            colorSpec = plot_tools.makecolormap(n_off)
+        if marker_type is None:
+            marker_type = ['o']*n_off
+        if color_spec is None:
+            color_spec = plot_tools.makecolormap(n_off)
 
-        # Width and height (in) of plots
+        minf = np.min(mean_disp["mean"]["frq"])
+        maxf = np.max(mean_disp["mean"]["frq"])
+        maxv, maxw = 0, 0
+        for vl, fr in zip(velocity, frequency):
+            if max(vl) > maxv:
+                maxv = max(vl)
+            if max(vl/fr) > maxw:
+                maxw = max(vl/fr)
+
+        if klimits:
+            freq_klim = np.logspace(np.log10(minf), np.log10(maxf), 100)
+            vel_klimf = np.vstack((2*np.pi*freq_klim/max(klimits), 2*np.pi*freq_klim /
+                                   (max(klimits)/2), 2*np.pi*freq_klim/min(klimits), 2*np.pi*freq_klim/(min(klimits)/2)))
+            vel_klimf = vel_klimf.transpose()
+            if not(np.isnan(max(klimits))):
+                for j in range(np.shape(vel_klimf)[1]):
+                    rmvID = np.where(vel_klimf[:, j] > maxv)[0]
+                    vel_klimf[rmvID, j] = float('nan')
+            wave_lim = np.hstack((2*np.pi/max(klimits)*np.array([[1], [1]]), 2*np.pi/(max(klimits)/2)*np.array(
+                [[1], [1]]), 2*np.pi/min(klimits)*np.array([[1], [1]]), 2*np.pi/(min(klimits)/2)*np.array([[1], [1]])))
+            vel_klimW = np.array([0, maxv])
+
         mwdth = 10
         mhght = 6
         fsize = 11
-        cfig = plt.figure(figsize=(mwdth, mhght))
+        cfig, (axf, axw) = plt.subplots(
+            nrows=1, ncols=2, figsize=(mwdth, mhght))
 
-        # Curves for min(klimits) and max(klimits) (if min(klimits) and max(klimits) are provided)
-        minF = np.min(meanDisp[:, 0])
-        maxF = np.max(meanDisp[:, 0])
-        maxV = 0
-        maxW = 0
-        for k in range(n_off):
-            if max(velocity[k]) > maxV:
-                maxV = max(velocity[k])
-            if max(velocity[k]/frequency[k]) > maxW:
-                maxW = max(velocity[k]/frequency[k])
-
-        if klimits:
-            # min(klimits) and max(klimits) curves for frequency vs velocity
-            freq_klim = np.logspace(np.log10(minF), np.log10(maxF), 100)
-            vel_klimF = np.vstack((2*np.pi*freq_klim/max(klimits), 2*np.pi*freq_klim /
-                                   (max(klimits)/2), 2*np.pi*freq_klim/min(klimits), 2*np.pi*freq_klim/(min(klimits)/2)))
-            vel_klimF = vel_klimF.transpose()
-            # Don't plot higher than maximum velocity of dispersion data
-            if not(np.isnan(max(klimits))):
-                for j in range(np.shape(vel_klimF)[1]):
-                    rmvID = np.where(vel_klimF[:, j] > maxV)[0]
-                    vel_klimF[rmvID, j] = float('nan')
-            # min(klimits) and max(klimits) curves for wavelength vs velocity
-            wave_lim = np.hstack((2*np.pi/max(klimits)*np.array([[1], [1]]), 2*np.pi/(max(klimits)/2)*np.array(
-                [[1], [1]]), 2*np.pi/min(klimits)*np.array([[1], [1]]), 2*np.pi/(min(klimits)/2)*np.array([[1], [1]])))
-            vel_klimW = np.array([0, maxV])
-
-        # Velocity vs frequency plot
-        axf = cfig.add_subplot(1, 2, 1)
-        for r in range(len(velocity)):
-            axf.plot(frequency[r],
-                     velocity[r],
-                     marker=markType[r],
+        for fr, vl, mk, co in zip(frequency, velocity, marker_type, color_spec):
+            axf.plot(fr,
+                     vl,
+                     marker=mk,
                      markersize=5,
-                     markeredgecolor=colorSpec[r],
+                     markeredgecolor=co,
                      markerfacecolor="none",
                      linestyle="none")
-        axf.errorbar(meanDisp[:, 0],
-                     meanDisp[:, 1],
-                     meanDisp[:, 2],
+        axf.errorbar(mean_disp["mean"]["frq"],
+                     mean_disp["mean"]["vel"],
+                     mean_disp["std"]["vel"],
                      marker="o",
                      markersize=5,
                      color="k",
                      linestyle="none")
-        # min(klimits) and max(klimits) lines
+
         if klimits:
-            axf.plot(freq_klim, vel_klimF[:, 0], linestyle=":")
-            axf.plot(freq_klim, vel_klimF[:, 1], linestyle="-")
-            axf.plot(freq_klim, vel_klimF[:, 2], linestyle="--")
-            axf.plot(freq_klim, vel_klimF[:, 3], linestyle="-.")
+            axf.plot(freq_klim, vel_klimf[:, 0], linestyle=":")
+            axf.plot(freq_klim, vel_klimf[:, 1], linestyle="-")
+            axf.plot(freq_klim, vel_klimf[:, 2], linestyle="--")
+            axf.plot(freq_klim, vel_klimf[:, 3], linestyle="-.")
         axf.set_xlabel("Frequency (Hz)", fontsize=fsize, fontname="arial")
         axf.set_ylabel("Velocity (m/s)", fontsize=fsize, fontname="arial")
-        # axf.set_xticklabels(axf.get_xticks(), fontsize=fsize, fontname="arial")
-        # axf.set_yticklabels(axf.get_yticks(), fontsize=fsize, fontname="arial")
         axf.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
-        axf.set_xscale(xScaleType)
+        axf.set_xscale(xscaletype)
 
-        # Velocity vs wavelength
-        axw = cfig.add_subplot(1, 2, 2)
-
-        # Raw data and error bars
-        for r in range(len(velocity)):
-            axw.plot(velocity[r]/frequency[r], velocity[r], marker=markType[r], markersize=5,
-                     markeredgecolor=colorSpec[r], markerfacecolor="none", linestyle="none", label=setLeg[r])
-        axw.errorbar(meanDisp[:, 5], meanDisp[:, 1], meanDisp[:, 2],
-                     marker="o", markersize=5, color="k", linestyle="none")
+        for fr, vl, mk, co, le in zip(frequency, velocity, marker_type, color_spec, legend):
+            axw.plot(vl/fr,
+                     vl,
+                     marker=mk,
+                     markersize=5,
+                     markeredgecolor=co,
+                     markerfacecolor="none",
+                     linestyle="none",
+                     label=le)
+        axw.errorbar(mean_disp["mean"]["wav"],
+                     mean_disp["mean"]["vel"],
+                     mean_disp["std"]["vel"],
+                     marker="o",
+                     markersize=5,
+                     color="k",
+                     linestyle="none")
 
         if klimits:
             axw.plot(wave_lim[:, 0], vel_klimW, linestyle=":", label='kmax')
@@ -546,10 +566,11 @@ class Peaks():
             axw.plot(wave_lim[:, 2], vel_klimW, linestyle="--", label='kmin')
             axw.plot(wave_lim[:, 3], vel_klimW, linestyle="-.", label='kmin/2')
 
-        handles, labels = axw.get_legend_handles_labels()
-        axw.legend(handles, labels, loc='upper left')
+        # handles, labels = axw.get_legend_handles_labels()
+        # axw.legend(handles, labels, loc='upper left')
+        axw.legend(loc="upper left")
         axw.set_xlabel("Wavelength (m)", fontsize=fsize, fontname="arial")
-        axw.set_xscale(xScaleType)
+        axw.set_xscale(xscaletype)
         # axw.set_xticklabels(axw.get_xticks(), fontsize=fsize, fontname="arial")
         # axw.set_yticklabels(axw.get_yticks(), fontsize=fsize, fontname="arial")
         axw.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
@@ -559,9 +580,10 @@ class Peaks():
         return cfig
 
     @staticmethod
-    def rmvDCpoints(frequency, velocity, wavelength, offset, cfig):
-        """Function to prompt user to draw a box on a dispersion curve figure. Data points 
-        inside of the box are removed and data points outside of the box are kept.
+    def rmv_dc_points(frequency, velocity, wavelength, offset, cfig, extras=None):
+        """Function to prompt user to draw a box on a dispersion curve 
+        figure. Data points inside of the box are removed and data 
+        points outside of the box are kept.
         """
         while True:
             axclick = []
@@ -581,11 +603,7 @@ class Peaks():
 
             n_rmv = 0
             # for g in range(len(frequency)):
-            for bin_id in range(len(frequency)):
-                # Arrays containing data for current offset
-                f = frequency[bin_id]
-                v = velocity[bin_id]
-                w = wavelength[bin_id]
+            for bin_id, (f, v, w) in enumerate(zip(frequency, velocity, wavelength)):
                 # Create arrays to store indices of data that will be kept and removed
                 rmv_id = np.zeros(len(f), int)
                 keep_id = np.zeros(len(f), int)
@@ -615,26 +633,37 @@ class Peaks():
                 zid = np.where(keep_id == 0)[0]
                 keep_id = np.delete(keep_id, zid, 0)
 
-                # Removed data
                 frmv = f[(rmv_id-1)]
                 vrmv = v[(rmv_id-1)]
                 wrmv = w[(rmv_id-1)]
                 n_rmv += len(vrmv)
-                # Plot deleted data with black x's
-                axf.plot(frmv, vrmv, marker="x", color="k",
-                         markersize=5, linestyle="none")
-                axw.plot(wrmv, vrmv, marker="x", color="k",
-                         markersize=5, linestyle="none")
+
+                axf.plot(frmv, vrmv,
+                         marker="x", color="k", markersize=5, linestyle="none")
+                axw.plot(wrmv, vrmv,
+                         marker="x", color="k", markersize=5, linestyle="none")
                 cfig.canvas.draw_idle()
 
-                # Retained data
-                fnew = f[(keep_id-1)]
-                vnew = v[(keep_id-1)]
-                wnew = w[(keep_id-1)]
-                # Revise velocity, frequency, and wavelength cell arrays
-                velocity[bin_id] = vnew
-                frequency[bin_id] = fnew
-                wavelength[bin_id] = wnew
+                logging.debug(f"f = {f}")
+                logging.debug(f"v = {v}")
+                logging.debug(f"w = {w}")
+
+                frequency[bin_id] = f[(keep_id-1)]
+                velocity[bin_id] = v[(keep_id-1)]
+                wavelength[bin_id] = w[(keep_id-1)]
+
+                logging.debug(f"f = {f}")
+                logging.debug(f"v = {v}")
+                logging.debug(f"w = {w}")
+                logging.debug(f"extras = {extras}")
+
+                for key, value in extras.items():
+                    logging.debug(f"key = {key}")
+                    logging.debug(f"value = {value}")
+                    logging.debug(f"bin_id = {bin_id}")
+                    logging.debug(f"keep_id-1 = {keep_id-1}")
+
+                    extras[key][bin_id] = value[bin_id][(keep_id-1)]
 
             if n_rmv == 0:
                 break

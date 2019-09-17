@@ -146,8 +146,10 @@ class WavefieldTransform1D():
             if identifier in data:
                 raise KeyError(f"identifier {identifier} is repeated.")
             else:
-                data.update({identifier: {"frequency": self.freq.tolist(),
-                                          "velocity": v_peak.tolist()}})
+                frq_trim = self.freq[np.where( v_peak<self.general["max_vel"])]
+                vel_trim = v_peak[np.where( v_peak<self.general["max_vel"])]
+                data.update({identifier: {"frequency": frq_trim.tolist(),
+                                          "velocity": vel_trim.tolist()}})
             json.dump(data, fp)
 
     def plot_spec(self, plot_type="fv", plot_limit=None):
