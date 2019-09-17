@@ -40,7 +40,7 @@ class Peaks():
         elif isinstance(freqs, list) and isinstance(freqs[0], np.ndarray):
             pass
         else:
-            raise NotImplementedError("Unknown input type")
+            raise NotImplementedError("Unknown input type.")
         return (freqs, vels, ids)
 
     def __init__(self, frequency_list, velocity_list, identifiers):
@@ -72,9 +72,7 @@ class Peaks():
             self.frq += [(freq_in[np.where(freq_in != 0)])]
             self.wav += [self.vel[-1]/self.frq[-1]]
 
-        # TODO (jpv) remove this hack and fix mixed state issue
-        # call calc mean disp once, to get a "intitial value".
-        self.meanDisp = False
+        self.mean_disp = self.compute_dc_stats(self.frq, self.vel)
 
     @classmethod
     def from_peak_data_dicts(cls, peak_data_dicts):
@@ -227,16 +225,14 @@ class Peaks():
         Raises:
             ValueError if part_time has not been run.
         """
-        if isinstance(self.meanDisp, np.ndarray):
-            if fname.endswith(".csv"):
-                fname = fname[:-4]
-            with open(fname+".csv", "w") as f:
-                f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)\n")
-                # for f_set, v_set, s_set in zip(self.meanDisp[:,0], self.meanDisp[:,1], self.meanDisp[:,2]):
-                for fr, ve, st in zip(self.meanDisp[:, 0], self.meanDisp[:, 1], self.meanDisp[:, 2]):
-                    f.write(f"{fr},{ve},{st}\n")
-        else:
-            raise ValueError("party_time not run self.meanDisp not defined.")
+        if fname.endswith(".csv"):
+            fname = fname[:-4]
+        with open(fname+".csv", "w") as f:
+            f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)\n")
+            for fr, ve, st in zip(self.mean_disp["mean"]["frq"],
+                                  self.mean_disp["mean"]["vel"],
+                                  self.mean_disp["std"]["vel"]):
+                f.write(f"{fr},{ve},{st}\n")
 
     def write_peak_json(self, fname):
         """Write peak dispersion points to json file.
@@ -313,16 +309,16 @@ class Peaks():
         while cont:
             if cfig:
                 plt.close(cfig)
-            self.meanDisp = self.computeDCstats(self.frq,
-                                                self.vel,
-                                                minP=settings["minval"],
-                                                maxP=settings["maxval"],
-                                                numbins=settings["nbins"],
-                                                binScale=settings["binscale"],
-                                                binType=settings["bintype"])
+            self.mean_disp = self.compute_dc_stats(self.frq,
+                                                   self.vel,
+                                                   minp=settings["minval"],
+                                                   maxp=settings["maxval"],
+                                                   numbins=settings["nbins"],
+                                                   binscale=settings["binscale"],
+                                                   bintype=settings["bintype"])
             cfig = self.plotDCforRmv(self.frq,
                                      self.vel,
-                                     self.meanDisp,
+                                     self.mean_disp,
                                      self.ids)
             self.rmvDCpoints(self.frq,
                              self.vel,
@@ -355,109 +351,105 @@ class Peaks():
                     break
 
     @staticmethod
-    def computeDCstats(frequency, velocity, minP=5, maxP=100, numbins=96, binScale="linear", binType="frequency", arrayWeights=[]):
+    def compute_dc_stats(frequency, velocity, minp=5, maxp=100, numbins=96, binscale="linear", bintype="frequency", arrayweights=None):
+        """Compute statistics on a set of frequency, velocity data"""
 
-        # Combine all dispersion data into single vector for freq., vel., and wavel.
-        vel = velocity[0]
-        fr = frequency[0]
-        if len(arrayWeights) != 0:
-            wt = arrayWeights[0]*np.ones(len(velocity[0]))
-        if len(vel) > 1:
-            for p in range(1, len(velocity)):
-                vel = np.concatenate((vel, velocity[p]))
-                fr = np.concatenate((fr, frequency[p]))
-                if len(arrayWeights) != 0:
-                    wt = np.concatenate(
-                        (wt, arrayWeights[p]*np.ones(len(velocity[p]))))
-        wl = vel / fr
+        if arrayweights is None:
+            arrayweights = [1]*len(frequency)
+        elif len(arrayweights) != len(frequency):
+            raise ValueError(
+                "len frequency velocity arrayweights must be equal.")
 
-        # Bin edges
-        if str.lower(binScale) == "linear":
-            binEdges = np.linspace(minP, maxP, numbins+1)
-        elif str.lower(binScale) == "log":
-            binEdges = np.logspace(np.log10(minP), np.log10(maxP), numbins+1)
+        frq, vel, wgt = np.array([]), np.array([]), np.array([])
+        for ftmp, vtmp, wtmp in zip(frequency, velocity, arrayweights):
+            if wtmp <= 0:
+                raise ValueError("arrayweights must be > 0.")
+            frq = np.concatenate((frq, ftmp))
+            vel = np.concatenate((vel, vtmp))
+            wgt = np.concatenate((wgt, wtmp*np.ones(frq.shape)))
+        wav = vel/frq
+
+        if binscale.lower() == "linear":
+            binedges = np.linspace(minp, maxp, numbins+1)
+        elif binscale.lower() == "log":
+            binedges = np.logspace(np.log10(minp), np.log10(maxp), numbins+1)
         else:
-            raise ValueError("Invalid binScale")
+            raise ValueError(f"Invalid binscale `{binscale}`.")
+        logging.debug(f"binedges = {binedges}")
 
-        # Determine how many frequencies or wavelengths falls into each bin
-        if str.lower(binType) == "frequency":
-            whichBin = np.digitize(fr, binEdges)
-        elif str.lower(binType) == "wavelength":
-            whichBin = np.digitize(wl, binEdges)
+        if bintype.lower() == "frequency":
+            bin_indices = np.digitize(frq, binedges)
+        elif bintype.lower() == "wavelength":
+            bin_indices = np.digitize(wav, binedges)
         else:
-            raise ValueError("Invalid binType")
+            raise ValueError(f"Invalid bintype `{bintype}")
+        logging.debug(f"bin_indices = {bin_indices}")
 
-        # Initialize variables
-        weightPoints = np.zeros(numbins)
-        binWeight = np.zeros(numbins)
-        velMean = np.zeros(numbins)
-        velStd = np.zeros(numbins)
-        slowMean = np.zeros(numbins)
-        slowStd = np.zeros(numbins)
-        freqMean = np.zeros(numbins)
-        waveMean = np.zeros(numbins)
+        # bin_cnt = np.zeros(numbins)
+        bin_wgt = np.zeros(numbins)
+        bin_vel_mean = np.zeros(numbins)
+        bin_vel_std = np.zeros(numbins)
+        bin_slo_mean = np.zeros(numbins)
+        bin_slo_std = np.zeros(numbins)
+        bin_frq_mean = np.zeros(numbins)
+        bin_wav_mean = np.zeros(numbins)
 
-        # Compute statistics for each bin
-        for g in range(numbins):
-            # Flag points in current bin
-            flagPoints = np.where(whichBin == (g+1))[0]
-            freqPoints = fr[flagPoints]
-            wavePoints = wl[flagPoints]
-            velPoints = vel[flagPoints]
-            slowPoints = 1/velPoints
+        for cbin in range(0, numbins):
+            bin_id = np.where(bin_indices == (cbin+1))[0]
+            cfrq = frq[bin_id]
+            cvel = vel[bin_id]
+            cslo = 1/cvel
+            cwav = wav[bin_id]
+            cwgt = wgt[bin_id]
+            ccnt = len(bin_id)
 
-            # Compute averages and standard deviations
-            # Set values equal to NaN if no points fall within current bin
-            # Weighted calculations
-            if len(flagPoints) != 0:
-                if len(arrayWeights) != 0:
-                    weightPoints[g] = wt[flagPoints]
-                    binWeight[g] = sum(weightPoints)
-                    velMean[g] = float(
-                        sum(velPoints*weightPoints)) / sum(weightPoints)
-                    velStd[g] = np.sqrt(
-                        1.0/sum(weightPoints) * sum(((velPoints-velMean[g])**2) * weightPoints))
-                    slowMean[g] = float(
-                        sum(slowPoints*weightPoints)) / sum(weightPoints)
-                    slowStd[g] = np.sqrt(
-                        1.0/sum(weightPoints) * sum(((slowPoints-slowMean[g])**2) * weightPoints))
-                    freqMean[g] = float(
-                        sum(freqPoints*weightPoints)) / sum(weightPoints)
-                    waveMean[g] = float(
-                        sum(wavePoints*weightPoints)) / sum(weightPoints)
-                # Unweighted calculations
-                # (use unbiased sample standard deviation, with a normalization of 1/(n-1) or a ddof=1 )
-                else:
-                    binWeight[g] = len(velPoints)
-                    velMean[g] = np.average(velPoints)
-                    slowMean[g] = np.average(slowPoints)
-                    if binWeight[g] > 1:
-                        velStd[g] = np.std(velPoints, ddof=1)
-                        slowStd[g] = np.std(slowPoints, ddof=1)
-                    freqMean[g] = np.average(freqPoints)
-                    waveMean[g] = np.average(wavePoints)
+            logging.debug(f"bin_id = {bin_id}")
+            logging.debug(f"cfrq = {cfrq}")
+            logging.debug(f"cvel = {cvel}")
+            logging.debug(f"cslo = {cslo}")
+            logging.debug(f"cwav = {cwav}")
+            logging.debug(f"cwgt = {cwgt}")
 
-        # Remove zeros
-        ids = np.where(freqMean > 0)[0]
-        freqMean = freqMean[ids]
-        velMean = velMean[ids]
-        velStd = velStd[ids]
-        slowMean = slowMean[ids]
-        slowStd = slowStd[ids]
-        waveMean = waveMean[ids]
-        binWeight = binWeight[ids]
+            if ccnt != 0:
+                bin_wgt[cbin] = sum(cwgt)
+                bin_vel_mean[cbin] = sum(cvel*cwgt) / sum(cwgt)
+                vel_res = sum(cwgt * ((cvel-bin_vel_mean[cbin])**2))
+                bin_vel_std[cbin] = np.sqrt(
+                    (ccnt*vel_res)/((ccnt-1)*bin_wgt[cbin]))
+                bin_slo_mean[cbin] = sum(cslo*cwgt) / sum(cwgt)
+                slo_res = sum(cwgt * ((cslo-bin_slo_mean[cbin])**2))
+                bin_slo_std[cbin] = np.sqrt(
+                    (ccnt*slo_res)/((ccnt-1)*bin_wgt[cbin]))
+                bin_frq_mean[cbin] = sum(cfrq*cwgt) / sum(cwgt)
+                bin_wav_mean[cbin] = sum(cwav*cwgt) / sum(cwgt)
 
-        # Calculate the coefficient of variation
-        cov = velStd / velMean
+        keep_ids = np.where(bin_wgt > 0)[0]
+        bin_frq_mean = bin_frq_mean[keep_ids]
+        bin_vel_mean = bin_vel_mean[keep_ids]
+        bin_vel_std = bin_vel_std[keep_ids]
+        bin_slo_mean = bin_slo_mean[keep_ids]
+        bin_slo_std = bin_slo_std[keep_ids]
+        bin_wav_mean = bin_wav_mean[keep_ids]
+        bin_wgt = bin_wgt[keep_ids]
+        # cov = bin_vel_mean / bin_vel_std
 
-        # Combine results into a single matrix
-        meanDisp = np.vstack(
-            (freqMean, velMean, velStd, slowMean, slowStd, waveMean, binWeight, cov))
-        meanDisp = meanDisp.transpose()
-        # Remove rows corresponding to empty bins (meanFreq==0)
-        z_ids = np.where(meanDisp[:, 0] == 0)[0]
-        meanDisp = np.delete(meanDisp, z_ids, 0)
-        return meanDisp
+        # meanDisp = np.vstack(
+        #     (freqMean, velMean, velStd, slowMean, slowStd, waveMean, binWeight, cov))
+        # meanDisp = meanDisp.transpose()
+        # # Remove rows corresponding to empty bins (meanFreq==0)
+        # z_ids = np.where(meanDisp[:, 0] == 0)[0]
+        # meanDisp = np.delete(meanDisp, z_ids, 0)
+        # return meanDisp
+
+        meandisp = {"mean": {"frq": bin_frq_mean,
+                             "vel": bin_vel_mean,
+                             "slo": bin_slo_mean,
+                             "wav": bin_wav_mean},
+                    "std": {"vel": bin_vel_std,
+                            "slo": bin_slo_std,
+                            }
+                    }
+        return meandisp
 
     @staticmethod
     def plotDCforRmv(frequency, velocity, meanDisp, setLeg, markType=[], colorSpec=[], xScaleType="log", klimits=()):
@@ -588,11 +580,12 @@ class Peaks():
             ymax = np.max(rawBounds[:, 1])
 
             n_rmv = 0
-            for g in range(len(frequency)):
+            # for g in range(len(frequency)):
+            for bin_id in range(len(frequency)):
                 # Arrays containing data for current offset
-                f = frequency[g]
-                v = velocity[g]
-                w = wavelength[g]
+                f = frequency[bin_id]
+                v = velocity[bin_id]
+                w = wavelength[bin_id]
                 # Create arrays to store indices of data that will be kept and removed
                 rmv_id = np.zeros(len(f), int)
                 keep_id = np.zeros(len(f), int)
@@ -639,9 +632,9 @@ class Peaks():
                 vnew = v[(keep_id-1)]
                 wnew = w[(keep_id-1)]
                 # Revise velocity, frequency, and wavelength cell arrays
-                velocity[g] = vnew
-                frequency[g] = fnew
-                wavelength[g] = wnew
+                velocity[bin_id] = vnew
+                frequency[bin_id] = fnew
+                wavelength[bin_id] = wnew
 
             if n_rmv == 0:
                 break
