@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import matplotlib as mpl
-colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
 mpl.use('Qt4Agg')
 logger = logging.getLogger(__name__)
 
@@ -75,15 +75,16 @@ class Peaks():
         for key, val in kwargs.items():
             self.ext[key].append(np.array(val))
         self.mean_disp = self.compute_dc_stats(self.frq, self.vel)
-        
+
         logging.debug(f"self.ext {self.ext}")
+
     @classmethod
-    def from_dict(cls, peak_dict):
+    def from_dicts(cls, peak_dicts):
         """Alternate constructor to initialize an instance of the Peaks
         class from a dictionary.
 
         Args:
-            peak_dict: Dictionary of the form
+            peak_dicts: Dictionary or list of dictionaries of the form
                 {"identifier": {"frequency":freq, "velocity":vel,
                 "kwarg1": kwarg1}}
                 where:
@@ -99,37 +100,42 @@ class Peaks():
         Raises:
             This method raises no exceptions.
         """
+        if isinstance(peak_dicts, dict):
+            peak_dicts = [peak_dicts]
 
-        for num, (key, value) in enumerate(peak_dict.items()):
-            if num == 0:
-                obj = cls(value["frequency"],
-                          value["velocity"],
-                          key,
-                          azi=value.get("azi"),
-                          ell=value.get("ell"),
-                          noi=value.get("noi"),
-                          pwr=value.get("pwr"))
-            else:
-                obj.append(value["frequency"],
-                           value["velocity"],
-                           key,
-                           azi=value.get("azi"),
-                           ell=value.get("ell"),
-                           noi=value.get("noi"),
-                           pwr=value.get("pwr"))
+        start = True
+        for peak_dict in peak_dicts:
+            for key, value in peak_dict.items():
+                logging.debug(key)
+                npts = len(value["frequency"])
+                if start:
+                    logging.debug(f"For {key} new object was started.")
+                    obj = cls(value["frequency"],
+                              value["velocity"],
+                              key,
+                              azi=value.get("azi") if value.get("azi") else [0]*npts,
+                              ell=value.get("ell") if value.get("azi") else [0]*npts,
+                              noi=value.get("noi") if value.get("azi") else [0]*npts,
+                              pwr=value.get("pwr") if value.get("azi") else [0]*npts)
+                    start = False
+                else:
+                    logging.debug(f"{key} was appended.")
+                    obj.append(value["frequency"],
+                               value["velocity"],
+                               key,
+                               azi=value.get("azi") if value.get("azi") else [0]*npts,
+                               ell=value.get("ell") if value.get("azi") else [0]*npts,
+                               noi=value.get("noi") if value.get("azi") else [0]*npts,
+                               pwr=value.get("pwr") if value.get("azi") else [0]*npts)
         return obj
 
-    # @classmethod
-    # def from_json(cls, fname):
-    #     with open(fname, "r") as f:
-    #         data = json.load(f)
-
-    #     frequency, velocity, offset = [], [], []
-    #     for key, value in data.items():
-    #         frequency.append(np.array(value["frequency"]))
-    #         velocity.append(np.array(value["velocity"]))
-    #         offset.append(key)
-    #     return cls(frequency, velocity, offset)
+    @classmethod
+    def from_jsons(cls, fnames):
+        dicts = []
+        for fname in fnames:
+            with open(fname, "r") as f:
+                dicts.append(json.load(f))
+        return cls.from_dicts(dicts)
 
     # @classmethod
     # def from_hfk_historical(cls, fname):
@@ -283,6 +289,10 @@ class Peaks():
 
         Raises:
             This method raises no exceptions.
+
+        Reference for weighted mean and standard deviation 
+        https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/weightsd.pdf
+
         """
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 3))
         if xtype.lower() == "wavelength":
@@ -314,7 +324,7 @@ class Peaks():
         axw.set_xscale("log")
         return (fig, axf, axw)
 
-    def party_time(self, settings_file):
+    def party_time(self, settings_file, klimits=None):
         with open(settings_file, "r") as f:
             settings = json.load(f)
 
@@ -333,7 +343,8 @@ class Peaks():
             cfig = self.plot_dc_for_rmv(self.frq,
                                         self.vel,
                                         self.mean_disp,
-                                        self.ids)
+                                        self.ids,
+                                        klimits=klimits)
             self.rmv_dc_points(self.frq,
                                self.vel,
                                self.wav,
@@ -534,10 +545,14 @@ class Peaks():
                      linestyle="none")
 
         if klimits:
-            axf.plot(freq_klim, vel_klimf[:, 0], linestyle=":")
-            axf.plot(freq_klim, vel_klimf[:, 1], linestyle="-")
-            axf.plot(freq_klim, vel_klimf[:, 2], linestyle="--")
-            axf.plot(freq_klim, vel_klimf[:, 3], linestyle="-.")
+            axf.plot(freq_klim, vel_klimf[:, 0],
+                     linestyle=":", color='#000000')
+            axf.plot(freq_klim, vel_klimf[:, 1],
+                     linestyle="-", color='#000000')
+            axf.plot(freq_klim, vel_klimf[:, 2],
+                     linestyle="--", color='#000000')
+            axf.plot(freq_klim, vel_klimf[:, 3],
+                     linestyle="-.", color='#000000')
         axf.set_xlabel("Frequency (Hz)", fontsize=fsize, fontname="arial")
         axf.set_ylabel("Velocity (m/s)", fontsize=fsize, fontname="arial")
         axf.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
@@ -561,10 +576,14 @@ class Peaks():
                      linestyle="none")
 
         if klimits:
-            axw.plot(wave_lim[:, 0], vel_klimW, linestyle=":", label='kmax')
-            axw.plot(wave_lim[:, 1], vel_klimW, linestyle="-", label='kmax/2')
-            axw.plot(wave_lim[:, 2], vel_klimW, linestyle="--", label='kmin')
-            axw.plot(wave_lim[:, 3], vel_klimW, linestyle="-.", label='kmin/2')
+            axw.plot(wave_lim[:, 0], vel_klimW, linestyle=":",
+                     color='#000000', label='kmax')
+            axw.plot(wave_lim[:, 1], vel_klimW, linestyle="-",
+                     color='#000000', label='kmax/2')
+            axw.plot(wave_lim[:, 2], vel_klimW,
+                     linestyle="--", color='#000000', label='kmin')
+            axw.plot(wave_lim[:, 3], vel_klimW, linestyle="-.",
+                     color='#000000', label='kmin/2')
 
         # handles, labels = axw.get_legend_handles_labels()
         # axw.legend(handles, labels, loc='upper left')

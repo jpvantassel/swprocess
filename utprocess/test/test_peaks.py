@@ -41,13 +41,13 @@ class TestPeaks(unittest.TestCase):
         self.assertListEqual(my_peaks.ext["noi"][0].tolist(), noi)
         self.assertListEqual(my_peaks.ext["pwr"][0].tolist(), pwr)
 
-    def test_from_peak_data_dictss(self):
+    def test_from_peak_data_dicts(self):
         # Basic Case: No keyword arugments
         frequency = [100, 50, 30, 10, 5, 3]
         velocity = [100, 120, 130, 140, 145, 150]
         identifier = '-5m'
         data = {identifier: {"frequency": frequency, "velocity": velocity}}
-        my_peaks = utprocess.Peaks.from_dict(data)
+        my_peaks = utprocess.Peaks.from_dicts(data)
         self.assertListEqual(my_peaks.frq[0].tolist(), frequency)
         self.assertListEqual(my_peaks.vel[0].tolist(), velocity)
         self.assertEqual(my_peaks.ids, [identifier])
@@ -66,7 +66,7 @@ class TestPeaks(unittest.TestCase):
                              "ell": ell,
                              "noi": noi,
                              "pwr": pwr}}
-        my_peaks = utprocess.Peaks.from_dict(data)
+        my_peaks = utprocess.Peaks.from_dicts(data)
         self.assertListEqual(my_peaks.ext["azi"][0].tolist(), azi)
         self.assertListEqual(my_peaks.ext["ell"][0].tolist(), ell)
         self.assertListEqual(my_peaks.ext["noi"][0].tolist(), noi)
@@ -82,9 +82,33 @@ class TestPeaks(unittest.TestCase):
                              "velocity": velocity,
                              "azi": azi,
                              "pwr": pwr}}
-        my_peaks = utprocess.Peaks.from_dict(data)
+        my_peaks = utprocess.Peaks.from_dicts(data)
         self.assertListEqual(my_peaks.ext["azi"][0].tolist(), azi)
         self.assertListEqual(my_peaks.ext["pwr"][0].tolist(), pwr)
+
+    def test_from_jsons(self):
+        # Advanced Case: Two keyword arguements
+        frequency = [100, 50, 30, 10, 5, 3]
+        velocity = [100, 120, 130, 140, 145, 150]
+        azi = [10, 15, 20, 35, 10, 20]
+        pwr = [10, 15, 20, 35, 10, 20]
+
+        fnames = []
+        for num in range(0, 3):
+            identifier = str(num)
+            write_data = {identifier: {"frequency": frequency,
+                                       "velocity": velocity,
+                                       "azi": azi,
+                                       "pwr": pwr}}
+            fnames.append(f"test/temp_dict{num}.json")
+            with open(fnames[-1], "w") as f:
+                json.dump(write_data, f)
+
+        my_peaks = utprocess.Peaks.from_jsons(fnames=fnames)
+
+        for num in range(0, 3):
+            self.assertListEqual(my_peaks.ext["azi"][num].tolist(), azi)
+            self.assertListEqual(my_peaks.ext["pwr"][num].tolist(), pwr)
 
     def test_from_maxs_1file(self):
         # Check rayleigh (2 lines)
@@ -205,20 +229,20 @@ class TestPeaks(unittest.TestCase):
     #                                     love=False)
     #     ray.party_time(settings_file="test\\test_ptimesettings.json")
 
-    def test_partytime_fake(self):
-        # Standard With Extras (Remove Center Point [3,150])
-        frq = [1, 5, 5, 1, 3]
-        vel = [100, 100, 200, 200, 150]
-        ell = [5, 5, 5, 5, 10]
-        ids = "Failure is always an option"
-        peak = utprocess.Peaks(frequency=frq,
-                               velocity=vel,
-                               identifier=ids,
-                               ell=ell)
-        peak.party_time(settings_file="test\\test_ptimesettings_fake.json")
-        self.assertListEqual(peak.frq[0].tolist(), frq[:-1])
-        self.assertListEqual(peak.vel[0].tolist(), vel[:-1])
-        self.assertListEqual(peak.ext["ell"][0].tolist(), ell[:-1])
+    # def test_partytime_fake(self):
+    #     # Standard With Extras (Remove Center Point [3,150])
+    #     frq = [1, 5, 5, 1, 3]
+    #     vel = [100, 100, 200, 200, 150]
+    #     ell = [5, 5, 5, 5, 10]
+    #     ids = "Failure is always an option"
+    #     peak = utprocess.Peaks(frequency=frq,
+    #                            velocity=vel,
+    #                            identifier=ids,
+    #                            ell=ell)
+    #     peak.party_time(settings_file="test\\test_ptimesettings_fake.json")
+    #     self.assertListEqual(peak.frq[0].tolist(), frq[:-1])
+    #     self.assertListEqual(peak.vel[0].tolist(), vel[:-1])
+    #     self.assertListEqual(peak.ext["ell"][0].tolist(), ell[:-1])
 
     def test_write_peak_json(self):
         # Basic Case (Only Frequency and Velocity)
