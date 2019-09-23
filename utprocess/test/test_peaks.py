@@ -110,6 +110,9 @@ class TestPeaks(unittest.TestCase):
             self.assertListEqual(my_peaks.ext["azi"][num].tolist(), azi)
             self.assertListEqual(my_peaks.ext["pwr"][num].tolist(), pwr)
 
+        for num in range(0,3):
+            os.remove(f"test/temp_dict{num}.json"
+            )
     def test_from_maxs_1file(self):
         # Check rayleigh (2 lines)
         ray = utprocess.Peaks.from_maxs(fnames="test\\data\\myanmar\\test_hfk_ds_short.max",
