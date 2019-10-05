@@ -3,6 +3,7 @@ time series objects.
 """
 
 import numpy as np
+import scipy.signal as signal
 import logging
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,10 @@ class TimeSeries():
         logging.info(f"\tdelay = {delay}")
         logging.info(f"\tnsamples = {self.nsamples}")
 
+    @property
+    def time(self):
+        return np.arange(0, self.nsamples)*self.dt
+
     def trim(self, start_time, end_time):
         """Trim excess off of TimeSeries object in the half open
         interval [start_time, end_time).
@@ -109,10 +114,12 @@ class TimeSeries():
         start = min(current_time)
         end = max(current_time)
         if start_time < start or start_time > end_time:
-            logger.debug(f"This must be true: {start} < {start_time} < {end_time}")
+            logger.debug(
+                f"This must be true: {start} < {start_time} < {end_time}")
             raise IndexError("Illogical start_time, see doctring")
         if end_time > end or end_time < start_time:
-            logger.debug(f"This must be true: {start_time} < {end_time} < {end}")
+            logger.debug(
+                f"This must be true: {start_time} < {end_time} < {end}")
             raise IndexError("Illogical end_time, see doctring")
 
         logger.info(f"start = {start}, moving to start_time = {start_time}")
@@ -164,7 +171,7 @@ class TimeSeries():
         # If nreq > nsamples, padd zeros to achieve nsamples = nreq
         if nreq > self.nsamples:
             self.amp = np.concatenate((self.amp,
-                                      np.zeros(nreq - self.nsamples)))
+                                       np.zeros(nreq - self.nsamples)))
             self.nsamples = nreq
 
         # If nreq <= nsamples, padd zeros to achieve a fraction of df (e.g., df/2)
@@ -181,9 +188,9 @@ class TimeSeries():
             logging.debug(f"multiple = {self.multiple}")
 
             self.amp = np.concatenate((self.amp,
-                                      np.zeros(nreq*self.multiple - self.nsamples)))
+                                       np.zeros(nreq*self.multiple - self.nsamples)))
             self.nsamples = nreq*self.multiple
-            
+
             logging.debug(f"nsamples = {self.nsamples}")
 
     @classmethod
@@ -273,6 +280,40 @@ class TimeSeries():
         self.amp = (self.amp*self._nstack + amplitude*nstacks) / \
             (self._nstack+nstacks)
         self._nstack += nstacks
+
+    @staticmethod
+    def crosscorr(timeseries_a, timeseries_b):
+        """Return cross correlation of two timeseries objects."""
+        # TODO (jpv): Create method for comparing tseriesa == tseriesb
+        return signal.correlate(timeseries_a.amp, timeseries_b.amp)
+
+    @staticmethod
+    def crosscorr_shift(timeseries_a, timeseries_b):
+        """Return shifted timeseries_b so that it is maximally
+        corrlated with tiemseries_a."""
+        corr = TimeSeries.crosscorr(timeseries_a, timeseries_b)
+        # print(corr)
+        # print(np.where(abs(corr) == max(abs(corr))))
+        maxcorr_location = np.where(corr == max(corr))[0][0]
+        # print(maxcorr_location)
+        shifts = (maxcorr_location+1)-timeseries_b.nsamples
+        print(shifts)
+        # print(type(shifts))
+        if shifts > 0:
+            return np.concatenate((np.zeros(shifts), timeseries_b.amp[:-shifts]))
+        elif shifts < 0:
+            return np.concatenate((timeseries_b.amp[abs(shifts):], np.zeros(abs(shifts))))
+        else:
+            return timeseries_b.amp
+
+    @classmethod
+    def from_cross_stack(cls, timeseries_a, timeseries_b):
+        """Return a single trace that is the result of stacking two 
+        time series, which are aligned using cross-correlation."""
+        obj = cls(timeseries_a.amp, timeseries_a.dt)
+        shifted_amp = cls.crosscorr_shift(timeseries_a, timeseries_b)
+        obj.stack_append(shifted_amp, timeseries_b.dt)
+        return obj
 
     def __repr__(self):
         # """Valid python expression to reproduce the object"""

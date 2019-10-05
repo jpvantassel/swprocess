@@ -5,8 +5,8 @@ import obspy
 import numpy as np
 import warnings
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
+logging.basicConfig(level=logging.WARNING)
+import matplotlib.pyplot as plt
 
 class TestTimeSeries(unittest.TestCase):
 
@@ -36,6 +36,13 @@ class TestTimeSeries(unittest.TestCase):
         amp = np.array(amp)
         test = utprocess.TimeSeries(amp, dt)
         self.assertListEqual(amp.tolist(), test.amp.tolist())
+
+    def test_time(self):
+        dt = 0.5
+        amp = [0, 1, 2, 3]
+        true_time = [0., 0.5, 1., 1.5]
+        test = utprocess.TimeSeries(amp, dt)
+        self.assertListEqual(test.time.tolist(), true_time)
 
     def test_from_trace_seg2(self):
         with warnings.catch_warnings():
@@ -110,6 +117,110 @@ class TestTimeSeries(unittest.TestCase):
         self.assertEqual(thist.nsamples, 20)
         self.assertEqual(thist.delay, 0)
 
+    def test_crosscorr(self):
+        ampa = [0, 1, 0]
+        ampb = [1]
+        dt = 1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        correlate = utprocess.TimeSeries.crosscorr(tseries_a, tseries_b)
+        self.assertListEqual(correlate.tolist(), [0, 1, 0])
+
+        ampa = [0, 0, 1, 0]
+        ampb = [1]
+        dt = 1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        correlate = utprocess.TimeSeries.crosscorr(tseries_a, tseries_b)
+        self.assertListEqual(correlate.tolist(), [0, 0, 1, 0])
+
+        ampa = [0, 0, 1, 0]
+        ampb = [1, 0]
+        dt = 1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        correlate = utprocess.TimeSeries.crosscorr(tseries_a, tseries_b)
+        self.assertListEqual(correlate.tolist(), [0, 0, 0, 1, 0])
+
+        ampa = [0, 0, 1, 0]
+        ampb = [0, 1, 0]
+        dt = 1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        correlate = utprocess.TimeSeries.crosscorr(tseries_a, tseries_b)
+        self.assertListEqual(correlate.tolist(), [0, 0, 0, 1, 0, 0])
+
+        ampa = [0, 0, -1, 0]
+        ampb = [0, -1, 0, 0]
+        dt = 1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        correlate = utprocess.TimeSeries.crosscorr(tseries_a, tseries_b)
+        self.assertListEqual(correlate.tolist(), [0, 0, 0, 0, 1, 0, 0])
+
+    def test_crosscorr_shift(self):
+        # Simple Pulse
+        ampa = [0, 0, 1, 0]
+        ampb = [0, 1, 0, 0]
+        dt = 1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        shifted = utprocess.TimeSeries.crosscorr_shift(tseries_a, tseries_b)
+        self.assertListEqual(shifted.tolist(), ampa)
+
+        # Simple Pulse
+        ampa = [0, 0, 2, 3, 4, 5, 0, 2, 3, 0]
+        ampb = [0, 2, 3, 4, 5, 0, 0, 0, 0, 0]
+        dt = 1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        shifted = utprocess.TimeSeries.crosscorr_shift(tseries_a, tseries_b)
+        self.assertListEqual(shifted.tolist(), [0, 0, 2, 3, 4, 5, 0, 0, 0, 0])
+
+        # Sinusoidal Pulse
+        ampa = [0, -1, 0, 1, 0, -1, 0, 0]
+        ampb = [0, 0, 0, -1, 0, 1, 0, 0]
+        dt = 0.1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        shifted = utprocess.TimeSeries.crosscorr_shift(tseries_a, tseries_b)
+        self.assertListEqual(shifted.tolist(), [0, -1, 0, 1, 0, 0, 0, 0])
+
+        # Sinusoid
+        dt = 0.01
+        time = np.arange(0,2,dt)
+        f = 5
+        ampa = np.concatenate((np.zeros(20), np.sin(2*np.pi*f*time)))
+        ampb = np.concatenate((np.sin(2*np.pi*f*time),np.zeros(20)))
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        shifted = utprocess.TimeSeries.crosscorr_shift(tseries_a, tseries_b)
+        # plt.plot(tseries_a.time, tseries_a.amp, '-b', label="A")
+        # plt.plot(tseries_b.time, tseries_b.amp, '--r', label="B")
+        # plt.plot(tseries_a.time, shifted, ':c', linewidth=3, label="Shifted B")
+        # plt.legend()
+        # plt.show()
+        self.assertListEqual(shifted.tolist(), ampa.tolist())
+        
+
+    def test_cross_stack(self):
+        # Simple pulse
+        ampa = [0, 0, 1, 0]
+        ampb = [0, 1, 0, 0]
+        dt = 1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        stacked = utprocess.TimeSeries.from_cross_stack(tseries_a, tseries_b)
+        self.assertListEqual(stacked.amp.tolist(), ampa)
+
+        # Simple Sinusoid
+        ampa = [0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
+        ampb = [0, 0, 0, 0, 0, 0, 1, 0, 1, 0]
+        dt = 1
+        tseries_a = utprocess.TimeSeries(ampa, dt)
+        tseries_b = utprocess.TimeSeries(ampb, dt)
+        stacked = utprocess.TimeSeries.from_cross_stack(tseries_a, tseries_b)
+        self.assertListEqual(stacked.amp.tolist(), ampa)
 
 
 if __name__ == '__main__':
