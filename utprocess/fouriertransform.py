@@ -2,7 +2,6 @@
 working with fourier transform objects."""
 
 import numpy as np
-# from timeseries import TimeSeries
 
 class FourierTransform():
     """A class for editing and manipulating fourier transforms.
@@ -13,21 +12,6 @@ class FourierTransform():
 
         amp: np.array denoting the transforms amplitude.
     """
-
-    def __init__(self, ):
-        """Compute the Fast Fourier Transform from a TimeSeries object.
-
-        Args:
-            timeseries: TimeSeries object to be transformed using the 
-                fast fourier transform.
-
-        Returns:
-            An initialized FourierTransform object.
-
-        Raises:
-            This method raises no exceptions.
-        """
-        pass
 
     @staticmethod
     def fft(amplitude, dt):
@@ -49,16 +33,45 @@ class FourierTransform():
         Raises:
             This method raises no exceptions.
         """
-        # # Ensure an even number of samples.
-        # if (len(amplitude) % 2) != 0:
-        #     amplitude = np.append(dt, 0)
+        # Ensure an even number of samples.
+        if (len(amplitude) % 2) != 0:
+            amplitude = np.append(amplitude, 0)
 
-        # complete_fft = np.fft.fft(amp)
-        # n = len(complete_fft)
-        # fft = complete_fft[0:int(n/2)+1]
-        # freq = np.linspace(0, 1/(2*self.dt), int(n/2)+1)
-        # return (freq, fft)
-        pass
+        complete_fft = np.fft.fft(amplitude)
+        n = len(complete_fft)
+        fft = complete_fft[0:int(n/2)+1]
+        freq = np.linspace(0, 1/(2*dt), int(n/2)+1)
+        return (freq, fft)
+
+    def __init__(self, amplitude, dt ):
+        """Compute the Fast Fourier Transform from a timeseries.
+
+        Args:
+            TODO (jpv)
+
+        Returns:
+            An initialized FourierTransform object.
+
+        Raises:
+            This method raises no exceptions.
+        """
+        self.frq, self.amp = self.fft(amplitude, dt)
+
+    @classmethod
+    def from_timeseries(cls, timeseries):
+        """Compute the Fast Fourier Transform from a timeseries.
+
+        Args:
+            timeseries: TimeSeries object to be transformed using the 
+                fast fourier transform.
+
+        Returns:
+            An initialized FourierTransform object.
+
+        Raises:
+            This method raises no exceptions.
+        """
+        return cls(timeseries.amp, timeseries.dt)
 
     @property
     def mag(self):
