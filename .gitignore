@@ -1,4 +1,5 @@
-utprocess/__pycache__
-utprocess.egg-info
-utprocess/test_output_new.json
-utprocess/test.csv
+# Folders
+__pycache__
+*.egg-info
+.vscode
+scratch
