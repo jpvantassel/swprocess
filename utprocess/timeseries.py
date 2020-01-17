@@ -195,15 +195,16 @@ class TimeSeries():
 
     @classmethod
     def from_trace_seg2(cls, trace):
-        """Initialize a TimeSeries object from a seg2 trace object.
+        """Initialize a `TimeSeries` object from a SEG2 `Trace` object.
 
-        This method is similar to from_trace except that it extracts
-        additional information from the trace header. So only use this 
-        method if you have a seg2 file and the header information is 
-        correct.
+        This method is similar to meth:`from_trace` except that it
+        extracts additional information from the `Trace` header. So only
+        use this method if you have a SEG2 file and the header
+        information is correct.
 
         Args:
-            trace: Trace object from a correctly written seg2 file.
+            trace: Trace 
+                Trace object from a correctly written seg2 file.
 
         Returns:
             Initialized TimeSeries object.
@@ -211,10 +212,9 @@ class TimeSeries():
         Raises:
             This method raises no exceptions.
         """
-        return cls(amplitude=trace.data,
-                   dt=trace.stats.delta,
-                   nstacks=int(trace.stats.seg2.STACK),
-                   delay=float(trace.stats.seg2.DELAY))
+        return cls.from_trace(trace = trace,
+                              nstacks=int(trace.stats.seg2.STACK),
+                              delay=float(trace.stats.seg2.DELAY))
 
     @classmethod
     def from_trace(cls, trace, nstacks=1, delay=0):

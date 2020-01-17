@@ -1,5 +1,6 @@
 """Tests for Array1D class."""
-import unittest
+
+from unittest_extensions import TestCase, unittest
 import utprocess
 import obspy
 import numpy as np
@@ -7,7 +8,7 @@ import matplotlib.pyplot as plt
 import warnings
 import copy
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 
 
 def make_dummy_array(amp, dt, nstacks, delay, nreceivers, spacing, source_location):
@@ -23,7 +24,7 @@ def make_dummy_array(amp, dt, nstacks, delay, nreceivers, spacing, source_locati
     return utprocess.Array1D(receivers=recs, source=source)
 
 
-class Test_Array1D(unittest.TestCase):
+class Test_Array1D(TestCase):
     def test_init(self):
         recording = utprocess.TimeSeries(amplitude=[1, 2, 3],
                                          dt=1,
@@ -43,41 +44,55 @@ class Test_Array1D(unittest.TestCase):
         self.assertListEqual(arr.timeseriesmatrix.tolist(),
                              [[1, 1], [2, 2], [3, 3]])
 
-    def test_fromseg2s(self):
+    def test_from_files(self):
+        # Single File
         fname = "test/data/vuws/1.dat"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             known = obspy.read(fname)
-        test = utprocess.Array1D.from_seg2s(fname)
+        test = utprocess.Array1D.from_files(fname)
         self.assertListEqual(known.traces[0].data.tolist(),
                              test.timeseriesmatrix[:, 0].tolist())
+
+        # Multiple Files
+        fnames = [f"test/data/vuws/{x}.dat" for x in range(1,5)]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tmp_stream = obspy.read(fname)
+            expected = np.zeros(tmp_stream.traces[0].data.size)
+            for fname in fnames:
+                tmp = obspy.read(fname).traces[0]
+                expected += tmp.data
+            expected /= len(fnames)
+        returned = utprocess.Array1D.from_files(fnames)[0].timeseries.amp
+        self.assertArrayAlmostEqual(expected, returned, places=2)
 
     def test_plot_waterfall(self):
         # Single shot (near-side)
         fname = "test/data/vuws/1.dat"
-        array1 = utprocess.Array1D.from_seg2s(fname)
+        array1 = utprocess.Array1D.from_files(fname)
         array1.plot_waterfall()
 
         # Multiple shots (near-side)
         fnames = [f"test/data/vuws/{x}.dat" for x in range(1, 6)]
-        array2 = utprocess.Array1D.from_seg2s(fnames)
+        array2 = utprocess.Array1D.from_files(fnames)
         array2.plot_waterfall()
 
         # Single shot (far-side)
         fname = "test/data/vuws/16.dat"
-        array3 = utprocess.Array1D.from_seg2s(fname)
+        array3 = utprocess.Array1D.from_files(fname)
         array3.plot_waterfall()
 
         # Multiple shots (near-side)
         fnames = [f"test/data/vuws/{x}.dat" for x in range(16, 20)]
-        array4 = utprocess.Array1D.from_seg2s(fnames)
+        array4 = utprocess.Array1D.from_files(fnames)
         array4.plot_waterfall()
         # plt.show()
 
     def test_plot_array(self):
         # Basic case (near-side, 2m spacing)
         fname = "test/data/vuws/1.dat"
-        utprocess.Array1D.from_seg2s(fname).plot_array()
+        utprocess.Array1D.from_files(fname).plot_array()
 
         # Non-linear spacing
         recording = utprocess.TimeSeries(amplitude=[1, 2, 3],
@@ -97,7 +112,7 @@ class Test_Array1D(unittest.TestCase):
 
         # Basic case (far-side, 2m spacing)
         fname = "test/data/vuws/20.dat"
-        utprocess.Array1D.from_seg2s(fname).plot_array()
+        utprocess.Array1D.from_files(fname).plot_array()
         # plt.show()
 
     def test_trim_timeseries(self):

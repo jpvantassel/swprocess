@@ -73,16 +73,16 @@ class Array1D(ReceiverArray):
                 from the point the acquisition was triggered.
 
         Returns:
-            Returns no value, but may update the state of attributes:
-                nsamples
-                delay
-                df
+            Returns `None`, but may update the attributes `nsamples`,
+                `delay`, and `df`.
 
         Raises:
-            IndexError if the start_time and end_time is illogical.
-                For example, start_time is before the start of the
-                pretrigger delay or after end_time, and the end_time is
-                before the start_time or after the end of the record.
+            IndexError:
+                If the `start_time` and `end_time` is illogical.
+                For example, `start_time` is before the start of the
+                pretrigger delay or after `end_time`, and the `end_time`
+                is before the `start_time` or after the end of the
+                record.
         """
         for rec_num, receiver in enumerate(self.receivers):
             logging.debug(f"Starting to trim receiver {rec_num}")
@@ -111,9 +111,6 @@ class Array1D(ReceiverArray):
             This method returns a tuple of the form (figure, axes) where
             figure is the figure object and axes is the axes object on
             which the schematic is plotted.
-
-        Raises:
-            This method raises no exceptions.
         """
         time = np.arange(self.ex_rec.timeseries.delay,
                          self.ex_rec.timeseries.nsamples *
@@ -192,16 +189,10 @@ class Array1D(ReceiverArray):
             >>fig, ax = my_array.plot_array()
             >>plt.show()
 
-        Args:
-            This method takes no arguements.
-
         Returns:
             This method returns a tuple of the form (figure, axes) where
             figure is the figure object and axes is the axes object on
             which the schematic is plotted.
-
-        Raises:
-            This method raises no exceptions.
         """
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 2))
 
@@ -218,6 +209,7 @@ class Array1D(ReceiverArray):
             spacing_txt = f"Receiver spacing is {self.spacing}m."
         except ValueError:
             spacing_txt = f"Receiver spacings are not equal."
+
         ax.text(min(self.receivers[0].position["x"], self.source.position["x"]),
                 3,
                 f"Number of Receivers: {self.nchannels}\n{spacing_txt}")
@@ -244,56 +236,69 @@ class Array1D(ReceiverArray):
             raise ValueError("spacing undefined for non-equally spaced arrays")
 
     @classmethod
-    def from_seg2s(cls, fnames):
-        """Initialize an Array1D object from one or more seg2 files.
+    def from_files(cls, fnames):
+        """Initialize an `Array1D` object from one or more data files.
 
-        The seg2 file(s) should be provided as a list of file names,
-        the full path may be provided if desired. Each file should
-        contain multiple traces where each trace corresponds to a single
-        receiver.
+        This classmethod creates an `Array1D` object by reading the
+        header information in the provided file(s). Each file
+        should contain multiple traces where each trace corresponds to a
+        single receiver. Currently supported file types include: SEGY
+        and SU.
 
         Args:
-            fnames: A single str or a list of str where each str is an 
-                input file name. These files should be of type seg2.
+            fnames : str, iterable
+                File name or iterable of file names. If multiple files 
+                are provided the traces are stacked.
 
         Returns:
             Initialized Array1D object.
 
         Raises:
-            TypeError: if fnames is not of type list or string.
+            TypeError:
+                If `fnames` is not of type `str` or `iterable`.
         """
-        if type(fnames) in [list, str]:
-            if type(fnames) in [str]:
-                fnames = [fnames]
+        # Check that fnames has the correct attributes.
+        if type(fnames) == str:
+            fnames = [fnames]
+        elif hasattr(fnames, "__iter__"):
+            pass
         else:
-            raise TypeError(f"fnames must be list or str, not {type(fnames)}.")
+            msg = f"fnames must be a str or an iterable, not {type(fnames)}."
+            raise TypeError(msg)
 
+        # Read file for traces
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             stream = obspy.read(fnames[0])
 
+        # Create array of receivers
         receivers = []
         for trace in stream.traces:
             receivers.append(Receiver1D.from_trace(trace))
-        source = Source({"x": float(trace.stats.seg2.SOURCE_LOCATION),
-                         "y": 0,
-                         "z": 0})
-        arr = cls(receivers, source)
 
+        # Define source
+        _format = trace.stats._format
+        if _format == "SEG2":
+            source = Source({"x": float(trace.stats.seg2.SOURCE_LOCATION),
+                             "y": 0,
+                             "z": 0})
+        elif _format == "SU":
+            source = Source({"x": float(trace.stats.su.trace_header["source_coordinate_x"])/1000,
+                             "y": float(trace.stats.su.trace_header["source_coordinate_y"])/1000,
+                             "z": 0})
+        else:
+            raise ValueError(f"_format={_format} not recognized.")
+        obj = cls(receivers, source)
+
+        # Stack additional traces, if necessary
         if len(fnames) > 0:
             for fname in fnames[1:]:
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     stream = obspy.read(fname)
-                for rid, trace in enumerate(stream.traces):
-                    arr.receivers[rid].timeseries.stack_append(amplitude=trace.data,
-                                                               dt=trace.stats.delta,
-                                                               nstacks=int(trace.stats.seg2.STACK))
-                    # TODO (jpv): Alllow you to index an array will return receiver
-                    assert(arr.source.position["x"] ==
-                           float(trace.stats.seg2.SOURCE_LOCATION))
-                    assert(arr.ex_rec.timeseries.delay ==
-                           float(trace.stats.seg2.DELAY))
-                    # if rid == 1:
-                    #     print(np.mean(arr.receivers[rid].timeseries.amp))
-        return arr
+                for receiver, trace in zip(obj, stream.traces):
+                    receiver.stack_trace(trace)
+        return obj
+
+    def __getitem__(self, slices):
+        return self.receivers[slices]
