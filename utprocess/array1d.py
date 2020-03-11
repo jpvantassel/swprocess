@@ -6,6 +6,7 @@ import numpy as np
 import obspy
 import matplotlib.pyplot as plt
 from scipy import signal
+from matplotlib.widgets import Cursor
 import logging
 import warnings
 logger = logging.getLogger(__name__)
@@ -59,6 +60,7 @@ class Array1d():
         self.source = source
         self.__make_timeseries_matrix()
         self.kres = 2*np.pi / min(np.diff(self.position))
+        self.absolute_minus_relative = 0
         assert(self.kres > 0)
         logger.info("\tkres > 0")
 
@@ -235,6 +237,54 @@ class Array1d():
         else:
             raise ValueError("spacing undefined for non-equally spaced arrays")
 
+    def pick_first_arrivals(self, waterfall_kwargs):
+        """Allow for interactive picking of first arrivals.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        Tuple
+            Of the form (distance, picked_time) 
+        """
+        fig, ax = self.plot_waterfall(**waterfall_kwargs)
+
+        xs, ys = [], []
+
+        cursor = Cursor(ax, useblit=True, color='k', linewidth=1)
+
+        print("Make desired adjustments, press any key when ready:")
+        zoom_ok = False
+        while not zoom_ok:
+            zoom_ok = plt.waitforbuttonpress(timeout=-1)
+
+        while True:
+            print("Pick the first arrival:")
+            vals = plt.ginput(n=1, timeout=0)
+
+            print("Press once to contine, twice to exit:")
+            zoom_ok = False
+            while not zoom_ok:
+                zoom_ok = plt.waitforbuttonpress(timeout=-1)
+
+            if plt.waitforbuttonpress(timeout=0.5):
+                break
+
+            # print(x,y)
+
+            # xs.append(x)               
+            # ys.append(y)
+
+            # print("Press to contiue, wait to exit:")
+            # if plt.waitforbuttonpress(timeout=30):
+            #     break
+
+        # distance, time = xs, ys
+
+        # return (distance, time)
+        return vals
+
     @classmethod
     def from_files(cls, fnames):
         """Initialize an `Array1d` object from one or more data files.
@@ -277,8 +327,15 @@ class Array1d():
 
         # Create array of receivers
         receivers = []
+        minimum_x = 1E9
         for trace in stream.traces:
-            receivers.append(Sensor1c.from_trace(trace))
+            sensor = Sensor1c.from_trace(trace)
+            minimum_x = min(minimum_x, sensor.position["x"])
+            receivers.append(sensor)
+
+        for receiver in receivers:
+            receiver.position["x"] -= minimum_x
+            
 
         # Define source
         _format = trace.stats._format
@@ -287,7 +344,7 @@ class Array1d():
                              "y": 0,
                              "z": 0})
         elif _format == "SU":
-            source = Source({"x": float(trace.stats.su.trace_header["source_coordinate_x"])/1000,
+            source = Source({"x": (float(trace.stats.su.trace_header["source_coordinate_x"])/1000)-minimum_x,
                              "y": float(trace.stats.su.trace_header["source_coordinate_y"])/1000,
                              "z": 0})
         else:
@@ -302,6 +359,8 @@ class Array1d():
                     stream = obspy.read(fname)
                 for receiver, trace in zip(obj, stream.traces):
                     receiver.stack_trace(trace)
+
+        obj.absolute_minus_relative = minimum_x
         return obj
 
     def __getitem__(self, slices):
