@@ -1,7 +1,7 @@
-"""This file contains the derived class Array1D for organizing data for
+"""This file contains the derived class Array1d for organizing data for
 a one-dimensional array."""
 
-from utprocess import TimeSeries, ReceiverArray, Receiver1D, Source
+from utprocess import ActiveTimeSeries, Source, Sensor1c
 import numpy as np
 import obspy
 import matplotlib.pyplot as plt
@@ -11,27 +11,27 @@ import warnings
 logger = logging.getLogger(__name__)
 
 
-class Array1D(ReceiverArray):
-    """A derived class to organize the information for a 1D (i.e.,
-    linear) array.
+class Array1d():
+    """A class to organize the information for a 1D (linear) array.
 
-    Attributes:
-        self.nsensor: Number of sensors in 1D array.
+    Attributes
+    ----------
+    nsensor: Number of sensors in the array.
     """
 
     def __make_timeseries_matrix(self):
         self.ex_rec = self.receivers[0]
-        self.nsamples = self.ex_rec.timeseries.nsamples
-        self.timeseriesmatrix = np.zeros((self.nsamples, self.nchannels))
+        self.n_samples = self.ex_rec.timeseries.n_samples
+        self.timeseriesmatrix = np.zeros((self.n_samples, self.nchannels))
         self.position = []
         for current_receiver, receiver in enumerate(self.receivers):
-            assert(self.ex_rec.timeseries.nsamples ==
-                   receiver.timeseries.nsamples)
+            assert(self.ex_rec.timeseries.n_samples ==
+                   receiver.timeseries.n_samples)
             assert(self.ex_rec.timeseries.dt == receiver.timeseries.dt)
             self.timeseriesmatrix[:,
                                   current_receiver] = receiver.timeseries.amp
             self.position.append(receiver.position["x"])
-        logger.info("\tAll dt and nsamples are equal.")
+        logger.info("\tAll dt and n_samples are equal.")
 
         self.flipped = False if self.source.position['x'] < 0 else True
         if self.flipped:
@@ -39,21 +39,21 @@ class Array1D(ReceiverArray):
             logger.info("\ttimeseriesmatrix is flipped.")
 
     def __init__(self, receivers, source):
-        """Initialize an Array1D object from a list of receivers.
+        """Initialize an Array1d object from a list of receivers.
 
-        Args:
-            receivers: List of initialized Receiver1D objects.
+        Parameters
+        ----------
+        receivers : iterable
+            Iterable of initialized Sensor1c objects.
+        source : Source
+            Initialized `Source` object.
 
-            source: Initialized Source object.
-
-        Returns:
-            Initialize an Array1D object.
-
-        Raises:
-            This method raises no exceptions.
-
+        Returns
+        -------
+        Array1d
+            Initialize an `Array1d` object.
         """
-        logger.info("Initalize an Array1D object.")
+        logger.info("Initalize an Array1d object.")
         self.receivers = receivers
         self.nchannels = len(self.receivers)
         self.source = source
@@ -62,27 +62,24 @@ class Array1D(ReceiverArray):
         assert(self.kres > 0)
         logger.info("\tkres > 0")
 
-    def trim_timeseries(self, start_time, end_time):
-        """Trim excess off of the time series.
+    def trim_record(self, start_time, end_time):
+        """Trim timeseries from each Receiver1c.
 
-        Args: 
-            start_time: Float denoting the desired start time in seconds 
-                from the point the acquisition was triggered.
+        Parameters
+        ----------
+        start_time, end_time: float
+            Desired start time and end time in seconds measured from the
+            point the acquisition system was triggered.
 
-            end_time: Float denoting the desired end time in seconds 
-                from the point the acquisition was triggered.
+        Returns
+        -------
+        None
+            May update the attributes `n_samples`, `delay`, and `df`.
 
-        Returns:
-            Returns `None`, but may update the attributes `nsamples`,
-                `delay`, and `df`.
-
-        Raises:
-            IndexError:
-                If the `start_time` and `end_time` is illogical.
-                For example, `start_time` is before the start of the
-                pretrigger delay or after `end_time`, and the `end_time`
-                is before the `start_time` or after the end of the
-                record.
+        Raises
+        ------
+        IndexError
+            If the `start_time` and `end_time` is illogical.
         """
         for rec_num, receiver in enumerate(self.receivers):
             logging.debug(f"Starting to trim receiver {rec_num}")
@@ -90,36 +87,37 @@ class Array1D(ReceiverArray):
         self.__make_timeseries_matrix()
 
     def plot_waterfall(self, scale_factor=1.0, plot_ax='x'):
-        """Create waterfall plot for the shot or stack of shots for this
-        array setup.
+        """Create waterfall plot for this array setup.
 
-        Creates a waterfall plot from the timehistories belonging to
+        Creates a waterfall plot from the time series belonging to
         this array. The waterfall includes normalized timeseries plotted
         vertically with distance. The abscissa (cartesian x-axis) is the
         relative receiver location in meters, and the ordinate 
         (cartesian y-axis) is time in seconds.
 
-        Args: 
-            scale_factor: Float denoting the scale of the nomalized
-                timeseries height (peak-to-trough). Half the receiver
-                spacing is generally a good value.
+        Parameters
+        ----------
+        scale_factor : float, optional
+            Denotes the scale of the nomalized timeseries height
+            (peak-to-trough), default is 1. Half the receiver spacing is
+            generally a good value.
+        plot_ax : {'x', 'y'}, optional
+            Denotes on which axis the waterfall shoul reside.
 
-            plot_ax: {'x' or 'y'} denoting on which axis the waterfall
-                plot should be plotted on.
-
-        Returns:
-            This method returns a tuple of the form (figure, axes) where
-            figure is the figure object and axes is the axes object on
-            which the schematic is plotted.
+        Returns
+        -------
+        Tuple
+            Of the form (fig, ax) where `fig` is the figure object and
+            `ax` the axes object on which the schematic is plotted.
         """
         time = np.arange(self.ex_rec.timeseries.delay,
-                         self.ex_rec.timeseries.nsamples *
+                         self.ex_rec.timeseries.n_samples *
                          self.ex_rec.timeseries.dt + self.ex_rec.timeseries.delay,
                          self.ex_rec.timeseries.dt)
 
-        # Length of time vector may become longer than nsamples, due to
+        # Length of time vector may become longer than n_samples, due to
         # numerical imprecision, if so remove the last sample.
-        if len(time) > self.ex_rec.timeseries.nsamples:
+        if len(time) > self.ex_rec.timeseries.n_samples:
             time = time[:-1]
 
         # Normalize and detrend
@@ -173,26 +171,28 @@ class Array1D(ReceiverArray):
         return (fig, ax)
 
     def plot_array(self):
-        """Plot a schematic of the Array1D object.
+        """Plot a schematic of the `Array1d` object.
 
         The schematic shows the relative position of the receivers and
         the source and lists the total number of receivers. The figure
         and axes are returned to the user for use in further editing if
         desired.
 
-        Example:
+        Returns
+        -------
+            This method returns a tuple of the form (figure, axes) where
+            figure is the figure object and axes is the axes object on
+            which the schematic is plotted.
+        
+        Examples
+        --------
             >>import matplotlib.pyplot as plt
             >>import utprocess
             >>
             >># 1.dat is a seg2 file from an MASW survey
-            >>my_array = utprocess.Array1D.from_seg2s("1.dat")
+            >>my_array = utprocess.Array1d.from_seg2s("1.dat")
             >>fig, ax = my_array.plot_array()
             >>plt.show()
-
-        Returns:
-            This method returns a tuple of the form (figure, axes) where
-            figure is the figure object and axes is the axes object on
-            which the schematic is plotted.
         """
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 2))
 
@@ -237,25 +237,29 @@ class Array1D(ReceiverArray):
 
     @classmethod
     def from_files(cls, fnames):
-        """Initialize an `Array1D` object from one or more data files.
+        """Initialize an `Array1d` object from one or more data files.
 
-        This classmethod creates an `Array1D` object by reading the
+        This classmethod creates an `Array1d` object by reading the
         header information in the provided file(s). Each file
         should contain multiple traces where each trace corresponds to a
         single receiver. Currently supported file types include: SEGY
         and SU.
 
-        Args:
-            fnames : str, iterable
-                File name or iterable of file names. If multiple files 
-                are provided the traces are stacked.
+        Parameters
+        ----------
+        fnames : str, iterable
+            File name or iterable of file names. If multiple files 
+            are provided the traces are stacked.
 
-        Returns:
-            Initialized Array1D object.
+        Returns
+        -------
+        Array1d
+            Initialized `Array1d` object.
 
-        Raises:
-            TypeError:
-                If `fnames` is not of type `str` or `iterable`.
+        Raises
+        ------
+        TypeError
+            If `fnames` is not of type `str` or `iterable`.
         """
         # Check that fnames has the correct attributes.
         if type(fnames) == str:
@@ -274,7 +278,7 @@ class Array1D(ReceiverArray):
         # Create array of receivers
         receivers = []
         for trace in stream.traces:
-            receivers.append(Receiver1D.from_trace(trace))
+            receivers.append(Sensor1c.from_trace(trace))
 
         # Define source
         _format = trace.stats._format

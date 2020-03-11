@@ -61,7 +61,7 @@ class ActiveTimeSeries(TimeSeries):
         """
         super().__init__(amplitude=amplitude, dt=dt)
   
-        self._nstack = 1
+        self.n_stacks = n_stacks
         assert(delay <= 0)
         self.delay = delay
 

@@ -9,7 +9,7 @@ import numpy as np
 import json
 import matplotlib as mpl
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
-mpl.use('Qt4Agg')
+# mpl.use('Qt4Agg')
 logger = logging.getLogger(__name__)
 
 

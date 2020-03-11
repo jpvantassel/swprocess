@@ -57,7 +57,7 @@ class Sensor1c():
         return cls.from_trace(trace,
                               ftype="custom",
                               read_header=False,
-                              nstacks=int(header.STACK),
+                              n_stacks=int(header.STACK),
                               delay=float(header.DELAY),
                               x=float(header.RECEIVER_LOCATION),
                               y=0,
@@ -83,14 +83,14 @@ class Sensor1c():
         return cls.from_trace(trace,
                               ftype="custom",
                               read_header=False,
-                              nstacks=int(header[nstack_key])+1,
+                              n_stacks=int(header[nstack_key])+1,
                               delay=float(header["delay_recording_time"]),
                               x=float(header["group_coordinate_x"]/1000),
                               y=float(header["group_coordinate_y"]/1000),
                               z=0)
 
     @classmethod
-    def from_trace(cls, trace, ftype="unkown", read_header=True, nstacks=1, delay=0, x=0, y=0, z=0):
+    def from_trace(cls, trace, ftype="unkown", read_header=True, n_stacks=1, delay=0, x=0, y=0, z=0):
         """Create a `Receiver1D` object from a `Trace` object.
 
         Parameters
@@ -105,7 +105,7 @@ class Sensor1c():
             Flag to indicate whether the data in the header of the
             file should be parsed, default is `True` indicating that
             the header data will be read.
-        nstacks : int, optional
+        n_stacks : int, optional
             Number of stacks included in the present trace, default
             is 1 (i.e., no stacking).
         delay : float, optional
@@ -151,7 +151,7 @@ class Sensor1c():
         elif _format == "CUSTOM":
             return cls(ActiveTimeSeries(amplitude=trace.data,
                                   dt=trace.stats.delta,
-                                  nstacks=nstacks,
+                                  n_stacks=n_stacks,
                                   delay=delay),
                        position={"x": x, "y": y, "z": z})
         else:
@@ -174,4 +174,4 @@ class Sensor1c():
         # TODO (jpv): Add checks in here to ensure series are complient.
         self.timeseries.stack_append(amplitude=trace.data,
                                      dt=trace.stats.delta,
-                                     nstacks=1)
+                                     n_stacks=1)
