@@ -7,7 +7,7 @@ https://github.com/pypa/sampleproject
 
 from setuptools import setup, find_packages
 
-with open('README.md') as f:
+with open('README.md', encoding="utf8") as f:
     long_description = f.read()
 
 setup(
@@ -39,7 +39,7 @@ setup(
     keywords='surface-wave processing geopsy active passive',
     packages=find_packages(),
     python_requires = '>3.6',
-    install_requires=["numpy", "scipy", "matplotlib", "obspy"],
+    install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy"],
     extras_require={
         'dev': ['unittest', 'hypothesis'],
     },
