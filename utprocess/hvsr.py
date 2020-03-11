@@ -1,7 +1,6 @@
-"""This file contains the class HorVertSpecRatio for organizing data 
+"""This file contains the class Hvsr for organizing data 
 related to the horizontal-to-vertical spectral ratio method."""
 
-# from utprocess import Receiver, TimeSeries
 import os
 import glob
 import re
@@ -9,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class HorVertSpecRatio():
+class Hvsr():
     def __init__(self, frequency, amplitude, identifier):
         self.frq = [frequency]
         self.amp = [amplitude]
