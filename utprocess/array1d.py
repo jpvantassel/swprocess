@@ -21,22 +21,30 @@ class Array1d():
     """
 
     def __make_timeseries_matrix(self):
+        """Pull information from each Sensor1c into a 2D matrix.
+
+        Returns
+        -------
+        ndarray
+            Where each row is a different timehistory.
+
+        """
         self.ex_rec = self.receivers[0]
         self.n_samples = self.ex_rec.timeseries.n_samples
-        self.timeseriesmatrix = np.zeros((self.n_samples, self.nchannels))
+        self.timeseriesmatrix = np.empty((self.nchannels, self.n_samples))
         self.position = []
         for current_receiver, receiver in enumerate(self.receivers):
             assert(self.ex_rec.timeseries.n_samples ==
                    receiver.timeseries.n_samples)
             assert(self.ex_rec.timeseries.dt == receiver.timeseries.dt)
-            self.timeseriesmatrix[:,
-                                  current_receiver] = receiver.timeseries.amp
+            self.timeseriesmatrix[current_receiver,
+                                  :] = receiver.timeseries.amp
             self.position.append(receiver.position["x"])
         logger.info("\tAll dt and n_samples are equal.")
 
         self.flipped = False if self.source.position['x'] < 0 else True
         if self.flipped:
-            self.timeseriesmatrix = np.fliplr(self.timeseriesmatrix)
+            self.timeseriesmatrix = np.flipud(self.timeseriesmatrix)
             logger.info("\ttimeseriesmatrix is flipped.")
 
     def __init__(self, receivers, source):
@@ -88,13 +96,23 @@ class Array1d():
             receiver.timeseries.trim(start_time, end_time)
         self.__make_timeseries_matrix()
 
+    def _clean_matrix(self, scale_factor):
+        norm_traces = np.empty_like(self.timeseriesmatrix)
+        for k, current_trace in enumerate(self.timeseriesmatrix):
+            current_trace = signal.detrend(current_trace)
+            current_trace /= np.amax(current_trace)
+            current_trace *= scale_factor
+            current_trace += self.position[k]
+            norm_traces[k, :] = current_trace
+        return norm_traces
+
     def plot_waterfall(self, scale_factor=1.0, plot_ax='x'):
         """Create waterfall plot for this array setup.
 
         Creates a waterfall plot from the time series belonging to
         this array. The waterfall includes normalized timeseries plotted
         vertically with distance. The abscissa (cartesian x-axis) is the
-        relative receiver location in meters, and the ordinate 
+        relative receiver location in meters, and the ordinate
         (cartesian y-axis) is time in seconds.
 
         Parameters
@@ -104,7 +122,8 @@ class Array1d():
             (peak-to-trough), default is 1. Half the receiver spacing is
             generally a good value.
         plot_ax : {'x', 'y'}, optional
-            Denotes on which axis the waterfall shoul reside.
+            Denotes on which axis the waterfall should reside, 'x' is
+            the default.
 
         Returns
         -------
@@ -112,59 +131,35 @@ class Array1d():
             Of the form (fig, ax) where `fig` is the figure object and
             `ax` the axes object on which the schematic is plotted.
         """
-        time = np.arange(self.ex_rec.timeseries.delay,
-                         self.ex_rec.timeseries.n_samples *
-                         self.ex_rec.timeseries.dt + self.ex_rec.timeseries.delay,
-                         self.ex_rec.timeseries.dt)
-
-        # Length of time vector may become longer than n_samples, due to
-        # numerical imprecision, if so remove the last sample.
-        if len(time) > self.ex_rec.timeseries.n_samples:
-            time = time[:-1]
-
-        # Normalize and detrend
-        norm_traces = np.zeros(np.shape(self.timeseriesmatrix))
-        for k in range(self.nchannels):
-            current_trace = self.timeseriesmatrix[:, k]
-            current_trace = signal.detrend(current_trace)
-            current_trace = current_trace / np.amax(current_trace)
-            current_trace = current_trace*scale_factor + self.position[k]
-            norm_traces[:, k] = current_trace
+        time = self.ex_rec.timeseries.time
+        norm_traces = self._clean_matrix(scale_factor=scale_factor)
 
         # Plotting
         if str.lower(plot_ax) == 'y':
             fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 6))
-            ax = fig.add_axes([0.14, 0.20, 0.8, 0.8])
-            for m in range(self.nchannels):
-                ax.plot(time, norm_traces[:, m], 'b-', linewidth=0.5)
+            for trace in norm_traces:
+                ax.plot(time, trace, 'b-', linewidth=0.5)
             ax.set_xlim((min(time), max(time)))
             ax.set_ylim(
                 (-self.position[1], self.position[1]+self.position[len(self.position)-1]))
-            # ax.set_xticklabels(ax.get_xticks(), fontsize=11, fontname='arial')
-            # ax.set_yticklabels(ax.get_yticks(), fontsize=11, fontname='arial')
-            ax.grid(axis='x', linestyle='--')
-            ax.set_xlabel('Time (s)', fontsize=11, fontname="arial")
-            ax.set_ylabel('Normalized Amplitude',
-                          fontsize=11, fontname="arial")
-            ax.tick_params(labelsize=11)
+            ax.grid(axis='x', linestyle=':')
+            ax.set_xlabel('Time (s)')
+            ax.set_ylabel('Distance (m)')
             ax.tick_params('x', length=4, width=1, which='major')
             ax.tick_params('y', length=4, width=1, which='major')
         elif str.lower(plot_ax) == 'x':
             fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
-            for m in range(self.nchannels):
-                ax.plot(norm_traces[:, m], time, 'b-', linewidth=0.5)
+            for trace in norm_traces:
+                ax.plot(trace, time, 'b-', linewidth=0.5)
             ax.set_ylim((max(time), min(time)))
             ax.set_xlim(
                 (-self.position[1], self.position[1]+self.position[len(self.position)-1]))
-            # ax.set_yticklabels(ax.get_yticks(), fontsize=11, fontname='arial')
-            # ax.set_xticklabels(ax.get_xticks(), fontsize=11, fontname='arial')
-            ax.grid(axis='y', linestyle='--')
-            ax.set_ylabel('Time (s)', fontsize=11, fontname="arial")
-            ax.set_xlabel('Normalized Amplitude',
-                          fontsize=11, fontname="arial")
-            ax.tick_params(labelsize=11)
+            ax.grid(axis='y', linestyle=':')
+            ax.set_ylabel('Time (s)')
+            ax.set_xlabel("Distance (m)")
             ax.tick_params('y', length=4, width=1, which='major')
             ax.tick_params('x', length=4, width=1, which='major')
+
         if self.flipped:
             ax.text(0,
                     1.1,
@@ -185,7 +180,7 @@ class Array1d():
             This method returns a tuple of the form (figure, axes) where
             figure is the figure object and axes is the axes object on
             which the schematic is plotted.
-        
+
         Examples
         --------
             >>import matplotlib.pyplot as plt
@@ -237,53 +232,95 @@ class Array1d():
         else:
             raise ValueError("spacing undefined for non-equally spaced arrays")
 
-    def pick_first_arrivals(self, waterfall_kwargs):
+    def _pick_threshold(self, threshold=0.05):
+        """
+
+        Parameters
+        ----------
+        threshold : {0.-1.}, optional
+            Picking threashold as a percent.
+
+        """
+        norm_traces = self._clean_matrix(scale_factor=1)
+        _time = self.ex_rec.timeseries.time
+
+        times = []
+        for trace in norm_traces:
+            pindices = np.argwhere(abs(trace-np.mean(trace[:10])) > threshold)
+            index = int(pindices[0])
+            times.append(_time[index])
+
+        return (self.position, times)
+
+    def auto_pick_first_arrivals(self, algorithm='threshold', **kwargs):
+        if algorithm == "threshold":
+            picks = self._pick_threshold(**kwargs)
+        else:
+            raise NotImplementedError
+        return picks
+
+    def pick_first_arrivals(self, waterfall_kwargs=None):
         """Allow for interactive picking of first arrivals.
 
         Parameters
         ----------
+        waterfall_kwargs : dict, optional
+            Dictionary of keyword arguements for
+            meth: `<plot_waterfall>`, default is `None` indicating
+            default keyword arugements.
 
         Returns
         -------
         Tuple
             Of the form (distance, picked_time) 
         """
+        if waterfall_kwargs is None:
+            waterfall_kwargs = {}
+
         fig, ax = self.plot_waterfall(**waterfall_kwargs)
 
         xs, ys = [], []
 
         cursor = Cursor(ax, useblit=True, color='k', linewidth=1)
 
-        print("Make desired adjustments, press any key when ready:")
+        print("Make adjustments: (Press spacebar when ready)")
         zoom_ok = False
         while not zoom_ok:
             zoom_ok = plt.waitforbuttonpress(timeout=-1)
 
         while True:
-            print("Pick the first arrival:")
-            vals = plt.ginput(n=1, timeout=0)
+            print(
+                "Pick arrival: (Left Click to Add, Right Click to Remove, Enter to Finish")
+            vals = plt.ginput(n=-1, timeout=0)
 
-            print("Press once to contine, twice to exit:")
+            x, y = vals[-1]
+            ax.plot(x, y, "r", marker="+", linestyle="")
+            xs.append(x)
+            ys.append(y)
+
+            print(
+                "Continue? (Make adjustments then press spacebar once to contine, twice to exit)")
             zoom_ok = False
             while not zoom_ok:
                 zoom_ok = plt.waitforbuttonpress(timeout=-1)
 
             if plt.waitforbuttonpress(timeout=0.5):
+                print("Exiting ... ")
                 break
 
-            # print(x,y)
+            print("Continuing ... ")
 
-            # xs.append(x)               
-            # ys.append(y)
+        print("Close figure when ready.")
 
-            # print("Press to contiue, wait to exit:")
-            # if plt.waitforbuttonpress(timeout=30):
-            #     break
+        if waterfall_kwargs.get("plot_ax") is None:
+            waterfall_kwargs["plot_ax"] = "x"
 
-        # distance, time = xs, ys
+        if waterfall_kwargs["plot_ax"] == "x":
+            distance, time = vals
+        else:
+            time, distance = vals
 
-        # return (distance, time)
-        return vals
+        return (distance, time)
 
     @classmethod
     def from_files(cls, fnames):
@@ -335,7 +372,6 @@ class Array1d():
 
         for receiver in receivers:
             receiver.position["x"] -= minimum_x
-            
 
         # Define source
         _format = trace.stats._format
