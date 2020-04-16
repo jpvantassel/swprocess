@@ -22,7 +22,6 @@ setup(
     classifiers=[
         'Development Status :: 3 - Alpha',
 
-        'Intended Audience :: Developers',
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
 
@@ -32,16 +31,16 @@ setup(
 
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
     ],
     keywords='surface-wave processing geopsy active passive',
     packages=find_packages(),
     python_requires = '>3.6',
     install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy"],
     extras_require={
-        'dev': ['unittest', 'hypothesis'],
+        'dev': [],
     },
     package_data={
     },
