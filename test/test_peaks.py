@@ -1,5 +1,6 @@
 """Tests for Peaks abstract class."""
-import unittest
+
+from testtools import unittest, TestCase, get_full_path
 import utprocess
 import numpy as np
 import json
@@ -8,7 +9,12 @@ import logging
 logging.basicConfig(level=logging.WARN)
 
 
-class TestPeaks(unittest.TestCase):
+class Test_Peaks(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.full_path = get_full_path(__file__)
+
     def test_init(self):
         # Basic Case: No keyword arugments
         frequency = [100, 50, 30, 10, 5, 3]
@@ -100,7 +106,7 @@ class TestPeaks(unittest.TestCase):
                                        "velocity": velocity,
                                        "azi": azi,
                                        "pwr": pwr}}
-            fnames.append(f"test/temp_dict{num}.json")
+            fnames.append(f"{self.full_path}data/temp_dict{num}.json")
             with open(fnames[-1], "w") as f:
                 json.dump(write_data, f)
 
@@ -110,12 +116,12 @@ class TestPeaks(unittest.TestCase):
             self.assertListEqual(my_peaks.ext["azi"][num].tolist(), azi)
             self.assertListEqual(my_peaks.ext["pwr"][num].tolist(), pwr)
 
-        for num in range(0,3):
-            os.remove(f"test/temp_dict{num}.json"
-            )
+        for fname in fnames:
+            os.remove(fname)
+
     def test_from_maxs_1file(self):
         # Check rayleigh (2 lines)
-        ray = utprocess.Peaks.from_maxs(fnames="test\\data\\myanmar\\test_hfk_ds_short.max",
+        ray = utprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_short.max",
                                         identifiers="test_short_rayleigh",
                                         rayleigh=True,
                                         love=False)
@@ -133,7 +139,7 @@ class TestPeaks(unittest.TestCase):
                                                           2074967.9391639579553])
 
         # Check love (2 lines)
-        lov = utprocess.Peaks.from_maxs(fnames="test\\data\\myanmar\\test_hfk_ds_short.max",
+        lov = utprocess.Peaks.from_maxs(fnames=self.full_path+"data/myanmar/test_hfk_ds_short.max",
                                         identifiers="test_short_love",
                                         rayleigh=False,
                                         love=True)
@@ -150,8 +156,8 @@ class TestPeaks(unittest.TestCase):
 
     def test_from_max_2files(self):
         # Check Rayleigh (2 files, 2 lines per file)
-        ray = utprocess.Peaks.from_maxs(fnames=["test\\data\\myanmar\\test_hfk_ds_short.max",
-                                                "test\\data\\myanmar\\test_hfk_pr_short_2.max"],
+        ray = utprocess.Peaks.from_maxs(fnames=[self.full_path + "data/myanmar/test_hfk_ds_short.max",
+                                                self.full_path + "data/myanmar/test_hfk_pr_short_2.max"],
                                         identifiers=["test_short",
                                                      "test_short_2"],
                                         rayleigh=True,
@@ -187,8 +193,8 @@ class TestPeaks(unittest.TestCase):
                                                           17030488659.287288666])
 
         # Check Love (2 files, 2 lines per file)
-        lov = utprocess.Peaks.from_maxs(fnames=["test\\data\\myanmar\\test_hfk_ds_short.max",
-                                                "test\\data\\myanmar\\test_hfk_pr_short_2.max"],
+        lov = utprocess.Peaks.from_maxs(fnames=[self.full_path + "data/myanmar/test_hfk_ds_short.max",
+                                                self.full_path + "data/myanmar/test_hfk_pr_short_2.max"],
                                         identifiers=["test_short",
                                                      "test_short_2"],
                                         rayleigh=False,
@@ -220,17 +226,17 @@ class TestPeaks(unittest.TestCase):
                                                           422413.79929310601437])
 
     # def test_partytime_real(self):
-    #     lov = utprocess.Peaks.from_maxs(fnames="test\\data\\myanmar\\test_hfk_ds_full.max",
+    #     lov = utprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_full.max",
     #                                     identifiers="test_lov",
     #                                     rayleigh=False,
     #                                     love=True)
-    #     lov.party_time(settings_file="test\\test_ptimesettings.json")
+    #     lov.party_time(settings_file=self.full_path + "settings/test_ptimesettings.json")
 
-    #     ray = utprocess.Peaks.from_maxs(fnames="test\\data\\myanmar\\test_hfk_ds_full.max",
+    #     ray = utprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_full.max",
     #                                     identifiers="test_ray",
     #                                     rayleigh=True,
     #                                     love=False)
-    #     ray.party_time(settings_file="test\\test_ptimesettings.json")
+    #     ray.party_time(settings_file=self.full_path + "settings/test_ptimesettings.json")
 
     # def test_partytime_fake(self):
     #     # Standard With Extras (Remove Center Point [3,150])
@@ -242,14 +248,14 @@ class TestPeaks(unittest.TestCase):
     #                            velocity=vel,
     #                            identifier=ids,
     #                            ell=ell)
-    #     peak.party_time(settings_file="test\\test_ptimesettings_fake.json")
+    #     peak.party_time(settings_file=self.full_path + "settings/test_ptimesettings_fake.json")
     #     self.assertListEqual(peak.frq[0].tolist(), frq[:-1])
     #     self.assertListEqual(peak.vel[0].tolist(), vel[:-1])
     #     self.assertListEqual(peak.ext["ell"][0].tolist(), ell[:-1])
 
     def test_write_peak_json(self):
         # Basic Case (Only Frequency and Velocity)
-        fname = "test//test_write_peak_json"
+        fname = self.full_path + "data/test_write_peak_json"
         known_freq = [1, 2, 3]
         known_vel = [4, 5, 6]
         peaks = utprocess.Peaks(frequency=known_freq,
@@ -263,7 +269,7 @@ class TestPeaks(unittest.TestCase):
         os.remove(fname+".json")
 
         # Complex Case (Frequency, Velocity, and Extra)
-        fname = "test//test_write_peak_json"
+        fname =  self.full_path + "data/test_write_peak_json"
         known_freq = [1, 2, 3]
         known_vel = [4, 5, 6]
         known_ell = [1, 2, 3]

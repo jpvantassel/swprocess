@@ -19,14 +19,16 @@ settings_file = "test/test_fksettings.json"
 for gnum, group in enumerate(filegroup):
     for fnum, fname in enumerate(group):
         group[fnum] = folder+fname
-    array = utprocess.Array1D.from_seg2s(group)
-    # array.plot_array()
+    array = utprocess.Array1d.from_files(group)
+    array.plot_array()
     # array.plot_waterfall()
-    fk = utprocess.WavefieldTransform1D(array=array,
-                                        settings_file=settings_file)
-    # array.plot_waterfall()
-    fk.plot_spec()
-    fk.save_peaks(fname="test_output_new",
-                  identifier=array.source.position["x"],
-                  append=False if gnum == 0 else True)
+    # fk = utprocess.WavefieldTransform1D(array=array,
+                                        # settings_file=settings_file)
+    array.plot_waterfall()
+    # fk.plot_spec()
+    # fk.save_peaks(fname="test_output_new",
+    #               identifier=array.source.position["x"],
+    #               append=False if gnum == 0 else True)
 plt.show()
+
+# TODO (jpv): Flip array.

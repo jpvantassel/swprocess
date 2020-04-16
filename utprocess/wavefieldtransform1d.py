@@ -54,8 +54,8 @@ class WavefieldTransform1D():
             self.general = settings["general"]
 
         if self.general["start_time"] != None and self.general["end_time"] != None:
-            array.trim_timeseries(start_time=self.general["start_time"],
-                                  end_time=self.general["end_time"])
+            array.trim_record(start_time=self.general["start_time"],
+                              end_time=self.general["end_time"])
 
         if settings["type"] == "fk":
             numk = self.general["n_trial"]
@@ -71,8 +71,9 @@ class WavefieldTransform1D():
             dk = 2*np.pi / (numk*self.array.spacing)
             k_vals = np.arange(dk, kres, dk)
 
-            fk = np.fft.fft2(self.array.timeseriesmatrix,
-                             s=(self.array.ex_rec.timeseries.nsamples, numk))
+            # TOOD (jpv): Had to transpose matrix here, b/c flip from C major to R major
+            fk = np.fft.fft2(self.array.timeseriesmatrix.T,
+                             s=(self.array.ex_rec.timeseries.n_samples, numk))
             fk = np.fliplr(np.abs(fk))
             fk = fk[0:len(freq), 1::]
 
@@ -98,6 +99,11 @@ class WavefieldTransform1D():
             self.val_type = 'wavenumber'
             self.kres = kres
             self.pnorm = np.transpose(pnorm)
+
+    # TODO (jpv): Generate a default settings file on the fly.
+    @staticmethod
+    def gen_default_settings_file(fname):
+        pass
 
     def save_peaks(self, fname, identifier, append=False):
         """Save the peak disperison values frequency and velocity to
@@ -146,13 +152,14 @@ class WavefieldTransform1D():
             if identifier in data:
                 raise KeyError(f"identifier {identifier} is repeated.")
             else:
-                frq_trim = self.freq[np.where( v_peak<self.general["max_vel"])]
-                vel_trim = v_peak[np.where( v_peak<self.general["max_vel"])]
+                frq_trim = self.freq[np.where(
+                    v_peak < self.general["max_vel"])]
+                vel_trim = v_peak[np.where(v_peak < self.general["max_vel"])]
                 data.update({identifier: {"frequency": frq_trim.tolist(),
                                           "velocity": vel_trim.tolist()}})
             json.dump(data, fp)
 
-    def plot_spec(self, plot_type="fv", plot_limit=None):
+    def plot_spec(self, plot_type="fv", plot_peak=True, plot_limit=None):
         if plot_limit != None and len(plot_limit) != 4:
             raise ValueError("plotLim should be a four element list")
 
@@ -252,13 +259,14 @@ class WavefieldTransform1D():
         #           origin='lower',
         #           cmap="jet")
 
-        ax.plot(xpeak,
-                ypeak,
-                marker="o",
-                markersize=5,
-                markeredgecolor="w",
-                markerfacecolor='none',
-                linestyle="none")
+        if plot_peak:
+            ax.plot(xpeak,
+                    ypeak,
+                    marker="o",
+                    markersize=5,
+                    markeredgecolor="w",
+                    markerfacecolor='none',
+                    linestyle="none")
 
         # TODO (jpv): Look into making a plotting function to set these defaults
 

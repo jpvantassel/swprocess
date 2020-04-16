@@ -1,7 +1,7 @@
 """Tests for ActiveTimeSeries class. """
 
 import matplotlib.pyplot as plt
-from testtools import unittest, TestCase
+from testtools import unittest, TestCase, get_full_path
 import utprocess
 import obspy
 import numpy as np
@@ -11,6 +11,10 @@ logging.basicConfig(level=logging.WARNING)
 
 
 class Test_ActiveTimeSeries(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.full_path = get_full_path(__file__)
 
     def test_check(self):
         for value in ["values", ["a", "b", "c"]]:
@@ -49,7 +53,7 @@ class Test_ActiveTimeSeries(TestCase):
     def test_from_trace_seg2(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            trace = obspy.read("test/data/vuws/1.dat")[0]
+            trace = obspy.read(self.full_path + "data/vuws/1.dat")[0]
         returned = utprocess.ActiveTimeSeries.from_trace_seg2(trace)
         self.assertArrayEqual(trace.data, returned.amp)
         self.assertEqual(trace.stats.delta, returned.dt)
@@ -59,7 +63,7 @@ class Test_ActiveTimeSeries(TestCase):
     def test_from_trace(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            trace = obspy.read("test/data/vuws/1.dat")[0]
+            trace = obspy.read(self.full_path + "data/vuws/1.dat")[0]
         tseries = utprocess.ActiveTimeSeries.from_trace(trace, delay=-0.5)
         self.assertListEqual(tseries.amp.tolist(), trace.data.tolist())
         self.assertEqual(trace.stats.delta, tseries.dt)
