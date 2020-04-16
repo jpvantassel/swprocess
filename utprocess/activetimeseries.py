@@ -17,12 +17,12 @@ class ActiveTimeSeries(TimeSeries):
         Recording's amplitude, one per sample.
     dt : float
         Time step between samples in seconds.
-    
+
     """
     # @staticmethod
     # def check_input(name, values):
-    #     """Check 'values' is `ndarray`, `list`, or `tuple`. 
-    #     If it is a list or tuple convert it to a np.ndarray. 
+    #     """Check 'values' is `ndarray`, `list`, or `tuple`.
+    #     If it is a list or tuple convert it to a np.ndarray.
     #     Ensure 'values' is one-dimensional np.ndarray.
     #     'name' is only used to raise easily understood exceptions.
     #     """
@@ -60,43 +60,47 @@ class ActiveTimeSeries(TimeSeries):
             Intialized `TimeSeries` object.
         """
         super().__init__(amplitude=amplitude, dt=dt)
-  
+
         self.n_stacks = n_stacks
-        assert(delay <= 0)
+        self._nstacks = n_stacks
+
+        if delay > 0:
+            raise ValueEroror()
+        # assert(delay <= 0)
         self.delay = delay
 
+        # TODO (jpv): Dont think this is needed, but wavefieldtransform is broken.
+        self.multiple = 1
+        
     @property
     def time(self):
         """Return time vector for `ActiveTimeSeries` object."""
-        if self.n_windows == 1:
-            return np.arange(0, self.n_samples*self.dt, self.dt) + self.delay
-        else:
-            samples_per_window = (self.n_samples//self.n_windows)+1
-            time = np.zeros((self.n_windows, samples_per_window))
-            for cwindow in range(self.n_windows):
-                start_time = cwindow*(samples_per_window-1)*self.dt
-                stop_time = start_time + (samples_per_window-1)*self.dt
-                time[cwindow] = np.linspace(
-                    start_time, stop_time, samples_per_window)
-            return time
-
+        # if self.n_windows == 1:
+        return np.arange(0, self.n_samples*self.dt, self.dt) + self.delay
+        # else:
+        #     samples_per_window = (self.n_samples//self.n_windows)+1
+        #     time = np.zeros((self.n_windows, samples_per_window))
+        #     for cwindow in range(self.n_windows):
+        #         start_time = cwindow*(samples_per_window-1)*self.dt
+        #         stop_time = start_time + (samples_per_window-1)*self.dt
+        #         time[cwindow] = np.linspace(
+        #             start_time, stop_time, samples_per_window)
+        #     return time
 
     def trim(self, start_time, end_time):
-        """Trim excess from time series in the half-open interval
-        [start_time, end_time).
+        """Trim time series in the interval [`start_time`, `end_time`].
 
         Parameters
         ----------
         start_time : float
             New time zero in seconds.
         end_time : float
-            New end time in seconds. Note that the interval is
-            half-open.
+            New end time in seconds.
 
         Returns
         -------
         None
-            Updates the attributes `n_samples`, `delay`, and `df`.
+            Updates the attributes `n_samples` and `delay`.
 
         Raises
         ------
@@ -105,45 +109,14 @@ class ActiveTimeSeries(TimeSeries):
             For example, `start_time` is before the start of the
             `delay` or after `end_time`, or the `end_time` is
             after the end of the record.
+
         """
-        current_time = self.time
-        start = min(current_time)
-        end = max(current_time)
-        
-        if start_time > end_time:
-            logger.debug(f"{start} <= {start_time} < {end_time}: Must be True.")
-            raise IndexError("Illogical start_time, see doctring.")
+        super().trim(start_time, end_time)
 
-        if end_time < start_time:
-            logger.debug(f"{start_time} < {end_time} < {end}: Must be True.")
-            raise IndexError("Illogical end_time, see doctring.")
-
-        logger.info(f"start = {start}, moving to start_time = {start_time}")
-        logger.info(f"start = {end}, moving to end_time = {end_time}")
-
-        start_index = np.argmin(np.absolute(current_time - start_time))
-        end_index = np.argmin(np.absolute(current_time - end_time))
-
-        if end_time > (end - self.dt/2):
-            msg = "end_time beyond end of record, setting to true end_time."
-            warnings.warn(msg)
-            end_index = len(current_time)
-        if start_time < (start + self.dt/2):
-            msg = "start_time before start of record, setting to start_time."
-            warnings.warn(msg)
-            start_index = 0
-
-        logger.debug(f"start_index = {start_index}")
-        logger.debug(f"start_index = {end_index}")
-
-        self.amp = self.amp[start_index:end_index]
-        self.n_samples = len(self.amp)
-        self._df = self.fs/self.n_samples
-        self.delay = 0 if start_time >= 0 else start_time
-
-        logger.info(f"n_samples = {self.n_samples}")
-        logger.info(f"df = {self._df}")
-        logger.info(f"delay = {self.delay}")
+        if start_time < self.delay:
+            raise ValueError(f"`start_time` must be >= `delay`={self.delay}.")
+        else:
+            self.delay = start_time
 
     def zero_pad(self, df=0.2):
         """Append zeros to `amp` to achieve a desired frequency step.
@@ -218,7 +191,7 @@ class ActiveTimeSeries(TimeSeries):
         ActiveTimeSeries
             Instantiated with seg2 file information.
         """
-        return cls.from_trace(trace = trace,
+        return cls.from_trace(trace=trace,
                               n_stacks=int(trace.stats.seg2.STACK),
                               delay=float(trace.stats.seg2.DELAY))
 
@@ -255,9 +228,9 @@ class ActiveTimeSeries(TimeSeries):
         if type(amplitude) is list:
             amplitude = np.array(amplitude)
 
-        self.amp = (self.amp*self._nstack + amplitude*n_stacks) / \
-            (self._nstack+n_stacks)
-        self._nstack += n_stacks
+        self.amp = (self.amp*self._nstacks + amplitude*n_stacks) / \
+            (self._nstacks+n_stacks)
+        self._nstacks += n_stacks
 
     @classmethod
     def from_trace(cls, trace, n_stacks=1, delay=0):
@@ -323,6 +296,23 @@ class ActiveTimeSeries(TimeSeries):
         shifted_amp = cls.crosscorr_shift(timeseries_a, timeseries_b)
         obj.stack_append(shifted_amp, timeseries_b.dt)
         return obj
+
+    # TODO (jpv): Implement equal comparison.
+        # def __eq__(self, other):
+        # my = self.amp
+        # ur = other.amp
+
+        # if my.size != ur.size:
+        #     return False
+
+        # for my_val, ur_val in zip(my, ur):
+        #     if my_val != ur_val:
+        #         return False
+
+        # for attr in ["dt", "n_stacks", "delay"]:
+        #     if getattr(self, attr) != getattr(other, attr):
+        #         return False
+        # return True
 
     def __repr__(self):
         return f"ActiveTimeSeries(dt={self.dt}, amplitude={str(self.amp[0:3])[:-1]} ... {str(self.amp[-3:])[1:]})"
