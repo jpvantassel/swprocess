@@ -1,12 +1,15 @@
-"""Tests for ActiveTimeSeries class. """
+"""Tests for ActiveTimeSeries class."""
 
-import matplotlib.pyplot as plt
-from testtools import unittest, TestCase, get_full_path
-import utprocess
-import obspy
-import numpy as np
 import warnings
 import logging
+
+import matplotlib.pyplot as plt
+import obspy
+import numpy as np
+
+import utprocess
+from testtools import unittest, TestCase, get_full_path
+
 logging.basicConfig(level=logging.WARNING)
 
 
@@ -17,15 +20,32 @@ class Test_ActiveTimeSeries(TestCase):
         cls.full_path = get_full_path(__file__)
 
     def test_check(self):
-        for value in ["values", ["a", "b", "c"]]:
+        good_nstacks = 1
+        good_delay = 0
+
+        bad_type_nstacks = [["nstacks"]]
+        bad_type_delays = [["delay"]]
+        for nstack, delay in zip(bad_type_nstacks, bad_type_delays):
             self.assertRaises(TypeError,
                               utprocess.ActiveTimeSeries._check_input,
-                              name="blah",
-                              values=value)
-        for value in [[1, 2, 3], (1, 2, 3)]:
-            value = utprocess.ActiveTimeSeries._check_input(name="blah",
-                                                            values=value)
-            self.assertTrue(isinstance(value, np.ndarray))
+                              nstacks=good_nstacks,
+                              delay=delay)
+            self.assertRaises(TypeError,
+                              utprocess.ActiveTimeSeries._check_input,
+                              nstacks=nstack,
+                              delay=good_delay)
+
+        bad_value_nstacks = [-1, 0, "nstacks"]
+        bad_value_delays = [0.1, 0.1, "delay"]
+        for nstack, delay in zip(bad_value_nstacks, bad_value_delays):
+            self.assertRaises(ValueError,
+                              utprocess.ActiveTimeSeries._check_input,
+                              nstacks=good_nstacks,
+                              delay=delay)
+            self.assertRaises(ValueError,
+                              utprocess.ActiveTimeSeries._check_input,
+                              nstacks=nstack,
+                              delay=good_delay)
 
     def test_init(self):
         dt = 1
@@ -73,34 +93,38 @@ class Test_ActiveTimeSeries(TestCase):
     def test_stack_append(self):
         # Append trace with 1 stack.
         tseries = utprocess.ActiveTimeSeries(amplitude=[0, 1, 0, -1], dt=1)
-        tseries.stack_append(amplitude=[0, -1, 0, 1], dt=1)
-        returned = tseries.amp
+        nseries = utprocess.ActiveTimeSeries(amplitude=[0, -1, 0, 1], dt=1)
+        tseries.stack_append(nseries)
         expected = np.array([0, 0, 0, 0])
+        returned = tseries.amp
         self.assertArrayEqual(expected, returned)
 
         # Append trace with 5 stacks.
-        tseries = utprocess.ActiveTimeSeries(amplitude=[10], dt=1)
-        tseries.stack_append(amplitude=[5], dt=1, n_stacks=5)
+        tseries = utprocess.ActiveTimeSeries(amplitude=[10], dt=1,
+                                             nstacks=3)
+        nseries = utprocess.ActiveTimeSeries(amplitude=[5], dt=1,
+                                             nstacks=5)
+        tseries.stack_append(nseries)
         returned = tseries.amp
-        expected = (10*1 + 5*5)/(5+1)
+        expected = (10*3 + 5*5)/(3+5)
         self.assertEqual(expected, returned)
 
-    # def test_zero_pad(self):
-    #     thist = utprocess.ActiveTimeSeries(amplitude=list(np.arange(0, 2, 0.01)),
-    #                                        dt=0.01)
-    #     self.assertEqual(len(thist.amp), 200)
-    #     thist.zero_pad(df=0.1)
-    #     self.assertEqual(len(thist.amp), 1000)
-    #     thist.zero_pad(df=0.5)
-    #     self.assertEqual(len(thist.amp)/thist.multiple, 1/(0.01*0.5))
+    # # def test_zero_pad(self):
+    # #     thist = utprocess.ActiveTimeSeries(amplitude=list(np.arange(0, 2, 0.01)),
+    # #                                        dt=0.01)
+    # #     self.assertEqual(len(thist.amp), 200)
+    # #     thist.zero_pad(df=0.1)
+    # #     self.assertEqual(len(thist.amp), 1000)
+    # #     thist.zero_pad(df=0.5)
+    # #     self.assertEqual(len(thist.amp)/thist.multiple, 1/(0.01*0.5))
 
-    #     thist = utprocess.ActiveTimeSeries(amplitude=list(np.arange(0, 2, 0.02)),
-    #                                        dt=0.02)
-    #     self.assertEqual(len(thist.amp), 100)
-    #     thist.zero_pad(df=1)
-    #     self.assertEqual(len(thist.amp), 200)
-    #     self.assertEqual(thist.multiple, 4)
-    #     self.assertEqual(len(thist.amp)/thist.multiple, 1/(0.02*1))
+    # #     thist = utprocess.ActiveTimeSeries(amplitude=list(np.arange(0, 2, 0.02)),
+    # #                                        dt=0.02)
+    # #     self.assertEqual(len(thist.amp), 100)
+    # #     thist.zero_pad(df=1)
+    # #     self.assertEqual(len(thist.amp), 200)
+    # #     self.assertEqual(thist.multiple, 4)
+    # #     self.assertEqual(len(thist.amp)/thist.multiple, 1/(0.02*1))
 
     def test_trim(self):
         # Standard
@@ -109,7 +133,7 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertEqual(len(thist.amp), 2000)
         thist.trim(0, 1)
         self.assertEqual(len(thist.amp), 1001)
-        self.assertEqual(thist.n_samples, 1001)
+        self.assertEqual(thist.nsamples, 1001)
 
         # With pre-trigger delay
         thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.001),
@@ -117,11 +141,11 @@ class Test_ActiveTimeSeries(TestCase):
                                            delay=-.5)
         # Remove part of pre-trigger
         thist.trim(-0.25, 0.25)
-        self.assertEqual(501, thist.n_samples)
+        self.assertEqual(501, thist.nsamples)
         self.assertEqual(-0.25, thist.delay)
         # Remove all of pre-trigger
         thist.trim(0, 0.2)
-        self.assertEqual(201, thist.n_samples)
+        self.assertEqual(201, thist.nsamples)
         self.assertEqual(0, thist.delay)
 
         # With pre-trigger delay
@@ -131,13 +155,13 @@ class Test_ActiveTimeSeries(TestCase):
                                            delay=-.5)
         # Remove part of pre-trigger
         thist.trim(-0.25, 0.25)
-        self.assertEqual(thist.n_samples, 501)
+        self.assertEqual(thist.nsamples, 501)
         self.assertEqual(thist.delay, -0.25)
         self.assertAlmostEqual(min(thist.time), -0.25, delta=dt)
         self.assertAlmostEqual(max(thist.time), +0.25, delta=dt)
         # Remove all of pre-trigger
         thist.trim(0, 0.25)
-        self.assertEqual(thist.n_samples, 251)
+        self.assertEqual(thist.nsamples, 251)
         self.assertAlmostEqual(thist.delay, 0.001, delta=dt)
         self.assertAlmostEqual(min(thist.time), 0, delta=dt)
         self.assertAlmostEqual(max(thist.time), 0.25, delta=dt)
@@ -222,8 +246,8 @@ class Test_ActiveTimeSeries(TestCase):
         ampb = np.concatenate((np.sin(2*np.pi*f*time), np.zeros(20)))
         tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        shifted = utprocess.ActiveTimeSeries.crosscorr_shift(
-            tseries_a, tseries_b)
+        shifted = utprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+                                                             tseries_b)
         self.assertListEqual(shifted.tolist(), ampa.tolist())
 
     def test_cross_stack(self):
@@ -233,8 +257,8 @@ class Test_ActiveTimeSeries(TestCase):
         dt = 1
         tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        stacked = utprocess.ActiveTimeSeries.from_cross_stack(
-            tseries_a, tseries_b)
+        stacked = utprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
+                                                              tseries_b)
         self.assertListEqual(stacked.amp.tolist(), ampa)
 
         # Simple Sinusoid
@@ -243,8 +267,8 @@ class Test_ActiveTimeSeries(TestCase):
         dt = 1
         tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        stacked = utprocess.ActiveTimeSeries.from_cross_stack(
-            tseries_a, tseries_b)
+        stacked = utprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
+                                                              tseries_b)
         self.assertListEqual(stacked.amp.tolist(), ampa)
 
 
