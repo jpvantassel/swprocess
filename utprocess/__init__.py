@@ -2,7 +2,6 @@ from .plot_tools import *
 
 from .activetimeseries import *
 
-from .sensor1c import *
 from .source import *
 
 from .array1d import *
