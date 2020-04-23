@@ -7,3 +7,5 @@ scratch
 .tox
 build
 dist
+test/htmlcov
+test/.coverage
