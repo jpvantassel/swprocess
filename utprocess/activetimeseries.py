@@ -67,6 +67,7 @@ class ActiveTimeSeries(TimeSeries):
         """
         super().__init__(amplitude=amplitude, dt=dt)
         self._nstacks, self._delay = self._check_input(nstacks, delay)
+        self._multiple = 1
 
     @property
     def n_stacks(self):
@@ -83,10 +84,12 @@ class ActiveTimeSeries(TimeSeries):
         return self._delay
 
     @property
+    def df(self):
+        return super().df * self._multiple
+
+    @property
     def multiple(self):
-        warnings.warn("No idea what `multiple` means, so its deprecated",
-                      DeprecationWarning)
-        return 1
+        return self._multiple
 
     @property
     def time(self):
@@ -125,59 +128,59 @@ class ActiveTimeSeries(TimeSeries):
         else:
             self._delay = start_time
 
-    # def zero_pad(self, df=0.2):
-    #     """Append zeros to `amp` to achieve a desired frequency step.
+    def zero_pad(self, df=0.2):
+        """Append zeros to `amp` to achieve a desired frequency step.
 
-    #     Parameters
-    #     ----------
-    #     df : float
-    #         Desired frequency step in Hertz.
+        Parameters
+        ----------
+        df : float
+            Desired frequency step in Hertz.
 
-    #     Returns
-    #     -------
-    #     None
-    #         Instead modifies attributes: `amp`, `nsamples`, `multiple`.
+        Returns
+        -------
+        None
+            Instead modifies attributes: `amp`, `nsamples`, `multiple`.
 
-    #     Raises
-    #     ------
-    #     ValueError
-    #         If `df` < 0 (i.e., non-positive).
-    #     """
-    #     raise NotImplementedError
-    #     if isinstance(df, (float, int)):
-    #         if df <= 0:
-    #             raise ValueError(f"df must be positive.")
-    #     else:
-    #         raise TypeError(f"df must be `float` or `int`, not {type(df)}.")
+        Raises
+        ------
+        ValueError
+            If `df` < 0 (i.e., non-positive).
+        """
+        df = float(df)
+        if df <= 0:
+            raise ValueError(f"df must be positive, currently {df}.")
 
-    #     nreq = int(np.round(1/(df*self.dt)))
+        new_nsamples = int(round(1/(df*self.dt)))
 
-    #     logging.info(f"nreq = {nreq}")
+        logging.info(f"df={self.df} --> df={df}")
+        logging.debug(f"  new_nsamples = {new_nsamples}")
 
-    #     # If nreq > nsamples, padd zeros to achieve nsamples = nreq
-    #     if nreq > self.nsamples:
-    #         self.amp = np.concatenate((self.amp,
-    #                                    np.zeros(nreq - self.nsamples)))
-    #         self.nsamples = nreq
+        # If new_nsamples > nsamples, padd zeros.
+        if new_nsamples > self.nsamples:
+            padding = new_nsamples - self.nsamples
+            self._multiple = 1
 
-    #     # If nreq <= nsamples, padd zeros to achieve a fraction of df (e.g., df/2)
-    #     # After processing, extract the results at the frequencies of interest
-    #     else:
-    #         # Multiples of df and nreq
-    #         multiples = np.array([1, 2, 4, 8, 16, 32], int)
-    #         trial_n = nreq*multiples
+        # If new_nsamples <= nsamples, padd zeros to achieve a multiple
+        # of new_nsamples (i.e.,  a fraction of df). After processing,
+        # extract the results at the frequencies of interest.
+        else:
+            multiple = 1
+            for _ in range(10):
+                trial_nsamples = new_nsamples*multiple
+                if trial_nsamples >= self.nsamples:
+                    self._multiple = multiple
+                    break            
+                multiple *= 2
+            else:
+                msg = f"Could not find an acceptable multiple, after 10 attempts."
+                raise ValueError(msg)
 
-    #         logging.debug(f"trial_n = {trial_n}")
+            padding = new_nsamples*self.multiple - self.nsamples
+            logging.debug(f"  trial_nsamples = {trial_nsamples}")
+            logging.debug(f"  multiple = {self.multiple}")
 
-    #         # Find first trial_n > nreq
-    #         self.multiple = multiples[np.where(self.nsamples < trial_n)[0][0]]
-    #         logging.debug(f"multiple = {self.multiple}")
-
-    #         self.amp = np.concatenate((self.amp,
-    #                                    np.zeros(nreq*self.multiple - self.nsamples)))
-    #         self.nsamples = nreq*self.multiple
-
-    #         logging.debug(f"nsamples = {self.nsamples}")
+        self.amp = np.concatenate((self.amp, np.zeros(padding)))
+        logging.info(f"  nsamples = {self.nsamples}")
 
     @classmethod
     def from_trace_seg2(cls, trace):

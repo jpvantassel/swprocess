@@ -109,22 +109,41 @@ class Test_ActiveTimeSeries(TestCase):
         expected = (10*3 + 5*5)/(3+5)
         self.assertEqual(expected, returned)
 
-    # # def test_zero_pad(self):
-    # #     thist = utprocess.ActiveTimeSeries(amplitude=list(np.arange(0, 2, 0.01)),
-    # #                                        dt=0.01)
-    # #     self.assertEqual(len(thist.amp), 200)
-    # #     thist.zero_pad(df=0.1)
-    # #     self.assertEqual(len(thist.amp), 1000)
-    # #     thist.zero_pad(df=0.5)
-    # #     self.assertEqual(len(thist.amp)/thist.multiple, 1/(0.01*0.5))
+    def test_zero_pad(self):
+        thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.01),
+                                           dt=0.01)                 
+        self.assertEqual(0.5, thist.df)
+        self.assertEqual(200, thist.nsamples)
 
-    # #     thist = utprocess.ActiveTimeSeries(amplitude=list(np.arange(0, 2, 0.02)),
-    # #                                        dt=0.02)
-    # #     self.assertEqual(len(thist.amp), 100)
-    # #     thist.zero_pad(df=1)
-    # #     self.assertEqual(len(thist.amp), 200)
-    # #     self.assertEqual(thist.multiple, 4)
-    # #     self.assertEqual(len(thist.amp)/thist.multiple, 1/(0.02*1))
+        # Request df = 1*df
+        thist.zero_pad(df=thist.df)
+        self.assertEqual(0.5, thist.df)
+        self.assertEqual(200, thist.nsamples)
+        self.assertEqual(1, thist.multiple)
+
+        # Request df = 2*df
+        thist.zero_pad(df=1)
+        self.assertEqual(1, thist.df)
+        self.assertEqual(200, thist.nsamples)
+        self.assertEqual(2, thist.multiple)
+        
+        # Request df = 0.5*df
+        thist.zero_pad(df=0.5)
+        self.assertEqual(0.5, thist.df)
+        self.assertEqual(200, thist.nsamples)
+        self.assertEqual(1, thist.multiple)
+
+        # Request df = 0.1*df
+        thist.zero_pad(df=0.05)
+        self.assertEqual(0.05, thist.df)
+        self.assertEqual(2000, thist.nsamples)
+        self.assertEqual(1, thist.multiple)
+
+        # Request df = 20*df
+        thist.zero_pad(df=1)
+        self.assertEqual(1, thist.df)
+        self.assertEqual(3200, thist.nsamples)
+        self.assertEqual(32, thist.multiple)
 
     def test_trim(self):
         # Standard
