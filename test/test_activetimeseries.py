@@ -109,9 +109,14 @@ class Test_ActiveTimeSeries(TestCase):
         expected = (10*3 + 5*5)/(3+5)
         self.assertEqual(expected, returned)
 
+        # Bad stack
+        tseries = utprocess.ActiveTimeSeries([1,2,3], dt=1)
+        nseries = utprocess.ActiveTimeSeries([0,0,0], dt=2)
+        self.assertRaises(ValueError, tseries.stack_append, nseries)
+
     def test_zero_pad(self):
         thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.01),
-                                           dt=0.01)                 
+                                           dt=0.01)
         self.assertEqual(0.5, thist.df)
         self.assertEqual(200, thist.nsamples)
 
@@ -126,7 +131,7 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertEqual(1, thist.df)
         self.assertEqual(200, thist.nsamples)
         self.assertEqual(2, thist.multiple)
-        
+
         # Request df = 0.5*df
         thist.zero_pad(df=0.5)
         self.assertEqual(0.5, thist.df)
@@ -145,8 +150,11 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertEqual(3200, thist.nsamples)
         self.assertEqual(32, thist.multiple)
 
+        # Bad df
+        self.assertRaises(ValueError, thist.zero_pad, df=0)
+
     def test_trim(self):
-        # Standard
+        # First Example: no delay
         thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.001),
                                            dt=0.001)
         self.assertEqual(len(thist.amp), 2000)
@@ -158,32 +166,57 @@ class Test_ActiveTimeSeries(TestCase):
         thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.001),
                                            dt=0.001,
                                            delay=-.5)
+
         # Remove part of pre-trigger
         thist.trim(-0.25, 0.25)
         self.assertEqual(501, thist.nsamples)
         self.assertEqual(-0.25, thist.delay)
+
         # Remove all of pre-trigger
         thist.trim(0, 0.2)
         self.assertEqual(201, thist.nsamples)
         self.assertEqual(0, thist.delay)
 
-        # With pre-trigger delay
+
+        # Second Example: with delay
         dt = 0.001
         thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, dt),
                                            dt=dt,
                                            delay=-.5)
+
         # Remove part of pre-trigger
         thist.trim(-0.25, 0.25)
         self.assertEqual(thist.nsamples, 501)
         self.assertEqual(thist.delay, -0.25)
         self.assertAlmostEqual(min(thist.time), -0.25, delta=dt)
         self.assertAlmostEqual(max(thist.time), +0.25, delta=dt)
+
         # Remove all of pre-trigger
         thist.trim(0, 0.25)
         self.assertEqual(thist.nsamples, 251)
         self.assertAlmostEqual(thist.delay, 0.001, delta=dt)
         self.assertAlmostEqual(min(thist.time), 0, delta=dt)
         self.assertAlmostEqual(max(thist.time), 0.25, delta=dt)
+
+    def test_eq(self):
+        thist_a = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1)
+        thist_b = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1)
+        thist_c = utprocess.ActiveTimeSeries([0, 0, 0, +1, 0], dt=1)
+        thist_d = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=0.5)
+        thist_e = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1, delay=-1)
+        thist_f = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1, nstacks=2)
+
+        self.assertEqual(thist_a, thist_b)
+        self.assertNotEqual(thist_a, thist_c)
+        self.assertNotEqual(thist_a, thist_d)
+        self.assertNotEqual(thist_a, thist_e)
+        self.assertNotEqual(thist_a, thist_f)
+
+        self.assertTrue(thist_a._is_similar(thist_b))
+        self.assertTrue(thist_a._is_similar(thist_c))
+        self.assertFalse(thist_a._is_similar(thist_d))
+        self.assertFalse(thist_a._is_similar(thist_e))
+        self.assertFalse(thist_a._is_similar(thist_f))
 
     def test_crosscorr(self):
         ampa = [0, 1, 0]
@@ -192,7 +225,7 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-        self.assertListEqual(correlate.tolist(), [0, 1, 0])
+        self.assertListEqual([0, 1, 0], correlate.tolist())
 
         ampa = [0, 0, 1, 0]
         ampb = [1]
@@ -200,7 +233,7 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-        self.assertListEqual(correlate.tolist(), [0, 0, 1, 0])
+        self.assertListEqual([0, 0, 1, 0], correlate.tolist())
 
         ampa = [0, 0, 1, 0]
         ampb = [1, 0]
@@ -208,7 +241,7 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-        self.assertListEqual(correlate.tolist(), [0, 0, 0, 1, 0])
+        self.assertListEqual([0, 0, 0, 1, 0], correlate.tolist())
 
         ampa = [0, 0, 1, 0]
         ampb = [0, 1, 0]
@@ -216,7 +249,7 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-        self.assertListEqual(correlate.tolist(), [0, 0, 0, 1, 0, 0])
+        self.assertListEqual([0, 0, 0, 1, 0, 0], correlate.tolist())
 
         ampa = [0, 0, -1, 0]
         ampb = [0, -1, 0, 0]
@@ -224,7 +257,12 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-        self.assertListEqual(correlate.tolist(), [0, 0, 0, 0, 1, 0, 0])
+        self.assertListEqual([0, 0, 0, 0, 1, 0, 0], correlate.tolist())
+
+        # Bad example
+        self.assertRaises(ValueError, utprocess.ActiveTimeSeries.crosscorr,
+                          utprocess.ActiveTimeSeries([1, 2], dt=1),
+                          utprocess.ActiveTimeSeries([1, 2], dt=2))
 
     def test_crosscorr_shift(self):
         # Simple Pulse
@@ -235,7 +273,7 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         shifted = utprocess.ActiveTimeSeries.crosscorr_shift(
             tseries_a, tseries_b)
-        self.assertListEqual(shifted.tolist(), ampa)
+        self.assertListEqual(ampa, shifted.tolist())
 
         # Simple Pulse
         ampa = [0, 0, 2, 3, 4, 5, 0, 2, 3, 0]
@@ -243,9 +281,9 @@ class Test_ActiveTimeSeries(TestCase):
         dt = 1
         tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        shifted = utprocess.ActiveTimeSeries.crosscorr_shift(
-            tseries_a, tseries_b)
-        self.assertListEqual(shifted.tolist(), [0, 0, 2, 3, 4, 5, 0, 0, 0, 0])
+        shifted = utprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+                                                             tseries_b)
+        self.assertListEqual([0, 0, 2, 3, 4, 5, 0, 0, 0, 0], shifted.tolist())
 
         # Sinusoidal Pulse
         ampa = [0, -1, 0, 1, 0, -1, 0, 0]
@@ -255,7 +293,7 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         shifted = utprocess.ActiveTimeSeries.crosscorr_shift(
             tseries_a, tseries_b)
-        self.assertListEqual(shifted.tolist(), [0, -1, 0, 1, 0, 0, 0, 0])
+        self.assertListEqual([0, -1, 0, 1, 0, 0, 0, 0], shifted.tolist())
 
         # Sinusoid
         dt = 0.01
@@ -267,9 +305,9 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         shifted = utprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
                                                              tseries_b)
-        self.assertListEqual(shifted.tolist(), ampa.tolist())
+        self.assertArrayEqual(ampa, shifted)
 
-    def test_cross_stack(self):
+    def test_from_cross_stack(self):
         # Simple pulse
         ampa = [0, 0, 1, 0]
         ampb = [0, 1, 0, 0]
@@ -278,7 +316,7 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         stacked = utprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
                                                               tseries_b)
-        self.assertListEqual(stacked.amp.tolist(), ampa)
+        self.assertListEqual(ampa, stacked.amp.tolist())
 
         # Simple Sinusoid
         ampa = [0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
@@ -288,7 +326,7 @@ class Test_ActiveTimeSeries(TestCase):
         tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
         stacked = utprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
                                                               tseries_b)
-        self.assertListEqual(stacked.amp.tolist(), ampa)
+        self.assertListEqual(ampa, stacked.amp.tolist())
 
 
 if __name__ == '__main__':
