@@ -68,14 +68,7 @@ class ActiveTimeSeries(TimeSeries):
         super().__init__(amplitude=amplitude, dt=dt)
         self._nstacks, self._delay = self._check_input(nstacks, delay)
         self._multiple = 1
-
-    @classmethod
-    def from_activetimeseries(cls, activetimeseries):
-        return cls(activetimeseries.amplitude,
-                   activetimeseries.dt,
-                   nstacks=activetimeseries.nstacks,
-                   delay=activetimeseries.delay)
-
+    
     @property
     def n_stacks(self):
         warnings.warn("`n_stacks` is deprecated, use `nstacks` instead",
@@ -101,7 +94,97 @@ class ActiveTimeSeries(TimeSeries):
     @property
     def time(self):
         """Time vector for `ActiveTimeSeries`."""
-        return np.arange(0, self.nsamples*self.dt, self.dt) + self._delay
+        return super().time + self._delay
+
+    def stack_append(self, timeseries):
+        """Stack (i.e., average) a new time series into the current one.
+
+        Parameters
+        ----------
+        timeseries : ActiveTimeSeries
+            Active time series to be stacked only the current object.
+
+        Returns
+        -------
+        None
+            Updates the attribute `amp` and `nstacks`.
+
+        Raises
+        ------
+        ValueError
+            If the provided `timeseries` is not an `ActiveTimeSeries` or
+            it cannot be stacked to the current object (i.e., time
+            series are dissimilar). 
+
+        """
+        if not self._is_similar(timeseries, exclude=["_nstacks"]):
+            msg = f"The provided `timeseries` object is incompatable, and cannot be stacked."
+            raise ValueError(msg)
+
+        namp = timeseries.amp
+        nstk = timeseries._nstacks
+        self.amp = (self.amp*self._nstacks + namp*nstk)/(self._nstacks + nstk)
+        self._nstacks += nstk
+
+    @classmethod
+    def from_activetimeseries(cls, activetimeseries):
+        return cls(activetimeseries.amplitude,
+                   activetimeseries.dt,
+                   nstacks=activetimeseries.nstacks,
+                   delay=activetimeseries.delay)
+
+    @classmethod
+    def from_trace_seg2(cls, trace):
+        """Initialize a `TimeSeries` object from a SEG2 `Trace` object.
+
+        This method is similar to meth:`from_trace` except that it
+        extracts additional information from the `Trace` header. So only
+        use this method if you have a SEG2 file and the header
+        information is correct.
+
+        Parameters
+        ----------
+        trace: Trace 
+            `Trace` object from a correctly written seg2 file.
+
+        Returns
+        -------
+        ActiveTimeSeries
+            Instantiated with seg2 file information.
+        """
+        return cls.from_trace(trace=trace,
+                              nstacks=int(trace.stats.seg2.STACK),
+                              delay=float(trace.stats.seg2.DELAY))
+
+    @classmethod
+    def from_trace(cls, trace, nstacks=1, delay=0):
+        """Initialize an `ActiveTimeSeries` object from a trace object.
+
+        This method is more general method than `from_trace_seg2`, 
+        as it does not attempt to extract any metadata from the `Trace` 
+        object.
+
+        Parameters
+        ----------
+        trace : Trace
+            Refer to
+            `obspy documentation <https://github.com/obspy/obspy/wiki>`_
+            for more information
+        n_stacks : int, optional
+            Number of stacks the time series represents, (default is
+            1, signifying a single unstacked time record).
+        delay : float {<=0.}, optional
+            Denotes the pre-event delay, (default is zero, 
+            meaning no pre-event noise was recorded).
+
+        Returns
+        -------
+        TimeSeries
+            Initialized with information from `trace`.
+
+        """
+        return cls(amplitude=trace.data, dt=trace.stats.delta,
+                   nstacks=nstacks, delay=delay)
 
     def trim(self, start_time, end_time):
         """Trim `ActiveTimeSeries` in the interval [`start_time`, `end_time`].
@@ -189,240 +272,6 @@ class ActiveTimeSeries(TimeSeries):
         self.amp = np.concatenate((self.amp, np.zeros(padding)))
         logging.info(f"  nsamples = {self.nsamples}")
 
-    @classmethod
-    def from_trace_seg2(cls, trace):
-        """Initialize a `TimeSeries` object from a SEG2 `Trace` object.
-
-        This method is similar to meth:`from_trace` except that it
-        extracts additional information from the `Trace` header. So only
-        use this method if you have a SEG2 file and the header
-        information is correct.
-
-        Parameters
-        ----------
-        trace: Trace 
-            `Trace` object from a correctly written seg2 file.
-
-        Returns
-        -------
-        ActiveTimeSeries
-            Instantiated with seg2 file information.
-        """
-        return cls.from_trace(trace=trace,
-                              nstacks=int(trace.stats.seg2.STACK),
-                              delay=float(trace.stats.seg2.DELAY))
-
-    def _is_similar(self, other, exclude=[]):
-        """Check if `other` is similar to `self` though not equal."""
-
-        if not isinstance(other, ActiveTimeSeries):
-            return False
-
-        for attr in ["dt", "_nstacks", "_delay", "nsamples"]:
-            if attr in exclude:
-                continue
-            if getattr(self, attr) != getattr(other, attr):
-                return False
-
-        return True
-
-    def stack_append(self, timeseries):
-        """Stack (i.e., average) a new time series into the current one.
-
-        Parameters
-        ----------
-        timeseries : ActiveTimeSeries
-            Active time series to be stacked only the current object.
-
-        Returns
-        -------
-        None
-            Instead updates the attribute `amp`.
-
-        Raises
-        ------
-        ValueError
-            If the provided `timeseries` is not an `ActiveTimeSeries` or
-            it cannot be stacked to the current object (i.e., time
-            series are dissimilar). 
-
-        """
-        if not self._is_similar(timeseries, exclude=["_nstacks"]):
-            msg = f"The provided `timeseries` object is incompatable, and cannot be stacked."
-            raise ValueError(msg)
-
-        namp = timeseries.amp
-        nstk = timeseries._nstacks
-        self.amp = (self.amp*self._nstacks + namp*nstk)/(self._nstacks + nstk)
-        self._nstacks += nstk
-
-    @classmethod
-    def from_seg2_trace(cls, trace):
-        """Create a `Sensor1C` object form a SEG2-style `Trace` object.
-
-        Parameters
-        ----------
-        trace : Trace
-            SEG2 style trace with header information entered
-            correctly.
-
-        Returns
-        -------
-        Sensor1C
-            An initialized `Sensor1C` object.
-        """
-        header = trace.stats.seg2
-        return cls.from_trace(trace,
-                              ftype="custom",
-                              read_header=False,
-                              nstacks=int(header.STACK),
-                              delay=float(header.DELAY),
-                              x=float(header.RECEIVER_LOCATION),
-                              y=0,
-                              z=0)
-
-    @classmethod
-    def from_su_trace(cls, trace):
-        """Create a `Sensor1C` object form a SU-style `Trace` object.
-
-        Parameters
-        ----------
-        trace : Trace
-            SU style trace with header information entered
-            correctly.
-
-        Returns
-        -------
-        Sensor1C
-            An initialized `Sensor1C` object.
-        """
-        header = trace.stats.su.trace_header
-        nstack_key = "number_of_horizontally_stacked_traces_yielding_this_trace"
-        return cls.from_trace(trace,
-                              ftype="custom",
-                              read_header=False,
-                              nstacks=int(header[nstack_key])+1,
-                              delay=float(header["delay_recording_time"]),
-                              x=float(header["group_coordinate_x"]/1000),
-                              y=float(header["group_coordinate_y"]/1000),
-                              z=0)
-
-    @classmethod
-    def from_trace(cls, trace, ftype="unkown", read_header=True, nstacks=1, delay=0, x=0, y=0, z=0):
-        """Create a `Sensor1C` object from a `Trace` object.
-
-        Parameters
-        ----------
-        trace : Trace
-            `Trace` object with attributes `data` and `stats.delta`.
-        ftype : {'unknown', 'seg2', 'su', 'custom'}, optional
-            File type, default is 'unkown' indicating that the file
-            type is unknown and should be checked against the
-            available options.
-        read_header : bool
-            Flag to indicate whether the data in the header of the
-            file should be parsed, default is `True` indicating that
-            the header data will be read.
-        nstacks : int, optional
-            Number of stacks included in the present trace, default
-            is 1 (i.e., no stacking).
-        delay : float, optional
-            Pre-trigger delay in seconds, default is 0 seconds.
-        x, y, z : float, optional
-            Receiver's relative position in x, y, and z, default is
-            zero for all components (i.e., the origin).
-
-        Returns
-        -------
-        Sensor1C
-            An initialized `Sensor1C` object.
-
-        Raises
-        ------
-        ValueError
-            If 'ftype' is 'unkown' and no matches can be found.
-            If 'ftype' does not match the options listed.
-
-        Examples
-        --------
-        ftype="unkown", read_header=True -> If ftype is known then
-            header will be read otherwise ValueError.
-        ftype="unkown", read_header=False -> Header will not be
-            read, even if file is a known type.
-        ftype="custom" -> Header will not be read.
-        ftype="seg2", read_header=True -> If file is seg2 then
-            header will be read otherwise ValueError.
-
-        """
-        if ftype == "unkown":
-            try:
-                _format = trace.stats._format
-            except:
-                raise ValueError("ftype of trace could not be identified.")
-        else:
-            _format = ftype.upper()
-
-        if read_header and _format == "SEG2":
-            return cls.from_seg2_trace(trace)
-        elif read_header and _format == "SU":
-            return cls.from_su_trace(trace)
-        elif _format == "CUSTOM":
-            return cls(ActiveTimeSeries(amplitude=trace.data,
-                                        dt=trace.stats.delta,
-                                        nstacks=nstacks,
-                                        delay=delay),
-                       position={"x": x, "y": y, "z": z})
-        else:
-            raise ValueError(f"ftype={_format} not recognized.")
-
-    def stack_trace(self, trace, delay=0, nstacks=1):
-        """Append `Trace` object to an existing `Sensor1D` object.
-
-        Parameters
-        ----------
-        trace : Trace
-            `Trace` object with attributes `data` and `stats.delta`,
-            assumed to come from a single stack.
-
-        Returns
-        -------
-        None
-            Instead updates the attribute `timeseries`.
-
-        """
-        # timeseries = ActiveTimeSeries.from_trace()
-        self.timeseries.stack_append(timeseries)
-
-    @classmethod
-    def from_trace(cls, trace, nstacks=1, delay=0):
-        """Initialize an `ActiveTimeSeries` object from a trace object.
-
-        This method is more general method than `from_trace_seg2`, 
-        as it does not attempt to extract any metadata from the `Trace` 
-        object.
-
-        Parameters
-        ----------
-        trace : Trace
-            Refer to
-            `obspy documentation <https://github.com/obspy/obspy/wiki>`_
-            for more information
-        n_stacks : int, optional
-            Number of stacks the time series represents, (default is
-            1, signifying a single unstacked time record).
-        delay : float {<=0.}, optional
-            Denotes the pre-event delay, (default is zero, 
-            meaning no pre-event noise was recorded).
-
-        Returns
-        -------
-        TimeSeries
-            Initialized with information from `trace`.
-
-        """
-        return cls(amplitude=trace.data, dt=trace.stats.delta,
-                   nstacks=nstacks, delay=delay)
-
     @staticmethod
     def crosscorr(timeseries_a, timeseries_b):
         """Return cross correlation of two timeseries objects."""
@@ -454,6 +303,19 @@ class ActiveTimeSeries(TimeSeries):
         timeseries_b.amp = shifted_amp
         obj.stack_append(timeseries_b)
         return obj
+
+    def _is_similar(self, other, exclude=[]):
+        """Check if `other` is similar to `self` though not equal."""
+
+        if not isinstance(other, ActiveTimeSeries):
+            return False
+
+        for attr in ["dt", "_nstacks", "_delay", "nsamples"]:
+            if attr in exclude:
+                continue
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+        return True
 
     def __eq__(self, other):
         """Check if `other` is equal to the `ActiveTimeSeries`."""
