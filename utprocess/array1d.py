@@ -33,10 +33,11 @@ class Array1D():
 
         # Ensure sensors are "similar"
         for sensor in sensors[1:]:
-            if not example.is_similar(sensor):
+            if not example._is_similar(sensor, exclude=["x", "y", "z"]):
                 raise ValueError("All sensors must be similar.")
             if sensor.x in positions:
                 raise ValueError("Sensors must have unique x positions.")
+            positions.append(sensor.x)
 
         # Sort sensors in terms of x from small to large
         indices = np.argsort(positions)
@@ -44,14 +45,20 @@ class Array1D():
 
         return (sensors, source)
 
+    def _normalize_positions(self):
+        self.absolute_minus_relative = min(position)
+        self._regen_position = True
+        for sensor in self.sensors:
+            sensors.x -= self.absolute_minus_relative
+
     def _make_timeseries_matrix(self):
         """Pull information from each `Sensor1C` into a 2D matrix."""
-        matrix = np.empty((self.nchannels, example.nsamples))
+        matrix = np.empty((self.nchannels, self.sensors[0].nsamples))
         for i, sensor in enumerate(self.sensors):
             matrix[i, :] = sensor.amp
         return matrix
 
-    def __init__(self, sensors, source):
+    def __init__(self, sensors, source, normalize_positions=False):
         """Initialize from an iterable of `Receiver`s and a `Source`.
 
         Parameters
@@ -60,6 +67,9 @@ class Array1D():
             Iterable of initialized `Sensor1C` objects.
         source : Source
             Initialized `Source` object.
+        normalize_positions : bool, optional
+            Normalize the relative locations of the sensors and source
+            such that the smallest postion sensor is located at (0,0).
 
         Returns
         -------
@@ -71,9 +81,13 @@ class Array1D():
         sensors, source = self._check_array(sensors, source)
         self.sensors = sensors
         self.source = source
-        self.absolute_minus_relative = 0
         self._regen_matrix = True
         self._regen_position = True
+
+        if normalize_positions:
+            self._normalize_positions()
+        else:
+            self.absolute_minus_relative = 0
 
         if self.kres < 0:
             msg = "Invalid receiver position, kres must be greater than 0."
@@ -110,8 +124,8 @@ class Array1D():
         else:
             raise ValueError("spacing undefined for non-equally spaced arrays")
 
-    def trim_record(self, start_time, end_time):
-        """Trim time series from each Sensor1C.
+    def trim(self, start_time, end_time):
+        """Trim time series belonging to each Sensor1C.
 
         Parameters
         ----------
@@ -126,7 +140,7 @@ class Array1D():
 
         """
         self._regen_matrix = True
-        for sensor in enumerate(self.sensors):
+        for sensor in self.sensors:
             sensor.trim(start_time, end_time)
 
     def _norm_traces(self, scale_factor):
@@ -139,7 +153,7 @@ class Array1D():
             norm_traces[k, :] = current_trace
         return norm_traces
 
-    def waterfall(self, ax=None, scale_factor=1.0, time_along='x',
+    def waterfall(self, ax=None, scale_factor=1.0, time_along='y',
                   waterfall_kwargs=None):
         """Create waterfall plot for this array setup.
 
@@ -153,8 +167,8 @@ class Array1D():
             (peak-to-trough), default is 1. Half the receiver spacing is
             generally a good value.
         time_along : {'x', 'y'}, optional
-            Denotes on which axis the waterfall should reside, 'x' is
-            the default.
+            Denotes on which axis time should reside, 'x' is the
+            default.
         waterfall_kwargs : None, dict, optional
             Plot kwargs for plotting the normalized time histories as
             a dictionary, default is `None`.
@@ -180,12 +194,12 @@ class Array1D():
 
         if waterfall_kwargs is None:
             waterfall_kwargs = {}
-        default_kwargs = dict("b-", linewidth=0.5)
-        kwargs = {**waterfall_kwargs, **default_kwargs}
-        if time_along == "y":
+        default_kwargs = dict(color="b", linewidth=0.5)
+        kwargs = {**default_kwargs, **waterfall_kwargs}
+        if time_along == "x":
             for trace in norm_traces:
                 ax.plot(time, trace, **kwargs)
-        elif time_along == "x":
+        elif time_along == "y":
             for trace in norm_traces:
                 ax.plot(trace, time, **kwargs)
         else:
@@ -195,21 +209,24 @@ class Array1D():
         time_ax = time_along
         dist_ax = "x" if time_ax == "y" else "y"
 
-        setattr(ax, f"set_{time_ax}lim", (min(time), max(time)))
-        setattr(ax, f"set_{dist_ax}lim",
-                -self.position[1], self.position[1]+self.position[-1])
-        setattr(ax, "grid", axis=time_ax, linestyle=":")
-        setattr(ax, f"set_{time_ax}label", "Time (s)")
-        setattr(ax, f"set_{dist_ax}label", "Distance (m)")
+        time_tuple = (min(time), max(time)) if time_ax == "x" else (
+            max(time), min(time))
+        getattr(ax, f"set_{time_ax}lim")(time_tuple)
+        getattr(ax, f"set_{dist_ax}lim")(-self.position[1],
+                                         self.position[1]+self.position[-1])
+        getattr(ax, "grid")(axis=time_ax, linestyle=":")
+        getattr(ax, f"set_{time_ax}label")("Time (s)")
+        getattr(ax, f"set_{dist_ax}label")("Distance (m)")
 
         for label in list("xy"):
             ax.tick_params(label, length=4, width=1, which='major')
 
         if ax_was_none:
+            fig.tight_layout()
             return (fig, ax)
 
-    def plot_array(self):
-        """Plot a schematic of the `Array1d` object.
+    def plot(self):
+        """Plot a schematic of the `Array1D` object.
 
         The schematic shows the relative position of the receivers and
         the source and lists the total number of receivers. The figure
@@ -218,30 +235,17 @@ class Array1D():
 
         Returns
         -------
-            This method returns a tuple of the form (figure, axes) where
-            figure is the figure object and axes is the axes object on
-            which the schematic is plotted.
-
-        Examples
-        --------
-            >>import matplotlib.pyplot as plt
-            >>import utprocess
-            >>
-            >># 1.dat is a seg2 file from an MASW survey
-            >>my_array = utprocess.Array1d.from_seg2s("1.dat")
-            >>fig, ax = my_array.plot_array()
-            >>plt.show()
+        Tuple
+            Of the form `(fig, ax)` where `fig` is the Figure object
+            and `ax` is the Axes object on which the schematic is
+            plotted.
 
         """
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 2))
 
-        for n_rec, receiver in enumerate(self.receivers):
-            label = "Receiver" if n_rec == 1 else None
-            ax.plot(receiver.position["x"],
-                    receiver.position["y"],
-                    marker="^",
-                    color="k",
-                    linestyle="None",
+        for n_rec, sensor in enumerate(self.sensors):
+            label = "Sensor" if n_rec == 1 else None
+            ax.plot(sensor.x, sensor.y, marker="^", color="k", linestyle="",
                     label=label)
 
         try:
@@ -249,23 +253,26 @@ class Array1D():
         except ValueError:
             spacing_txt = f"Receiver spacings are not equal."
 
-        ax.text(min(self.receivers[0].position["x"], self.source.position["x"]),
-                3,
-                f"Number of Receivers: {self.nchannels}\n{spacing_txt}")
+        ax.text(0.03, 0.95,
+                f"Number of Receivers: {self.nchannels}\n{spacing_txt}",
+                transform=ax.transAxes, va="top", ha="left")
 
-        ax.plot(self.source.position["x"],
-                self.source.position["y"],
-                marker="D",
-                color="b",
-                linestyle="None",
-                label=f"Source at {self.source.position['x']}m")
+        ax.plot(self.source.x, self.source.y, marker="D", color="b",
+                linestyle="", label=f"Source at {self.source.x}m")
 
         ax.legend()
         ax.set_ylim([-2, 5])
         ax.set_xlabel("Distance Along Array (m)")
         return (fig, ax)
 
-    def _pick_threshold(self, threshold=0.05):
+    def auto_pick_first_arrivals(self, algorithm='threshold', **kwargs):
+        if algorithm == "threshold":
+            picks = self._pick_on_threshold(**kwargs)
+        else:
+            raise NotImplementedError
+        return picks
+
+    def _pick_on_threshold(self, threshold=0.05):
         """
 
         Parameters
@@ -275,7 +282,7 @@ class Array1D():
 
         """
         norm_traces = self._clean_matrix(scale_factor=1)
-        _time = self.ex_rec.timeseries.time
+        _time = self.sensors[0].time
 
         times = []
         for trace in norm_traces:
@@ -285,14 +292,7 @@ class Array1D():
 
         return (self.position, times)
 
-    def auto_pick_first_arrivals(self, algorithm='threshold', **kwargs):
-        if algorithm == "threshold":
-            picks = self._pick_threshold(**kwargs)
-        else:
-            raise NotImplementedError
-        return picks
-
-    def pick_first_arrivals(self, waterfall_kwargs=None):
+    def manual_pick_first_arrivals(self, waterfall_kwargs=None):
         """Allow for interactive picking of first arrivals.
 
         Parameters
@@ -382,38 +382,34 @@ class Array1D():
             If `fnames` is not of type `str` or `iterable`.
 
         """
-        if type(fnames) == str:
+        if isinstance(fnames, (str)):
             fnames = [fnames]
 
-        # Read file for traces
+        # Read traces from first file
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             stream = obspy.read(fnames[0])
 
-        # Create array of receivers
-        receivers = []
-        minimum_x = 1E9
+        # Create array of sensors
+        sensors = []
         for trace in stream.traces:
             sensor = Sensor1C.from_trace(trace)
-            minimum_x = min(minimum_x, sensor.position["x"])
-            receivers.append(sensor)
-
-        for receiver in receivers:
-            receiver.position["x"] -= minimum_x
+            sensors.append(sensor)
 
         # Define source
         _format = trace.stats._format
         if _format == "SEG2":
-            source = Source({"x": float(trace.stats.seg2.SOURCE_LOCATION),
-                             "y": 0,
-                             "z": 0})
+            source = Source(x=float(trace.stats.seg2.SOURCE_LOCATION),
+                            y=0,
+                            z=0)
         elif _format == "SU":
-            source = Source({"x": (float(trace.stats.su.trace_header["source_coordinate_x"])/1000)-minimum_x,
-                             "y": float(trace.stats.su.trace_header["source_coordinate_y"])/1000,
-                             "z": 0})
+            source = Source(x=float(trace.stats.su.trace_header["source_coordinate_x"])/1000,
+                            y=float(
+                                trace.stats.su.trace_header["source_coordinate_y"])/1000,
+                            z=0)
         else:
             raise ValueError(f"_format={_format} not recognized.")
-        obj = cls(receivers, source)
+        obj = cls(sensors, source)
 
         # Stack additional traces, if necessary
         if len(fnames) > 0:
@@ -421,11 +417,11 @@ class Array1D():
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     stream = obspy.read(fname)
-                for receiver, trace in zip(obj, stream.traces):
-                    receiver.stack_trace(trace)
+                for sensor, trace in zip(obj.sensors, stream.traces):
+                    new_sensor = Sensor1C.from_trace(trace)
+                    sensor.stack_append(new_sensor)
 
-        obj.absolute_minus_relative = minimum_x
         return obj
 
     def __getitem__(self, index):
-        return self.receivers[index]
+        return self.sensors[index]

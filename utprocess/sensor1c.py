@@ -143,6 +143,13 @@ class Sensor1C(ActiveTimeSeries):
         if not isinstance(other, Sensor1C):
             return False
 
+        for attr in ["x", "y", "z"]:
+            if attr in exclude:
+                continue
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+
+
         if not super()._is_similar(other, exclude=exclude):
             return False
 
@@ -152,9 +159,5 @@ class Sensor1C(ActiveTimeSeries):
         """Check if `other` is equal to the `Sensor1C`."""
         if not super().__eq__(other):
             return False
-
-        for attr in ["x", "y", "z"]:
-            if getattr(self, attr) != getattr(other, attr):
-                return False
 
         return True
