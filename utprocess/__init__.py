@@ -7,7 +7,7 @@ from .source import Source
 
 from .array1d import Array1D
 
-from .wavefieldtransform1d import *
+from .wavefieldtransform1d import WavefieldTransform1D
 
 from .peaks import *
 from .peaks_active import *

@@ -13,10 +13,11 @@ class Test_WaveTransform1d(TestCase):
         cls.full_path = get_full_path(__file__)
 
     def test_init(self):
-        array = utprocess.Array1d.from_files(fnames=self.full_path+"data/vuws/4.dat")
+        array = utprocess.Array1D.from_files(fnames=self.full_path+"data/vuws/4.dat")
         fk = utprocess.WavefieldTransform1D(array=array,
-                                            settings_file=self.full_path+"settings/test_fksettings.json")
-        fk.plot_spec(plot_type="fv", plot_limit=[5, 100, 0, 500])
+                                            settings=self.full_path+"settings/fk.json")
+        fk.plot_spectra(stype="fv")
+        # plt.close()
         # plt.show()
 
 

@@ -124,6 +124,19 @@ class Array1D():
         else:
             raise ValueError("spacing undefined for non-equally spaced arrays")
 
+    @property
+    def _source_inside(self):
+        source = self.source.x 
+        return ((source > self.position[0]) and (source < self.position[-1]))
+
+    def _safe_spacing(self):
+        try:
+            spacing = self.spacing
+        except ValueError:
+            logger.warn("Array1D does not have equal spacing.")
+            spacing = self.position[1] - self.position[0]
+        return spacing
+
     def trim(self, start_time, end_time):
         """Trim time series belonging to each Sensor1C.
 
@@ -143,6 +156,30 @@ class Array1D():
         for sensor in self.sensors:
             sensor.trim(start_time, end_time)
 
+    def zero_pad(self, df):
+        """Append zero to sensors to achieve a desired frequency step.
+
+        Parameters
+        ----------
+        df : float
+            Desired linear frequency step in Hertz.
+
+        Returns
+        -------
+        None
+            Instead modifies `sensors`.
+
+        """
+        for sensor in self.sensors:
+            sensor.zero_pad(df=df)
+
+    @property
+    def _flip_required(self):
+        if self.source.x > self.position[-1]:
+            return True
+        else:
+            return False
+
     def _norm_traces(self, scale_factor):
         norm_traces = np.empty_like(self.timeseriesmatrix)
         for k, current_trace in enumerate(self.timeseriesmatrix):
@@ -153,7 +190,7 @@ class Array1D():
             norm_traces[k, :] = current_trace
         return norm_traces
 
-    def waterfall(self, ax=None, scale_factor=1.0, time_along='y',
+    def waterfall(self, ax=None, scale_factor=1.0, time_along="y",
                   waterfall_kwargs=None):
         """Create waterfall plot for this array setup.
 
@@ -212,8 +249,10 @@ class Array1D():
         time_tuple = (min(time), max(time)) if time_ax == "x" else (
             max(time), min(time))
         getattr(ax, f"set_{time_ax}lim")(time_tuple)
-        getattr(ax, f"set_{dist_ax}lim")(-self.position[1],
-                                         self.position[1]+self.position[-1])
+
+        spacing = self._safe_spacing()
+        getattr(ax, f"set_{dist_ax}lim")(self.position[0]-spacing,
+                                         self.position[-1]+spacing)
         getattr(ax, "grid")(axis=time_ax, linestyle=":")
         getattr(ax, f"set_{time_ax}label")("Time (s)")
         getattr(ax, f"set_{dist_ax}label")("Distance (m)")
@@ -281,7 +320,7 @@ class Array1D():
             Picking threashold as a percent.
 
         """
-        norm_traces = self._clean_matrix(scale_factor=1)
+        norm_traces = self._norm_traces(scale_factor=1)
         _time = self.sensors[0].time
 
         times = []

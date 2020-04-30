@@ -218,7 +218,7 @@ class ActiveTimeSeries(TimeSeries):
         else:
             self._delay = start_time
 
-    def zero_pad(self, df=0.2):
+    def zero_pad(self, df):
         """Append zeros to `amp` to achieve a desired frequency step.
 
         Parameters

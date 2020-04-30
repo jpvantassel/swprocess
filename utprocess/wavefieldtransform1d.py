@@ -1,237 +1,239 @@
-"""This file contains a class for performing and manipulating a
-wavefield transformation for a 1D array."""
+"""WavefieldTransform1D class defintion."""
 
-import matplotlib.pyplot as plt
 import json
-import numpy as np
 import logging
+
+import numpy as np
+import matplotlib.pyplot as plt
+
 logger = logging.getLogger(__name__)
 
 
 class WavefieldTransform1D():
-    """Class for performing and manipulating wavefield 
-    transformations for a 1D array.
+    """Wavefield transformation of a `Array1D`.
 
-    Attributues:
-        timelength: Length of time record used in seconds.
-
-        method: Type of wavefield transformation.
-
-        f_trial: Dictionary of the form {'min': ,'max': , 'npts': } 
-            which defines the minimum, maximum, and number of frequency
-            points.
-
-        weighting: Type of weighting vector, can be ['none', ...]
-
-        steering_vector: Type of steering vector, can be ['plane', ...]
+    Attributues
+    ------------
 
     """
 
-    def __init__(self, array, settings_file):
-        """Initialize an instance of the WavefieldTransformation1D class 
-        from an instance of the Array1D class.
+    def __init__(self, array, settings):
+        """Initialize from `Array1D` and settings file.
 
-        Args:
-            array: Instance of an Array1D class.
+        Parameters
+        ----------
+        array : Array1D
+            Instantiated `Array1D` object.
+        settings : str
+            JSON settings file detailing the settings for the wavefield
+            transformation.
 
-            settings: Name of a .json file that descibes the settings to
-                be used for the 1D wavefield transformation.
-
-        Returns:
-
-
-        Raises:
+        Returns
+        -------
+        WavefieldTransform1D
+            Instantiated `WavefieldTransform1D`.
 
         """
-        self.array = array
-        inside_array = (array.source.position["x"] > 0 and
-                        array.source.position["x"] < (array.nchannels-1)*array.spacing)
-        if inside_array:
-            raise ValueError("Source is inside the array.")
+        logger.info("Howdy!")
 
-        with open(settings_file, "r") as f:
-            settings = json.load(f)
-            self.general = settings["general"]
+        if array._source_inside:
+            raise ValueError("Source must be located outside of the array.")
 
-        if self.general["start_time"] != None and self.general["end_time"] != None:
-            array.trim_record(start_time=self.general["start_time"],
-                              end_time=self.general["end_time"])
+        with open(settings, "r") as f:
+            logger.info("loading settings ... ")
+            self.settings = json.load(f)
 
-        if settings["type"] == "fk":
-            numk = self.general["n_trial"]
-            if numk % 2 != 0:
-                numk += 1
-            # TODO (jpv) self.generalize numk to be n_trial, so move above outside of if statement
+        if self.settings["trim"]:
+            logger.info("trimming ... ")
+            array.trim(start_time=self.settings["start_time"],
+                       end_time=self.settings["end_time"])
 
-            freq = np.arange(0,
-                             self.array.ex_rec.timeseries.fnyq+self.array.ex_rec.timeseries.df,
-                             self.array.ex_rec.timeseries.df)
+        if self.settings["zero_pad"]:
+            logger.info("padding ... ")
+            array.zero_pad(df=self.settings["df"])
 
-            kres = self.array.kres
-            dk = 2*np.pi / (numk*self.array.spacing)
-            k_vals = np.arange(dk, kres, dk)
+        self._perform_transform(array=array)
 
-            # TOOD (jpv): Had to transpose matrix here, b/c flip from C major to R major
-            fk = np.fft.fft2(self.array.timeseriesmatrix.T,
-                             s=(self.array.ex_rec.timeseries.n_samples, numk))
-            fk = np.fliplr(np.abs(fk))
-            fk = fk[0:len(freq), 1::]
+    def _perform_transform(self, array):
 
-            # Remove frequencies above/below specificied max/min frequencies and downsample (if required by zero padding)
-            fminID = np.argmin(np.absolute(freq-self.general["min_freq"]))
-            fmaxID = np.argmin(np.absolute(freq-self.general["max_freq"]))
-            freq_id = range(fminID,
-                            (fmaxID+1),
-                            array.ex_rec.timeseries.multiple)
-            freq = freq[freq_id]
-            fk = fk[freq_id, :]
+        if self.settings["method"] == "fk":
+            results = self._fk_transform(array=array,
+                                         ntrial=self.settings["ntrial"],
+                                         fmin=self.settings["fmin"],
+                                         fmax=self.settings["fmax"],
+                                         )
+        else:
+            raise NotImplementedError
 
-            # Identify wavenumber associated with maximum in fk domain..................
-            pnorm = np.zeros(np.shape(fk))
-            k_peak = np.zeros(np.shape(freq))
-            for k in range(np.shape(fk)[0]):
-                pnorm[k, :] = fk[k, :] / np.max(fk[k, :])
-                k_peak[k] = k_vals[np.argmax(pnorm[k, :])]
+        self.frqs, self.domain, self.vals, self.pnorm, self.peaks, self.kres = results
 
-            self.freq = freq
-            self.peak_vals = k_peak
-            self.trial_vals = k_vals
-            self.val_type = 'wavenumber'
-            self.kres = kres
-            self.pnorm = np.transpose(pnorm)
+    @staticmethod
+    def _fk_transform(array, ntrial, fmin, fmax):
+        """Perform fk transform on the provided array."""
+        sensor = array.sensors[0]
+
+        # Frequency vector
+        frqs = np.arange(0, sensor.fnyq+sensor.df, sensor.df)
+
+        # Wavenumber vector
+        kres = array.kres
+        dk = 2*np.pi / (ntrial*array.spacing)
+        ks = np.arange(dk, kres, dk)
+
+        # Perform 2D FFT
+        tseries = np.fliplr(
+            array.timeseriesmatrix.T) if array._flip_required else array.timeseriesmatrix.T
+        fk = np.fft.fft2(tseries, s=(sensor.nsamples, ntrial))
+        fk = np.fliplr(np.abs(fk))
+        fk = fk[0:len(frqs), 1::]
+
+        # Trim frequencies and downsample (if required by zero padding)
+        fmin_ids = np.argmin(np.absolute(frqs-fmin))
+        fmax_ids = np.argmin(np.absolute(frqs-fmax))
+        freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
+        frqs = frqs[freq_ids]
+        fk = fk[freq_ids, :]
+
+        # Normalize power and find peaks
+        pnorm = np.empty_like(fk)
+        kpeaks = np.empty_like(frqs)
+        for k, _fk in enumerate(fk):
+            normed_fk = np.abs(_fk / np.max(_fk))
+            pnorm[k, :] = normed_fk
+            kpeaks[k] = ks[np.argmax(normed_fk)]
+
+        return (frqs, "wavenumber", ks, pnorm.T, kpeaks, kres)
 
     # TODO (jpv): Generate a default settings file on the fly.
     @staticmethod
-    def gen_default_settings_file(fname):
+    def default_settings_file(fname):
         pass
 
-    def save_peaks(self, fname, identifier, append=False):
-        """Save the peak disperison values frequency and velocity to
-        json file.
+    # def save_peaks(self, fname, identifier, append=False):
+    #     """Save the peak disperison values frequency and velocity to
+    #     json file.
 
-        Args: 
-            fname: String denoting the name of the output file, may be
-                a full path if desired. Do not include the '.json'
-                extension.
+    #     Args:
+    #         fname: String denoting the name of the output file, may be
+    #             a full path if desired. Do not include the '.json'
+    #             extension.
 
-            identifier: Any immutable/hashable type to denote the object
-                (i.e., array) to which this data belongs. For MASW this
-                may be the offset, for MAM this may be the array name.
+    #         identifier: Any immutable/hashable type to denote the object
+    #             (i.e., array) to which this data belongs. For MASW this
+    #             may be the offset, for MAM this may be the array name.
 
-            append: Boolean to denote whether a file with the same name
-                as fname (if it exists) should be appended to or that
-                the file should be overwritten.
+    #         append: Boolean to denote whether a file with the same name
+    #             as fname (if it exists) should be appended to or that
+    #             the file should be overwritten.
 
-        Returns:
-            Do not return a value, instead write dispersion to json file
-            fname.
+    #     Returns:
+    #         Do not return a value, instead write dispersion to json file
+    #         fname.
 
-        Raises:
-            This method raises no exceptions.
-        """
-        logging.info("DispersionPower.save_peaks")
+    #     Raises:
+    #         This method raises no exceptions.
+    #     """
+    #     logging.info("DispersionPower.save_peaks")
 
-        if self.val_type == "wavenumber":
-            v_peak = 2*np.pi / self.peak_vals*self.freq
-        elif self.val_type == "velocity":
-            v_peak = self.peak_vals
-        else:
-            raise NotImplementedError()
+    #     if self.val_type == "wavenumber":
+    #         v_peak = 2*np.pi / self.peak_vals*self.freq
+    #     elif self.val_type == "velocity":
+    #         v_peak = self.peak_vals
+    #     else:
+    #         raise NotImplementedError()
 
-        data = {}
-        if append:
-            try:
-                f = open(f"{fname}.json", "r")
-            except FileNotFoundError:
-                pass
-            else:
-                data = json.load(f)
-                f.close()
+    #     data = {}
+    #     if append:
+    #         try:
+    #             f = open(f"{fname}.json", "r")
+    #         except FileNotFoundError:
+    #             pass
+    #         else:
+    #             data = json.load(f)
+    #             f.close()
 
-        with open(f"{fname}.json", "w") as fp:
-            if identifier in data:
-                raise KeyError(f"identifier {identifier} is repeated.")
-            else:
-                frq_trim = self.freq[np.where(
-                    v_peak < self.general["max_vel"])]
-                vel_trim = v_peak[np.where(v_peak < self.general["max_vel"])]
-                data.update({identifier: {"frequency": frq_trim.tolist(),
-                                          "velocity": vel_trim.tolist()}})
-            json.dump(data, fp)
+    #     with open(f"{fname}.json", "w") as fp:
+    #         if identifier in data:
+    #             raise KeyError(f"identifier {identifier} is repeated.")
+    #         else:
+    #             frq_trim = self.freq[np.where(
+    #                 v_peak < self.general["max_vel"])]
+    #             vel_trim = v_peak[np.where(v_peak < self.general["max_vel"])]
+    #             data.update({identifier: {"frequency": frq_trim.tolist(),
+    #                                       "velocity": vel_trim.tolist()}})
+    #         json.dump(data, fp)
 
-    def plot_spec(self, plot_type="fv", plot_peak=True, plot_limit=None):
+    def plot_spectra(self, stype="fv", plot_peak=True, plot_limit=None):
         if plot_limit != None and len(plot_limit) != 4:
             raise ValueError("plotLim should be a four element list")
 
-        if self.val_type == "wavenumber":
-            k_vals = self.trial_vals
-            freq_grid, wavenum_grid = np.meshgrid(self.freq, k_vals)
-            vel_grid = 2*np.pi*freq_grid / wavenum_grid
-            wavel_grid = 2*np.pi/wavenum_grid
-            k_peak = self.peak_vals
-            wavel_peak = 2*np.pi / k_peak
-            v_peak = wavel_peak*self.freq
-        elif self.val_type == "velocity":
-            v_vals = self.trial_vals
-            freq_grid, vel_grid = np.meshgrid(self.freq, v_vals)
-            wavel_grid = vel_grid / freq_grid
-            wavenum_grid = 2*np.pi / wavel_grid
-            v_peak = self.peak_vals
-            k_peak = 2*np.pi*self.freq / v_peak
-            wavel_peak = 2*np.pi / k_peak
+        if self.domain == "wavenumber":
+            fgrid, kgrid = np.meshgrid(self.frqs, self.vals)
+            vgrid = 2*np.pi*fgrid / kgrid
+            wgrid = 2*np.pi/kgrid
+            kpeak = self.peaks
+            wpeak = 2*np.pi / kpeak
+            vpeak = wpeak*self.frqs
+        elif self.domain == "velocity":
+            fgrid, vgrid = np.meshgrid(self.frqs, self.vals)
+            wgrid = vgrid / fgrid
+            wgrid = 2*np.pi / wgrid
+            vpeak = self.peak
+            kpeak = 2*np.pi*self.frqs / vpeak
+            wpeak = 2*np.pi / kpeak
         else:
             raise NotImplementedError()
 
-        if str.lower(plot_type) == "fk":
-            xgrid = freq_grid
-            ygrid = wavenum_grid
-            xpeak = self.freq
-            ypeak = k_peak
+        if stype == "fk":
+            xgrid = fgrid
+            ygrid = wgrid
+            xpeak = self.frqs
+            ypeak = kpeak
             if plot_limit == None:
-                plot_limit = [0, np.max(self.freq), 0, self.kres]
+                plot_limit = [0, np.max(self.frqs), 0, self.kres]
             xscale = "linear"
             yscale = "linear"
             xLabText = "Frequency (Hz)"
             yLabText = "Wavenumber (rad/m)"
-        elif str.lower(plot_type) == "fw":
-            xgrid = freq_grid
-            ygrid = wavel_grid
-            xpeak = self.freq
-            ypeak = wavel_peak
+        elif stype == "fw":
+            xgrid = fgrid
+            ygrid = wgrid
+            xpeak = self.frqs
+            ypeak = wpeak
             if plot_limit == None:
-                plot_limit = [0, np.max(self.freq), 1, 200]
+                plot_limit = [0, np.max(self.frqs), 1, 200]
             xscale = "linear"
             yscale = "log"
             xLabText = "Frequency (Hz)"
             yLabText = "Wavelength (m)"
-        elif str.lower(plot_type) == "fv":
-            xgrid = freq_grid
-            ygrid = vel_grid
-            xpeak = self.freq
-            ypeak = v_peak
+        elif stype == "fv":
+            xgrid = fgrid
+            ygrid = vgrid
+            xpeak = self.frqs
+            ypeak = vpeak
             if plot_limit == None:
-                plot_limit = [
-                    0, np.max(self.freq), self.general["min_vel"], self.general["max_vel"]]
+                plot_limit = [0, np.max(self.frqs),
+                              self.settings["vmin"], self.settings["vmax"]]
             xscale = "linear"
             yscale = "linear"
             xLabText = "Frequency (Hz)"
             yLabText = "Velocity (m/s)"
-        elif str.lower(plot_type) == "fp":
-            xgrid = freq_grid
-            ygrid = 1.0 / vel_grid
-            xpeak = self.freq
-            ypeak = 1.0 / v_peak
+        elif stype == "fp":
+            xgrid = fgrid
+            ygrid = 1.0 / vgrid
+            xpeak = self.frqs
+            ypeak = 1.0 / vpeak
             if plot_limit == None:
-                plot_limit = [0, np.max(self.freq), 1.0/1000, 1.0/100]
+                plot_limit = [0, np.max(self.frqs), 1.0/1000, 1.0/100]
             xscale = "linear"
             yscale = "linear"
             xLabText = "Frequency (Hz)"
             yLabText = "Slowness (s/m)"
-        elif str.lower(plot_type) == "wv":
-            xgrid = wavel_grid
-            ygrid = vel_grid
-            xpeak = wavel_peak
-            ypeak = v_peak
+        elif stype == "wv":
+            xgrid = wgrid
+            ygrid = vgrid
+            xpeak = wpeak
+            ypeak = vpeak
             if plot_limit == None:
                 plot_limit = [1, 200, 0, 1000]
             xscale = "log"
@@ -239,12 +241,12 @@ class WavefieldTransform1D():
             xLabText = "Wavelength (m)"
             yLabText = "Velocity (m/s)"
         else:
-            raise ValueError(
-                "Invalid plot_type. Should be \"fk\", \"fw\", \"fv\", \"fp\", or \"wv\".")
+            msg = f"`stype`= {stype} not recognized, use 'fk', 'fw', 'fv', 'fp', or 'wv'."
+            raise ValueError(msg)
 
         mwdth = 6
         mhght = 4
-        zgrid = np.abs(self.pnorm)
+        zgrid = self.pnorm
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(mwdth, mhght))
         contour = ax.contourf(xgrid,
                               ygrid,
