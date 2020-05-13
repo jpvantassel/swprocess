@@ -55,7 +55,6 @@ class WavefieldTransform1D():
         self._perform_transform(array=array)
 
     def _perform_transform(self, array):
-
         if self.settings["method"] == "fk":
             results = self._fk_transform(array=array,
                                          ntrial=self.settings["ntrial"],
@@ -75,34 +74,35 @@ class WavefieldTransform1D():
         # Frequency vector
         frqs = np.arange(0, sensor.fnyq+sensor.df, sensor.df)
 
-        # Wavenumber vector
-        kres = array.kres
-        dk = 2*np.pi / (ntrial*array.spacing)
-        ks = np.arange(dk, kres, dk)
-
         # Perform 2D FFT
-        tseries = np.fliplr(
-            array.timeseriesmatrix.T) if array._flip_required else array.timeseriesmatrix.T
-        fk = np.fft.fft2(tseries, s=(sensor.nsamples, ntrial))
-        fk = np.fliplr(np.abs(fk))
-        fk = fk[0:len(frqs), 1::]
+        if array._flip_required:
+            tseries = np.fliplr(array.timeseriesmatrix)
+        else:
+            tseries = array.timeseriesmatrix
+        fk = np.fft.fft2(tseries, s=(ntrial, sensor.nsamples))
+        fk = np.abs(fk[-2::-1, 0:len(frqs)])
 
         # Trim frequencies and downsample (if required by zero padding)
         fmin_ids = np.argmin(np.absolute(frqs-fmin))
         fmax_ids = np.argmin(np.absolute(frqs-fmax))
         freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
         frqs = frqs[freq_ids]
-        fk = fk[freq_ids, :]
+        fk = fk[:, freq_ids]
+
+        # Wavenumber vector
+        kres = array.kres
+        dk = 2*kres / ntrial
+        ks = np.arange(dk, 2*kres, dk)
 
         # Normalize power and find peaks
         pnorm = np.empty_like(fk)
         kpeaks = np.empty_like(frqs)
-        for k, _fk in enumerate(fk):
-            normed_fk = np.abs(_fk / np.max(_fk))
-            pnorm[k, :] = normed_fk
+        for k, _fk in enumerate(fk.T):
+            normed_fk = np.abs(_fk/np.max(_fk))
+            pnorm[:, k] = normed_fk
             kpeaks[k] = ks[np.argmax(normed_fk)]
 
-        return (frqs, "wavenumber", ks, pnorm.T, kpeaks, kres)
+        return (frqs, "wavenumber", ks, pnorm, kpeaks, kres)
 
     # TODO (jpv): Generate a default settings file on the fly.
     @staticmethod
@@ -186,11 +186,11 @@ class WavefieldTransform1D():
 
         if stype == "fk":
             xgrid = fgrid
-            ygrid = wgrid
+            ygrid = kgrid
             xpeak = self.frqs
             ypeak = kpeak
             if plot_limit == None:
-                plot_limit = [0, np.max(self.frqs), 0, self.kres]
+                plot_limit = [0, np.max(self.frqs), 0, 2*self.kres]
             xscale = "linear"
             yscale = "linear"
             xLabText = "Frequency (Hz)"
@@ -271,15 +271,12 @@ class WavefieldTransform1D():
                     linestyle="none")
 
         # TODO (jpv): Look into making a plotting function to set these defaults
-
         ax.set_xlim(plot_limit[:2])
         ax.set_ylim(plot_limit[2:])
         ax.set_xlabel(xLabText, fontsize=12, fontname="arial")
         ax.set_ylabel(yLabText, fontsize=12, fontname="arial")
         ax.set_xscale(xscale)
         ax.set_yscale(yscale)
-        # ax.set_xticklabels(ax.get_xticks(), fontsize=12, fontname="arial")
-        # ax.set_yticklabels(ax.get_yticks(), fontsize=12, fontname="arial")
         return fig, ax
 
     # # TODO (jpv) Pythonize this

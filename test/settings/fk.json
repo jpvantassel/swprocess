@@ -5,7 +5,7 @@
     "end_time": 0.75,
     "zero_pad": true,
     "df": 0.5,
-    "ntrial": 2048,
+    "ntrial": 512,
     "fmin": 5,
     "fmax": 100,
     "vmin": 75,

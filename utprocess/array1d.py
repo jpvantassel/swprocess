@@ -109,7 +109,8 @@ class Array1D():
 
     @property
     def kres(self):
-        return 2*np.pi / min(np.diff(self.position))
+        """The array's resolution wavenumber."""
+        return np.pi / min(np.diff(self.position))
 
     @property
     def nchannels(self):
