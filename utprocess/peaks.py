@@ -1,13 +1,18 @@
 """File defining the Peaks class that allows for read and modifying
 peak values from the dispersion data."""
 
-from utprocess import plot_tools
+
+import json
 import re
 import logging
-import matplotlib.pyplot as plt
+
 import numpy as np
-import json
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Cursor
+
+from utprocess import plot_tools
+
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
 # mpl.use('Qt4Agg')
 logger = logging.getLogger(__name__)
@@ -31,9 +36,9 @@ class Peaks():
 
         Args:
             frequency = List of frequency values (one per peaks).
-            velocit = List of velocity values (one per peak)
+            velocity = List of velocity values (one per peak)
             identifiers = Strings to uniquely identify the array.
-            **kwargs = Optional keyword arguement(s) these may include
+            **kwargs = Optional keyword argument(s) these may include
                 additional details about the dispersion peaks such as:
                 azimuth (azi), ellipticity (ell), power (pwr), and noise
                 (pwr). Will generally not be used directly.
@@ -54,13 +59,15 @@ class Peaks():
         for key, val in kwargs.items():
             self.ext.update({key: [np.array(val)]})
         logging.debug(f"self.ext {self.ext}")
-        self.mean_disp = self.compute_dc_stats(self.frq, self.vel)
+        self.mean_disp = self.compute_dc_stats(self.frq, self.vel,
+                                               minp=1, maxp=200, numbins=128,
+                                               binscale='log')
 
-    def append(self, frequency, velocity, indentifier, **kwargs):
+    def append(self, frequency, velocity, identifier, **kwargs):
         """Method to append frequency and velocity data into the object.
 
         Args:
-            For details regarding the input arguement refer to __inti__.
+            For details regarding the input argument refer to __inti__.
 
         Returns:
             Returns None, but updates object's state.
@@ -71,11 +78,12 @@ class Peaks():
         self.frq.append(np.array(frequency))
         self.vel.append(np.array(velocity))
         self.wav.append(self.vel[-1]/self.frq[-1])
-        self.ids.append(indentifier)
+        self.ids.append(identifier)
         for key, val in kwargs.items():
             self.ext[key].append(np.array(val))
-        self.mean_disp = self.compute_dc_stats(self.frq, self.vel)
-
+        self.mean_disp = self.compute_dc_stats(self.frq, self.vel,
+                                               minp=1, maxp=200, numbins=128,
+                                               binscale='log')
         logging.debug(f"self.ext {self.ext}")
 
     @classmethod
@@ -91,7 +99,7 @@ class Peaks():
                     identifier is a string identifying the data.
                     freq is a list of floats denoting frequency values.
                     vel is a list of floats denoting velocity values.
-                    kwarg1 is one of the optional keyword arguements,
+                    kwarg1 is one of the optional keyword arguments,
                         may use all of those listed in __init__.
 
         Returns:
@@ -113,9 +121,12 @@ class Peaks():
                     obj = cls(value["frequency"],
                               value["velocity"],
                               key,
-                              azi=value.get("azi") if value.get("azi") else [0]*npts,
-                              ell=value.get("ell") if value.get("azi") else [0]*npts,
-                              noi=value.get("noi") if value.get("azi") else [0]*npts,
+                              azi=value.get("azi") if value.get(
+                                  "azi") else [0]*npts,
+                              ell=value.get("ell") if value.get(
+                                  "azi") else [0]*npts,
+                              noi=value.get("noi") if value.get(
+                                  "azi") else [0]*npts,
                               pwr=value.get("pwr") if value.get("azi") else [0]*npts)
                     start = False
                 else:
@@ -123,9 +134,12 @@ class Peaks():
                     obj.append(value["frequency"],
                                value["velocity"],
                                key,
-                               azi=value.get("azi") if value.get("azi") else [0]*npts,
-                               ell=value.get("ell") if value.get("azi") else [0]*npts,
-                               noi=value.get("noi") if value.get("azi") else [0]*npts,
+                               azi=value.get("azi") if value.get(
+                                   "azi") else [0]*npts,
+                               ell=value.get("ell") if value.get(
+                                   "azi") else [0]*npts,
+                               noi=value.get("noi") if value.get(
+                                   "azi") else [0]*npts,
                                pwr=value.get("pwr") if value.get("azi") else [0]*npts)
         return obj
 
@@ -183,7 +197,8 @@ class Peaks():
             raise ValueError("`len(fnames)` must equal `len(identifiers)`.")
 
         disp_type = "Rayleigh" if rayleigh else "Love"
-        pattern = r"^\d+\.?\d* (\d+\.?\d*) (Rayleigh|Love) (\d+\.?\d*) (\d+\.?\d*) (-?\d+\.?\d*) (\d+\.?\d*|-?inf|nan) (\d+\.?\d*) (0|1)$"
+        number = "-?\d+.?\d*[eE]?[+-]?\d*"
+        pattern = f"^\d+\.?\d* (\d+\.?\d*) (Rayleigh|Love) ({number}) ({number}) ({number}) (\d+\.?\d*|-?inf|nan) (\d+\.?\d*) (0|1)$"
 
         for fnum, (fname, identifier) in enumerate(zip(fnames, identifiers)):
             logging.debug(f"Attempting to Open File: {fname}")
@@ -197,7 +212,12 @@ class Peaks():
 
             frqs, vels, azis, ells, nois, pwrs = [], [], [], [], [], []
             for line_number, line in enumerate(lines[start:]):
-                fr, pol, sl, az, el, noi, pw, ok = re.findall(pattern, line)[0]
+                try:
+                    fr, pol, sl, az, el, noi, pw, ok = re.findall(pattern, line)[
+                        0]
+                except IndexError as e:
+                    print(line)
+                    raise e
                 if pol == disp_type and ok == "1":
                     frqs.append(float(fr))
                     vels.append(1/float(sl))
@@ -225,9 +245,9 @@ class Peaks():
     # def write_to_txt_dinver(self, fname):
     #     pass
 
-    def write_stat_utinvert(self, fname):
+    def write_stat_swinvert(self, fname):
         """Write statistics (mean and standard deviation) to csv file
-        of the form accepted by utinvert.
+        of the form accepted by swinvert.
 
         Args:
             fname = String for file name. Can be a relative or a full
@@ -236,8 +256,6 @@ class Peaks():
         Returns:
             Method returns None, but saves file to disk.
 
-        Raises:
-            This method raies no exceptions.
         """
         if fname.endswith(".csv"):
             fname = fname[:-4]
@@ -324,9 +342,39 @@ class Peaks():
         axw.set_xscale("log")
         return (fig, axf, axw)
 
+    def _blitz(self, settings):
+        """Remove all points outside the limits provided"""
+        limits = settings.get("limits")
+        if limits is None:
+            msg = "_blitz returning with no removal, as limits does not exist."
+            logger.info(msg)
+            return
+
+        vmin = limits.get("vmin")
+        vmax = limits.get("vmax")
+
+        if vmin is not None:
+            for ith in range(len(self.frq)):
+                keep_ids = np.where(self.vel[ith] > vmin)
+                self.frq[ith] = self.frq[ith][keep_ids]
+                self.vel[ith] = self.vel[ith][keep_ids]
+                self.wav[ith] = self.wav[ith][keep_ids]
+
+        if vmax is not None:
+            for ith in range(len(self.frq)):
+                keep_ids = np.where(self.vel[ith] < vmax)
+                self.frq[ith] = self.frq[ith][keep_ids]
+                self.vel[ith] = self.vel[ith][keep_ids]
+                self.wav[ith] = self.wav[ith][keep_ids]
+
+# TODO (jpv): Add test.
+# TODO (jpv): Finish for wavelength and frequency.
+
     def party_time(self, settings_file, klimits=None):
         with open(settings_file, "r") as f:
             settings = json.load(f)
+
+        self._blitz(settings)
 
         cont = True
         cfig = 0
@@ -401,7 +449,7 @@ class Peaks():
         elif binscale.lower() == "log":
             binedges = np.logspace(np.log10(minp), np.log10(maxp), numbins+1)
         else:
-            raise ValueError(f"Inok binscale `{binscale}`.")
+            raise ValueError(f"Unknown binscale `{binscale}`.")
         logging.debug(f"binedges = {binedges}")
 
         if bintype.lower() == "frequency":
@@ -409,7 +457,7 @@ class Peaks():
         elif bintype.lower() == "wavelength":
             bin_indices = np.digitize(wav, binedges)
         else:
-            raise ValueError(f"Inok bintype `{bintype}")
+            raise ValueError(f"Unknown bintype `{bintype}")
         logging.debug(f"bin_indices = {bin_indices}")
 
         # bin_cnt = np.zeros(numbins)
@@ -613,6 +661,12 @@ class Peaks():
                         axclick.append(event.inaxes)
             cid = cfig.canvas.mpl_connect('button_press_event', on_click)
 
+            axf = cfig.axes[0]
+            axw = cfig.axes[1]
+
+            fcursor = Cursor(axf, useblit=True, color='k', linewidth=1)
+            wcursor = Cursor(axw, useblit=True, color='k', linewidth=1)
+
             rawBounds = np.asarray(cfig.ginput(2, timeout=0))
             cfig.canvas.mpl_disconnect(cid)
             xmin = np.min(rawBounds[:, 0])
@@ -632,8 +686,6 @@ class Peaks():
                     logging.warning("BOTH CLICKS MUST BE ON SAME AXIS")
                     return
 
-                axf = cfig.axes[0]
-                axw = cfig.axes[1]
                 for i in range(len(f)):
                     condition1 = (axclick[0] == axf) and (
                         xmin < f[i] and f[i] < xmax and ymin < v[i] and v[i] < ymax)

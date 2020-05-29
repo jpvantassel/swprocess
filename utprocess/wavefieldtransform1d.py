@@ -109,59 +109,67 @@ class WavefieldTransform1D():
     def default_settings_file(fname):
         pass
 
-    # def save_peaks(self, fname, identifier, append=False):
-    #     """Save the peak disperison values frequency and velocity to
-    #     json file.
+    def write_peaks_to_file(self, fname, identifier, append=False, ftype="json"):
+        """Write peak disperison values to file.
 
-    #     Args:
-    #         fname: String denoting the name of the output file, may be
-    #             a full path if desired. Do not include the '.json'
-    #             extension.
+        Parameters
+        ----------
+        fname : str
+            Name of the output file, may be a relative or the full path.
+        identifier :  str
+            A unique identifier for the peaks. The source offset is
+            typically sufficient.
+        append : bool, optional
+            Flag to denote whether `fname` should be appended to or
+            overwritten, default is `False` indicating the file will
+            be overwritten.
+        ftype : {'json'}, optional
+            Denotes the desired filetype.
+            TODO (jpv): Add also a csv option.
 
-    #         identifier: Any immutable/hashable type to denote the object
-    #             (i.e., array) to which this data belongs. For MASW this
-    #             may be the offset, for MAM this may be the array name.
+        Returns
+        -------
+        None
+            Instead writes/appends dispersion peaks to file `fname`.
 
-    #         append: Boolean to denote whether a file with the same name
-    #             as fname (if it exists) should be appended to or that
-    #             the file should be overwritten.
+        """
+        if self.domain == "wavenumber":
+            v_peak = 2*np.pi / self.peaks*self.frqs
+        elif self.domain == "velocity":
+            v_peak = self.peaks
+        else:
+            raise NotImplementedError()
 
-    #     Returns:
-    #         Do not return a value, instead write dispersion to json file
-    #         fname.
+        if ftype != "json":
+            raise ValueError()
+        
+        if fname.endswith(".json"):
+            fname = fname[:-5]
 
-    #     Raises:
-    #         This method raises no exceptions.
-    #     """
-    #     logging.info("DispersionPower.save_peaks")
+        data = {}
+        if append:
+            try:
+                f = open(f"{fname}.json", "r")
+            except FileNotFoundError:
+                pass
+            else:
+                data = json.load(f)
+                f.close()
 
-    #     if self.val_type == "wavenumber":
-    #         v_peak = 2*np.pi / self.peak_vals*self.freq
-    #     elif self.val_type == "velocity":
-    #         v_peak = self.peak_vals
-    #     else:
-    #         raise NotImplementedError()
+        with open(f"{fname}.json", "w") as fp:
+            if identifier in data:
+                raise KeyError(f"identifier {identifier} is repeated.")
+            else:
+                # keep_ids = np.where(v_peak < self.settings["vmax"])
+                # ftrim = self.frqs[keep_ids].tolist()
+                # vtrim = v_peak[keep_ids].tolist()
+                # data.update({identifier: {"frequency": ftrim,
+                #                           "velocity": vtrim}})
 
-    #     data = {}
-    #     if append:
-    #         try:
-    #             f = open(f"{fname}.json", "r")
-    #         except FileNotFoundError:
-    #             pass
-    #         else:
-    #             data = json.load(f)
-    #             f.close()
+                data.update({identifier: {"frequency": self.frqs.tolist(),
+                                          "velocity": v_peak.tolist()}})
 
-    #     with open(f"{fname}.json", "w") as fp:
-    #         if identifier in data:
-    #             raise KeyError(f"identifier {identifier} is repeated.")
-    #         else:
-    #             frq_trim = self.freq[np.where(
-    #                 v_peak < self.general["max_vel"])]
-    #             vel_trim = v_peak[np.where(v_peak < self.general["max_vel"])]
-    #             data.update({identifier: {"frequency": frq_trim.tolist(),
-    #                                       "velocity": vel_trim.tolist()}})
-    #         json.dump(data, fp)
+            json.dump(data, fp)
 
     def plot_spectra(self, stype="fv", plot_peak=True, plot_limit=None):
         if plot_limit != None and len(plot_limit) != 4:
