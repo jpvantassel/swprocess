@@ -127,7 +127,7 @@ class Array1D():
 
     @property
     def _source_inside(self):
-        source = self.source.x 
+        source = self.source.x
         return ((source > self.position[0]) and (source < self.position[-1]))
 
     def _safe_spacing(self):
@@ -237,9 +237,11 @@ class Array1D():
         if time_along == "x":
             for trace in norm_traces:
                 ax.plot(time, trace, **kwargs)
+                kwargs["label"] = None
         elif time_along == "y":
             for trace in norm_traces:
                 ax.plot(trace, time, **kwargs)
+                kwargs["label"] = None
         else:
             msg = f"time_along = {time_along} not recognized, use 'x' or 'y'."
             raise NotImplementedError(msg)

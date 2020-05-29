@@ -11,7 +11,7 @@
         "name": "test",
         "path": "test"
     },
-    "processing_settings": {
+    "general": {
         "timelength": 0.75,
         "df": 0.5,
         "min_freq": 5,
@@ -19,7 +19,7 @@
         "min_vel": 75,
         "max_vel": 1200,
         "n_trial": 2048,
-        "method": "phase-shift",
+        "method": "fk",
         "weighting": "none",
         "steering_vector": "plane",
         "noise_location": "pretrigger"
