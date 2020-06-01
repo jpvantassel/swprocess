@@ -1,7 +1,7 @@
 """Tests for Peaks abstract class."""
 
 from testtools import unittest, TestCase, get_full_path
-import utprocess
+import swprocess
 import numpy as np
 import json
 import os
@@ -20,7 +20,7 @@ class Test_Peaks(TestCase):
         frequency = [100, 50, 30, 10, 5, 3]
         velocity = [100, 120, 130, 140, 145, 150]
         identifier = '-5m'
-        my_peaks = utprocess.Peaks(frequency=frequency,
+        my_peaks = swprocess.Peaks(frequency=frequency,
                                    velocity=velocity,
                                    identifier=identifier)
         self.assertListEqual(my_peaks.frq[0].tolist(), frequency)
@@ -35,7 +35,7 @@ class Test_Peaks(TestCase):
         noi = [10, 15, 20, 35, 10, 20]
         pwr = [10, 15, 20, 35, 10, 20]
         identifier = '-5m'
-        my_peaks = utprocess.Peaks(frequency=frequency,
+        my_peaks = swprocess.Peaks(frequency=frequency,
                                    velocity=velocity,
                                    identifier=identifier,
                                    azi=azi,
@@ -53,7 +53,7 @@ class Test_Peaks(TestCase):
         velocity = [100, 120, 130, 140, 145, 150]
         identifier = '-5m'
         data = {identifier: {"frequency": frequency, "velocity": velocity}}
-        my_peaks = utprocess.Peaks.from_dicts(data)
+        my_peaks = swprocess.Peaks.from_dicts(data)
         self.assertListEqual(my_peaks.frq[0].tolist(), frequency)
         self.assertListEqual(my_peaks.vel[0].tolist(), velocity)
         self.assertEqual(my_peaks.ids, [identifier])
@@ -72,7 +72,7 @@ class Test_Peaks(TestCase):
                              "ell": ell,
                              "noi": noi,
                              "pwr": pwr}}
-        my_peaks = utprocess.Peaks.from_dicts(data)
+        my_peaks = swprocess.Peaks.from_dicts(data)
         self.assertListEqual(my_peaks.ext["azi"][0].tolist(), azi)
         self.assertListEqual(my_peaks.ext["ell"][0].tolist(), ell)
         self.assertListEqual(my_peaks.ext["noi"][0].tolist(), noi)
@@ -88,7 +88,7 @@ class Test_Peaks(TestCase):
                              "velocity": velocity,
                              "azi": azi,
                              "pwr": pwr}}
-        my_peaks = utprocess.Peaks.from_dicts(data)
+        my_peaks = swprocess.Peaks.from_dicts(data)
         self.assertListEqual(my_peaks.ext["azi"][0].tolist(), azi)
         self.assertListEqual(my_peaks.ext["pwr"][0].tolist(), pwr)
 
@@ -110,7 +110,7 @@ class Test_Peaks(TestCase):
             with open(fnames[-1], "w") as f:
                 json.dump(write_data, f)
 
-        my_peaks = utprocess.Peaks.from_jsons(fnames=fnames)
+        my_peaks = swprocess.Peaks.from_jsons(fnames=fnames)
 
         for num in range(0, 3):
             self.assertListEqual(my_peaks.ext["azi"][num].tolist(), azi)
@@ -121,7 +121,7 @@ class Test_Peaks(TestCase):
 
     def test_from_maxs_1file(self):
         # Check rayleigh (2 lines)
-        ray = utprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_short.max",
+        ray = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_short.max",
                                         identifiers="test_short_rayleigh",
                                         rayleigh=True,
                                         love=False)
@@ -139,7 +139,7 @@ class Test_Peaks(TestCase):
                                                           2074967.9391639579553])
 
         # Check love (2 lines)
-        lov = utprocess.Peaks.from_maxs(fnames=self.full_path+"data/myanmar/test_hfk_ds_short.max",
+        lov = swprocess.Peaks.from_maxs(fnames=self.full_path+"data/myanmar/test_hfk_ds_short.max",
                                         identifiers="test_short_love",
                                         rayleigh=False,
                                         love=True)
@@ -156,7 +156,7 @@ class Test_Peaks(TestCase):
 
     def test_from_max_2files(self):
         # Check Rayleigh (2 files, 2 lines per file)
-        ray = utprocess.Peaks.from_maxs(fnames=[self.full_path + "data/myanmar/test_hfk_ds_short.max",
+        ray = swprocess.Peaks.from_maxs(fnames=[self.full_path + "data/myanmar/test_hfk_ds_short.max",
                                                 self.full_path + "data/myanmar/test_hfk_pr_short_2.max"],
                                         identifiers=["test_short",
                                                      "test_short_2"],
@@ -193,7 +193,7 @@ class Test_Peaks(TestCase):
                                                           17030488659.287288666])
 
         # Check Love (2 files, 2 lines per file)
-        lov = utprocess.Peaks.from_maxs(fnames=[self.full_path + "data/myanmar/test_hfk_ds_short.max",
+        lov = swprocess.Peaks.from_maxs(fnames=[self.full_path + "data/myanmar/test_hfk_ds_short.max",
                                                 self.full_path + "data/myanmar/test_hfk_pr_short_2.max"],
                                         identifiers=["test_short",
                                                      "test_short_2"],
@@ -226,13 +226,13 @@ class Test_Peaks(TestCase):
                                                           422413.79929310601437])
 
     # def test_partytime_real(self):
-    #     lov = utprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_full.max",
+    #     lov = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_full.max",
     #                                     identifiers="test_lov",
     #                                     rayleigh=False,
     #                                     love=True)
     #     lov.party_time(settings_file=self.full_path + "settings/test_ptimesettings.json")
 
-    #     ray = utprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_full.max",
+    #     ray = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_full.max",
     #                                     identifiers="test_ray",
     #                                     rayleigh=True,
     #                                     love=False)
@@ -244,7 +244,7 @@ class Test_Peaks(TestCase):
     #     vel = [100, 100, 200, 200, 150]
     #     ell = [5, 5, 5, 5, 10]
     #     ids = "Failure is always an option"
-    #     peak = utprocess.Peaks(frequency=frq,
+    #     peak = swprocess.Peaks(frequency=frq,
     #                            velocity=vel,
     #                            identifier=ids,
     #                            ell=ell)
@@ -258,7 +258,7 @@ class Test_Peaks(TestCase):
         fname = self.full_path + "data/test_write_peak_json"
         known_freq = [1, 2, 3]
         known_vel = [4, 5, 6]
-        peaks = utprocess.Peaks(frequency=known_freq,
+        peaks = swprocess.Peaks(frequency=known_freq,
                                 velocity=known_vel,
                                 identifier=fname)
         peaks.write_peak_json(fname)
@@ -276,7 +276,7 @@ class Test_Peaks(TestCase):
         known_azi = [5, 6, 7]
         known_noi = [9, 10, 11]
         known_pwr = [12, 13, 14]
-        peaks = utprocess.Peaks(frequency=known_freq,
+        peaks = swprocess.Peaks(frequency=known_freq,
                                 velocity=known_vel,
                                 identifier=fname,
                                 ell=known_ell,
@@ -299,7 +299,7 @@ class Test_Peaks(TestCase):
         frq = [np.array([2.25, 2.75, 4.25, 4.75])]
         vel = [np.array([100, 120, 115, 120])]
         for arrayweight in [[1], None]:
-            mdisp = utprocess.Peaks.compute_dc_stats(frq,
+            mdisp = swprocess.Peaks.compute_dc_stats(frq,
                                                      vel,
                                                      minp=1,
                                                      maxp=5,
@@ -322,7 +322,7 @@ class Test_Peaks(TestCase):
         # Two bins, two arrays of different weight
         frq = [np.array([2.3, 2.8, 4.2, 4.7]), np.array([2.6, 2.4, 4.5, 4.5])]
         vel = [np.array([100, 120, 115, 120]), np.array([110, 150, 100, 100])]
-        mdisp = utprocess.Peaks.compute_dc_stats(frq,
+        mdisp = swprocess.Peaks.compute_dc_stats(frq,
                                                  vel,
                                                  minp=1,
                                                  maxp=5,

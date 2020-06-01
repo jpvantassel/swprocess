@@ -2,7 +2,7 @@
 
 import logging
 
-from utprocess import ActiveTimeSeries
+from swprocess import ActiveTimeSeries
 
 logger = logging.getLogger(name=__name__)
 

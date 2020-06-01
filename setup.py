@@ -11,12 +11,12 @@ with open('README.md', encoding="utf8") as f:
     long_description = f.read()
 
 setup(
-    name='utprocess',
+    name='swprocess',
     version='0.1.0',
     description='Package for Surface-Wave Processing',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/jpvantassel/utprocess',
+    url='https://github.com/jpvantassel/swprocess',
     author='Joseph P. Vantassel',
     author_email='jvantassel@utexas.edu',
     classifiers=[

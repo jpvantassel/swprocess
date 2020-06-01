@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from scipy import signal
 from matplotlib.widgets import Cursor
 
-from utprocess import ActiveTimeSeries, Source, Sensor1C
+from swprocess import ActiveTimeSeries, Source, Sensor1C
 
 logger = logging.getLogger(__name__)
 

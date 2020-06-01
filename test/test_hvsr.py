@@ -1,6 +1,6 @@
 """Tests for HorVertSpecRatio class."""
 
-import utprocess
+import swprocess
 import json
 from testtools import unittest, TestCase, get_full_path
 import logging
@@ -14,7 +14,7 @@ class Test_Hvsr(TestCase):
 
     def test_from_geopsy_file(self):
         fname = self.fpath + "data/myanmar/test_ZM_STN01.hv"
-        test = utprocess.Hvsr.from_geopsy_file(fname=fname,
+        test = swprocess.Hvsr.from_geopsy_file(fname=fname,
                                                            identifier="TaDa")
         frq = [[0.1, 0.101224, 0.102462, 50]]
         amp = [[4.26219, 4.24461, 4.20394, 0.723993]]
@@ -26,7 +26,7 @@ class Test_Hvsr(TestCase):
 
     def test_from_geopsy_folder(self):
         dirname = self.fpath + "data/myanmar/test_dir"
-        hv = utprocess.Hvsr.from_geopsy_folder(dirname=dirname,
+        hv = swprocess.Hvsr.from_geopsy_folder(dirname=dirname,
                                                            identifier="TADA")
         with open(self.fpath + "data/myanmar/test_dir_data.json", "r") as f:
             known = json.load(f)

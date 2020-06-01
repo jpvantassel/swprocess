@@ -1,7 +1,7 @@
 # """File for derived class PeaksPassive for handling peaks from passive
 # data."""
 
-# from utprocess import Peaks
+# from swprocess import Peaks
 # import numpy as np
 # import re
 # import logging

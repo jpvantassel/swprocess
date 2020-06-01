@@ -6,7 +6,7 @@ import logging
 import numpy as np
 import obspy
 
-from utprocess import ActiveTimeSeries, Sensor1C
+from swprocess import ActiveTimeSeries, Sensor1C
 from testtools import unittest, TestCase, get_full_path
 
 logging.basicConfig(level=logging.ERROR)

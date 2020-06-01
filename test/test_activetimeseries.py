@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import obspy
 import numpy as np
 
-import utprocess
+import swprocess
 from testtools import unittest, TestCase, get_full_path
 
 logging.basicConfig(level=logging.WARNING)
@@ -27,11 +27,11 @@ class Test_ActiveTimeSeries(TestCase):
         bad_type_delays = [["delay"]]
         for nstack, delay in zip(bad_type_nstacks, bad_type_delays):
             self.assertRaises(TypeError,
-                              utprocess.ActiveTimeSeries._check_input,
+                              swprocess.ActiveTimeSeries._check_input,
                               nstacks=good_nstacks,
                               delay=delay)
             self.assertRaises(TypeError,
-                              utprocess.ActiveTimeSeries._check_input,
+                              swprocess.ActiveTimeSeries._check_input,
                               nstacks=nstack,
                               delay=good_delay)
 
@@ -39,25 +39,25 @@ class Test_ActiveTimeSeries(TestCase):
         bad_value_delays = [0.1, 0.1, "delay"]
         for nstack, delay in zip(bad_value_nstacks, bad_value_delays):
             self.assertRaises(ValueError,
-                              utprocess.ActiveTimeSeries._check_input,
+                              swprocess.ActiveTimeSeries._check_input,
                               nstacks=good_nstacks,
                               delay=delay)
             self.assertRaises(ValueError,
-                              utprocess.ActiveTimeSeries._check_input,
+                              swprocess.ActiveTimeSeries._check_input,
                               nstacks=nstack,
                               delay=good_delay)
 
     def test_init(self):
         dt = 1
         amp = [0, 1, 0, -1]
-        returned = utprocess.ActiveTimeSeries(amp, dt)
+        returned = swprocess.ActiveTimeSeries(amp, dt)
         self.assertArrayEqual(np.array(amp), returned.amp)
         self.assertEqual(dt, returned.dt)
 
     def test_time(self):
         dt = 0.5
         amp = [0, 1, 2, 3]
-        obj = utprocess.ActiveTimeSeries(amp, dt)
+        obj = swprocess.ActiveTimeSeries(amp, dt)
 
         expected = np.array([0., 0.5, 1., 1.5])
         returned = obj.time
@@ -67,14 +67,14 @@ class Test_ActiveTimeSeries(TestCase):
         dt = 0.5
         amp = [-1, 0, 1, 0, -1]
         true_time = [-0.5, 0., 0.5, 1., 1.5]
-        test = utprocess.ActiveTimeSeries(amp, dt, delay=-0.5)
+        test = swprocess.ActiveTimeSeries(amp, dt, delay=-0.5)
         self.assertListEqual(test.time.tolist(), true_time)
 
     def test_from_trace_seg2(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             trace = obspy.read(self.full_path + "data/vuws/1.dat")[0]
-        returned = utprocess.ActiveTimeSeries.from_trace_seg2(trace)
+        returned = swprocess.ActiveTimeSeries.from_trace_seg2(trace)
         self.assertArrayEqual(trace.data, returned.amp)
         self.assertEqual(trace.stats.delta, returned.dt)
         self.assertEqual(int(trace.stats.seg2.STACK), returned._nstacks)
@@ -84,7 +84,7 @@ class Test_ActiveTimeSeries(TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             trace = obspy.read(self.full_path + "data/vuws/1.dat")[0]
-        tseries = utprocess.ActiveTimeSeries.from_trace(trace, delay=-0.5)
+        tseries = swprocess.ActiveTimeSeries.from_trace(trace, delay=-0.5)
         self.assertListEqual(tseries.amp.tolist(), trace.data.tolist())
         self.assertEqual(trace.stats.delta, tseries.dt)
         self.assertEqual(int(trace.stats.seg2.STACK), tseries._nstacks)
@@ -92,17 +92,17 @@ class Test_ActiveTimeSeries(TestCase):
 
     def test_stack_append(self):
         # Append trace with 1 stack.
-        tseries = utprocess.ActiveTimeSeries(amplitude=[0, 1, 0, -1], dt=1)
-        nseries = utprocess.ActiveTimeSeries(amplitude=[0, -1, 0, 1], dt=1)
+        tseries = swprocess.ActiveTimeSeries(amplitude=[0, 1, 0, -1], dt=1)
+        nseries = swprocess.ActiveTimeSeries(amplitude=[0, -1, 0, 1], dt=1)
         tseries.stack_append(nseries)
         expected = np.array([0, 0, 0, 0])
         returned = tseries.amp
         self.assertArrayEqual(expected, returned)
 
         # Append trace with 5 stacks.
-        tseries = utprocess.ActiveTimeSeries(amplitude=[10], dt=1,
+        tseries = swprocess.ActiveTimeSeries(amplitude=[10], dt=1,
                                              nstacks=3)
-        nseries = utprocess.ActiveTimeSeries(amplitude=[5], dt=1,
+        nseries = swprocess.ActiveTimeSeries(amplitude=[5], dt=1,
                                              nstacks=5)
         tseries.stack_append(nseries)
         returned = tseries.amp
@@ -110,12 +110,12 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertEqual(expected, returned)
 
         # Bad stack
-        tseries = utprocess.ActiveTimeSeries([1,2,3], dt=1)
-        nseries = utprocess.ActiveTimeSeries([0,0,0], dt=2)
+        tseries = swprocess.ActiveTimeSeries([1,2,3], dt=1)
+        nseries = swprocess.ActiveTimeSeries([0,0,0], dt=2)
         self.assertRaises(ValueError, tseries.stack_append, nseries)
 
     def test_zero_pad(self):
-        thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.01),
+        thist = swprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.01),
                                            dt=0.01)
         self.assertEqual(0.5, thist.df)
         self.assertEqual(200, thist.nsamples)
@@ -155,7 +155,7 @@ class Test_ActiveTimeSeries(TestCase):
 
     def test_trim(self):
         # First Example: no delay
-        thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.001),
+        thist = swprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.001),
                                            dt=0.001)
         self.assertEqual(len(thist.amp), 2000)
         thist.trim(0, 1)
@@ -163,7 +163,7 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertEqual(thist.nsamples, 1001)
 
         # With pre-trigger delay
-        thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.001),
+        thist = swprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.001),
                                            dt=0.001,
                                            delay=-.5)
 
@@ -180,7 +180,7 @@ class Test_ActiveTimeSeries(TestCase):
 
         # Second Example: with delay
         dt = 0.001
-        thist = utprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, dt),
+        thist = swprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, dt),
                                            dt=dt,
                                            delay=-.5)
 
@@ -199,12 +199,12 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertAlmostEqual(max(thist.time), 0.25, delta=dt)
 
     def test_eq(self):
-        thist_a = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1)
-        thist_b = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1)
-        thist_c = utprocess.ActiveTimeSeries([0, 0, 0, +1, 0], dt=1)
-        thist_d = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=0.5)
-        thist_e = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1, delay=-1)
-        thist_f = utprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1, nstacks=2)
+        thist_a = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1)
+        thist_b = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1)
+        thist_c = swprocess.ActiveTimeSeries([0, 0, 0, +1, 0], dt=1)
+        thist_d = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=0.5)
+        thist_e = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1, delay=-1)
+        thist_f = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1, nstacks=2)
 
         self.assertEqual(thist_a, thist_b)
         self.assertNotEqual(thist_a, thist_c)
@@ -222,56 +222,56 @@ class Test_ActiveTimeSeries(TestCase):
         ampa = [0, 1, 0]
         ampb = [1]
         dt = 1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
         self.assertListEqual([0, 1, 0], correlate.tolist())
 
         ampa = [0, 0, 1, 0]
         ampb = [1]
         dt = 1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
         self.assertListEqual([0, 0, 1, 0], correlate.tolist())
 
         ampa = [0, 0, 1, 0]
         ampb = [1, 0]
         dt = 1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
         self.assertListEqual([0, 0, 0, 1, 0], correlate.tolist())
 
         ampa = [0, 0, 1, 0]
         ampb = [0, 1, 0]
         dt = 1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
         self.assertListEqual([0, 0, 0, 1, 0, 0], correlate.tolist())
 
         ampa = [0, 0, -1, 0]
         ampb = [0, -1, 0, 0]
         dt = 1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        correlate = utprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
         self.assertListEqual([0, 0, 0, 0, 1, 0, 0], correlate.tolist())
 
         # Bad example
-        self.assertRaises(ValueError, utprocess.ActiveTimeSeries.crosscorr,
-                          utprocess.ActiveTimeSeries([1, 2], dt=1),
-                          utprocess.ActiveTimeSeries([1, 2], dt=2))
+        self.assertRaises(ValueError, swprocess.ActiveTimeSeries.crosscorr,
+                          swprocess.ActiveTimeSeries([1, 2], dt=1),
+                          swprocess.ActiveTimeSeries([1, 2], dt=2))
 
     def test_crosscorr_shift(self):
         # Simple Pulse
         ampa = [0, 0, 1, 0]
         ampb = [0, 1, 0, 0]
         dt = 1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        shifted = utprocess.ActiveTimeSeries.crosscorr_shift(
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        shifted = swprocess.ActiveTimeSeries.crosscorr_shift(
             tseries_a, tseries_b)
         self.assertListEqual(ampa, shifted.tolist())
 
@@ -279,9 +279,9 @@ class Test_ActiveTimeSeries(TestCase):
         ampa = [0, 0, 2, 3, 4, 5, 0, 2, 3, 0]
         ampb = [0, 2, 3, 4, 5, 0, 0, 0, 0, 0]
         dt = 1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        shifted = utprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
                                                              tseries_b)
         self.assertListEqual([0, 0, 2, 3, 4, 5, 0, 0, 0, 0], shifted.tolist())
 
@@ -289,9 +289,9 @@ class Test_ActiveTimeSeries(TestCase):
         ampa = [0, -1, 0, 1, 0, -1, 0, 0]
         ampb = [0, 0, 0, -1, 0, 1, 0, 0]
         dt = 0.1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        shifted = utprocess.ActiveTimeSeries.crosscorr_shift(
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        shifted = swprocess.ActiveTimeSeries.crosscorr_shift(
             tseries_a, tseries_b)
         self.assertListEqual([0, -1, 0, 1, 0, 0, 0, 0], shifted.tolist())
 
@@ -301,9 +301,9 @@ class Test_ActiveTimeSeries(TestCase):
         f = 5
         ampa = np.concatenate((np.zeros(20), np.sin(2*np.pi*f*time)))
         ampb = np.concatenate((np.sin(2*np.pi*f*time), np.zeros(20)))
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        shifted = utprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
                                                              tseries_b)
         self.assertArrayEqual(ampa, shifted)
 
@@ -312,9 +312,9 @@ class Test_ActiveTimeSeries(TestCase):
         ampa = [0, 0, 1, 0]
         ampb = [0, 1, 0, 0]
         dt = 1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        stacked = utprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        stacked = swprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
                                                               tseries_b)
         self.assertListEqual(ampa, stacked.amp.tolist())
 
@@ -322,9 +322,9 @@ class Test_ActiveTimeSeries(TestCase):
         ampa = [0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
         ampb = [0, 0, 0, 0, 0, 0, 1, 0, 1, 0]
         dt = 1
-        tseries_a = utprocess.ActiveTimeSeries(ampa, dt)
-        tseries_b = utprocess.ActiveTimeSeries(ampb, dt)
-        stacked = utprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        stacked = swprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
                                                               tseries_b)
         self.assertListEqual(ampa, stacked.amp.tolist())
 

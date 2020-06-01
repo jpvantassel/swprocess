@@ -11,7 +11,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
-from utprocess import plot_tools
+from swprocess import plot_tools
 
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
 # mpl.use('Qt4Agg')

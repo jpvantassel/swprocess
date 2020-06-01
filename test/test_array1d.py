@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from testtools import TestCase, unittest, get_full_path
-import utprocess
+import swprocess
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -24,20 +24,20 @@ class Test_Array1D(TestCase):
         """Make simple dummy array from timeseries for testing."""
         sensors = []
         for i in range(nsensors):
-            sensor = utprocess.Sensor1C(amp, dt, x=i*spacing, y=0, z=0,
+            sensor = swprocess.Sensor1C(amp, dt, x=i*spacing, y=0, z=0,
                                         nstacks=nstacks, delay=delay)
             sensors.append(sensor)
-        source = utprocess.Source(x=source_x, y=0, z=0)
-        return utprocess.Array1D(sensors=sensors, source=source)
+        source = swprocess.Source(x=source_x, y=0, z=0)
+        return swprocess.Array1D(sensors=sensors, source=source)
 
     def test_init(self):
         # Successful __init__
-        sensor_1 = utprocess.Sensor1C(amplitude=[1, 2, 3], dt=1, x=0, y=0, z=0,
+        sensor_1 = swprocess.Sensor1C(amplitude=[1, 2, 3], dt=1, x=0, y=0, z=0,
                                       nstacks=1, delay=0)
-        sensor_2 = utprocess.Sensor1C(amplitude=[1, 2, 3], dt=1, x=1, y=0, z=0,
+        sensor_2 = swprocess.Sensor1C(amplitude=[1, 2, 3], dt=1, x=1, y=0, z=0,
                                       nstacks=1, delay=0)
-        source = utprocess.Source(x=-5, y=0, z=0)
-        array = utprocess.Array1D(sensors=[sensor_1, sensor_2],
+        source = swprocess.Source(x=-5, y=0, z=0)
+        array = swprocess.Array1D(sensors=[sensor_1, sensor_2],
                                   source=source)
         self.assertEqual(2, array.nchannels)
 
@@ -51,7 +51,7 @@ class Test_Array1D(TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             known = obspy.read(fname)
-        test = utprocess.Array1D.from_files(fname)
+        test = swprocess.Array1D.from_files(fname)
         self.assertArrayEqual(known.traces[0].data,
                               test.timeseriesmatrix[0, :])
 
@@ -65,28 +65,28 @@ class Test_Array1D(TestCase):
                 tmp = obspy.read(fname).traces[0]
                 expected += tmp.data
             expected /= len(fnames)
-        returned = utprocess.Array1D.from_files(fnames)[0].amp
+        returned = swprocess.Array1D.from_files(fnames)[0].amp
         self.assertArrayAlmostEqual(expected, returned, places=2)
 
     def test_plot_waterfall(self):
         # Single shot (near-side)
         fname = self.full_path+"data/vuws/1.dat"
-        array1 = utprocess.Array1D.from_files(fname)
+        array1 = swprocess.Array1D.from_files(fname)
         array1.waterfall()
 
         # Multiple shots (near-side)
         fnames = [f"{self.full_path}data/vuws/{x}.dat" for x in range(1, 6)]
-        array2 = utprocess.Array1D.from_files(fnames)
+        array2 = swprocess.Array1D.from_files(fnames)
         array2.waterfall()
 
         # Single shot (far-side)
         fname = self.full_path+"data/vuws/16.dat"
-        array3 = utprocess.Array1D.from_files(fname)
+        array3 = swprocess.Array1D.from_files(fname)
         array3.waterfall()
 
         # Multiple shots (near-side)
         fnames = [f"{self.full_path}data/vuws/{x}.dat" for x in range(16, 20)]
-        array4 = utprocess.Array1D.from_files(fnames)
+        array4 = swprocess.Array1D.from_files(fnames)
         array4.waterfall()
         plt.close('all')
         # plt.show()
@@ -94,18 +94,18 @@ class Test_Array1D(TestCase):
     def test_plot_array(self):
         # Basic case (near-side, 2m spacing)
         fname = self.full_path+"data/vuws/1.dat"
-        utprocess.Array1D.from_files(fname).plot()
+        swprocess.Array1D.from_files(fname).plot()
 
         # Non-linear spacing
-        sensors = [utprocess.Sensor1C(
+        sensors = [swprocess.Sensor1C(
             [1, 2, 3], dt=1, x=x, y=0, z=0,) for x in [0, 1, 3]]
-        source = utprocess.Source(x=-5, y=0, z=0)
-        array = utprocess.Array1D(sensors=sensors, source=source)
+        source = swprocess.Source(x=-5, y=0, z=0)
+        array = swprocess.Array1D(sensors=sensors, source=source)
         array.plot()
 
         # Basic case (far-side, 2m spacing)
         fname = self.full_path+"data/vuws/20.dat"
-        utprocess.Array1D.from_files(fname).plot()
+        swprocess.Array1D.from_files(fname).plot()
         plt.close("all")
         # plt.show()
 

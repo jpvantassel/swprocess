@@ -1,4 +1,4 @@
-import utprocess
+import swprocess
 import matplotlib.pyplot as plt
 import os
 import logging
@@ -19,10 +19,10 @@ settings_file = "test/test_fksettings.json"
 for gnum, group in enumerate(filegroup):
     for fnum, fname in enumerate(group):
         group[fnum] = folder+fname
-    array = utprocess.Array1d.from_files(group)
+    array = swprocess.Array1d.from_files(group)
     array.plot_array()
     # array.plot_waterfall()
-    # fk = utprocess.WavefieldTransform1D(array=array,
+    # fk = swprocess.WavefieldTransform1D(array=array,
                                         # settings_file=settings_file)
     array.plot_waterfall()
     # fk.plot_spec()

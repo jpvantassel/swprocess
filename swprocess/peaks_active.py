@@ -1,7 +1,7 @@
 """File for derived class PeaksActive for handling peaks from active
 data."""
 
-from utprocess import Peaks
+from swprocess import Peaks
 
 import numpy as np
 import json
