@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
 from swprocess import plot_tools
+from swprocess.regex import *
 
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
 logger = logging.getLogger(__name__)
@@ -48,13 +49,13 @@ class Peaks():
             Instantiated `Peaks` object.
 
         """
-        self.frq = [np.array(frequency)]
-        self.vel = [np.array(velocity)]
-        self.ids = [str(identifier)]
-        logging.debug(f"**kwargs {kwargs}")
+        self.frq = np.array(frequency, dtype=float)
+        self.vel = np.array(velocity, dtype=float)
+        self.ids = str(identifier)
+        logging.debug(f"**kwargs = {kwargs}")
         self.extra = list(kwargs.keys())
         for key, val in kwargs.items():
-            setattr(self, key, [np.array(val)])
+            setattr(self, key, np.array(val, dtype=float))
     
     @property
     def frequency(self):
@@ -62,14 +63,14 @@ class Peaks():
 
     @property
     def velocity(self):
-        return self.velocity
+        return self.vel
     
     @property
     def identifiers(self):
         return self.ids
 
     @property
-    def wav(self)
+    def wav(self):
         msg = "Use of wav is deprecated use wavelength instead."
         warnings.warn(msg, DeprecationWarning)
         return self.wavelength
@@ -82,51 +83,36 @@ class Peaks():
         return wave
         
     @property
-    def slowness(self)
+    def slowness(self):
         slo = []
         for vel in self.vel:
             slo.append(1/vel)
         return slo
 
     @property
-    def mean_disp(self, **kwargs)
+    def mean_disp(self, **kwargs):
         return self.compute_dc_stats(self.frq, self.vel, **kwargs)
 
-    def append(self, frequency, velocity, identifier, **kwargs):
-        """Method to append frequency and velocity data into the object.
-
-        Parameters
-        ----------
-        TODO (jpv): Finish documentation.
-
-        Returns
-        -------
-        None
-            Updates object.
-
-        """
-        self.frq.append(np.array(frequency))
-        self.vel.append(np.array(velocity))
-        self.ids.append(str(identifier))
-
-        for key, val in kwargs.items():
-            cval = getattr(self, key)
-            setattr(self, key, cval.append(np.array(val)))
+    def from_dicts(self, *args, **kwargs):
+        msg = "Peaks.from_dicts has been deprecated, use Peaks.from_dict or PeaksSuite.from_dicts() instead."
+        raise DeprecationWarning(msg)
 
     @classmethod
-    def from_dicts(cls, peak_dicts):
+    def from_dict(cls, peak_dict, identifier="0"):
         """Initialize `Peaks` from `dict`.
 
         Parameters
         ----------
-        peak_dicts: dict or list
-            Dictionary or list of dictionaries of the form
-            {"identifier": {"frequency":freq, "velocity":vel,
-            "kwarg1": kwarg1}} where identifier is a string identifying
-            the data. freq is a list of floats denoting frequency
-            values. vel is a list of floats denoting velocity values.
-            kwarg1 is one of the optional keyword arguments,
-            may use all of those listed in __init__.
+        peak_dict: dict
+            Of the form
+            `{"frequency":freq, "velocity":vel, "kwarg1": kwarg1}`
+            where `freq` is a list of floats denoting frequency values.
+            `vel` is a list of floats denoting velocity values.
+            `kwarg1` is an optional keyword argument, may include as
+            many or none.
+        identifiers : str
+            String to uniquely identify the provided frequency-velocity
+            pair.
 
         Returns
         -------
@@ -134,110 +120,101 @@ class Peaks():
             Initialized `Peaks` instance.
 
         """
-        if isinstance(peak_dicts, dict):
-            peak_dicts = [peak_dicts]
+        for key in ["frequency", "velocity"]:
+            if key not in peak_dict.keys():
+                print(key)
+                msg = f"`frequency` and `velocity` keys are not optional."
+                raise ValueError(msg)
 
-        start = True
-        for peak_dict in peak_dicts:
-            for key, value in peak_dict.items():
-                logging.debug(key)
-                npts = len(value["frequency"])
-
-                if start:
-                    logging.debug(f"For {key} new object was started.")
-                    obj = cls(value["frequency"],
-                              value["velocity"],
-                              key,
-                              azi=value.get("azi") if value.get(
-                                  "azi") else [0]*npts,
-                              ell=value.get("ell") if value.get(
-                                  "azi") else [0]*npts,
-                              noi=value.get("noi") if value.get(
-                                  "azi") else [0]*npts,
-                              pwr=value.get("pwr") if value.get("azi") else [0]*npts)
-                    start = False
-                else:
-                    logging.debug(f"{key} was appended.")
-                    obj.append(value["frequency"],
-                               value["velocity"],
-                               key,
-                               azi=value.get("azi") if value.get(
-                                   "azi") else [0]*npts,
-                               ell=value.get("ell") if value.get(
-                                   "azi") else [0]*npts,
-                               noi=value.get("noi") if value.get(
-                                   "azi") else [0]*npts,
-                               pwr=value.get("pwr") if value.get("azi") else [0]*npts)
-        return obj
+        return cls(identifier=identifier, **peak_dict)
 
     @classmethod
-    def from_jsons(cls, fnames):
-        dicts = []
-        for fname in fnames:
-            with open(fname, "r") as f:
-                dicts.append(json.load(f))
-        return cls.from_dicts(dicts)
+    def from_jsons(self, *args, **kwargs):
+        msg = "Peaks.from_jsons has been deprecated, use Peaks.from_json() or PeaksSuite.from_jsons() instead."
+        raise DeprecationWarning(msg)
 
-    def from_maxs(self, *args, **kwargs):
+    @classmethod
+    def from_json(cls, fname):
+        with open(fname, "r") as f:
+            data = json.load(f)
+        
+        key_list = list(data.keys())
+        if len(key_list) > 1:
+            msg = f"More than one dataset in {fname}, taking only the first! If you want all see `PeaksSuite.from_jsons`."
+            warnings.warn(msg)
+
+        return cls.from_dict(data[key_list[0]], identifier=key_list[0])
+
+    @classmethod
+    def from_maxs(cls, *args, **kwargs):
         msg = "Peaks.from_maxs has been deprecated, use PeaksPassive.from_max() or PeaksSuite.from_maxs() instead."
         raise DeprecationWarning(msg)
 
-    # def write_to_txt_dinver(self, fname):
-    #     pass
-
-    # TODO (jpv) : Broken b/c mean_disp
-    # def write_stat_swprepost(self, fname):
-    #     """Write statistics (mean and standard deviation) to csv file
-    #     of the form accepted by swprepost.
-
-    #     Args:
-    #         fname = String for file name. Can be a relative or a full
-    #             path.
-
-    #     Returns:
-    #         Method returns None, but saves file to disk.
-
-    #     """
-    #     if fname.endswith(".csv"):
-    #         fname = fname[:-4]
-    #     with open(fname+".csv", "w") as f:
-    #         f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)\n")
-    #         for fr, ve, st in zip(self.mean_disp["mean"]["frq"],
-    #                               self.mean_disp["mean"]["vel"],
-    #                               self.mean_disp["std"]["vel"]):
-    #             f.write(f"{fr},{ve},{st}\n")
-
-    def write_peak_json(self, fname):
-        msg = ".write_peak_json is deprecated use .to_json instead."
-        warnings.warn(msg, DeprecationWarning)
-        self.to_json(fname)
-
-    def to_json(self, fname):
-        """Write `Peaks` to json file.
+    @classmethod
+    def from_max(cls, fname, identifier="0", rayleigh=True, love=False):
+        """Initialize `Peaks` from `.max` file(s).
 
         Parameters
         ----------
-        fname : str
-            Output file name, can include a relative or the full path.
+        fnames : str
+            Denotes the filename(s) for the .max file, may include a
+            relative or the full path.
+        identifier : str
+            Uniquely identifying the dispersion data from each file.
+        rayleigh : bool, optional
+            Denote if Rayleigh data should be extracted, default is
+            `True`.
+        love : bool, optional
+            Denote if Love data should be extracted, default is
+            `False`.
 
         Returns
         -------
-        None
-            Instead writes file to disk.
+        PeaksPassive
+            Initialized `PeaksPassive` object.
+
+        Raises
+        ------
+        ValueError
+            If neither or both `rayleigh` and `love` are equal to
+            `True`.
 
         """
-        data = {}
-        for num, (f, v, label) in enumerate(zip(self.frq, self.vel, self.ids)):
-            data.update({label: {"frequency": f.tolist(),
-                                 "velocity": v.tolist(),
-                                 }})
-            ext_dict = {}
-            for key, value in self.ext.items():
-                ext_dict.update({key: value[num].tolist()})
-            data[label].update(ext_dict)
+        if not isinstance(rayleigh, bool) and not isinstance(love, bool):
+            msg = f"`rayleigh` and `love` must both be of type `bool`, not {type(rayleigh)} and {type(love)}."
+            raise TypeError(msg)
+        if rayleigh == True and love == True:
+            raise ValueError("`rayleigh` and `love` cannot both be `True`.")
+        if rayleigh == False and love == False:
+            raise ValueError("`rayleigh` and `love` cannot both be `False`.")
 
-        with open(fname, "w") as f:
-            json.dump(data, f)
+        with open(fname, "r") as f:
+            lines = f.read()
+        
+        getpeak = getpeak_rayleigh if rayleigh else getpeak_love
+
+        tims, frqs, vels, azis, ells, nois, pwrs = [], [], [], [], [], [], []
+        for lineinfo in getpeak.finditer(lines):
+            _tim, _frq, _slo, _azi, _ell, _noi, _pwr = lineinfo.groups()
+
+            tims.append(float(_tim))
+            frqs.append(float(_frq))
+            vels.append(1/float(_slo))
+            azis.append(float(_azi))
+            ells.append(float(_ell))
+            nois.append(float(_noi))
+            pwrs.append(float(_pwr))
+
+        # Check got everything
+        getall = getall_rayleigh if rayleigh else getall_love
+        if len(tims) != len(getall.findall(lines)):
+            msg = f"Missing {len(getall.findall(lines)) - len(times)} dispersion peaks."
+            raise ValueError(msg)
+
+        args = (frqs, vels, identifier)
+        kwargs = dict(azi=azis, ell=ells, noi=nois, pwr=pwrs, tim=tims)
+        return cls(*args, **kwargs)
+
 
     def plot(self, xtype="frequency", ax=None):
         """Create plot of dispersion data.
@@ -268,11 +245,12 @@ class Peaks():
         if xtype.lower() == "wavelength":
             x = self.wav
             xlabel = "Wavelength (m)"
-        else xtype.lower() == "frequency":
+        elif xtype.lower() == "frequency":
             x = self.frq
             xlabel = "Frequency (Hz)"
         else:
             raise ValueError(f"xtype = {xtype}, not recognized.")
+
         for x, v, color, label in zip(x, self.vel, _colors, self.ids):
             ax.plot(x, v, color=color, linestyle="none",
                     marker="o", markerfacecolor="none", label=label)
@@ -329,8 +307,6 @@ class Peaks():
 
         # Reference for weighted mean and standard deviation 
         # https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/weightsd.pdf
-
-
 
     def party_time(self, settings_file, klimits=None):
         with open(settings_file, "r") as f:
@@ -702,3 +678,96 @@ class Peaks():
                 break
 
             del cid
+
+    # TODO (jpv) : Broken b/c mean_disp
+    # def write_stat_swprepost(self, fname):
+    #     """Write statistics (mean and standard deviation) to csv file
+    #     of the form accepted by swprepost.
+
+    #     Args:
+    #         fname = String for file name. Can be a relative or a full
+    #             path.
+
+    #     Returns:
+    #         Method returns None, but saves file to disk.
+
+    #     """
+    #     if fname.endswith(".csv"):
+    #         fname = fname[:-4]
+    #     with open(fname+".csv", "w") as f:
+    #         f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)\n")
+    #         for fr, ve, st in zip(self.mean_disp["mean"]["frq"],
+    #                               self.mean_disp["mean"]["vel"],
+    #                               self.mean_disp["std"]["vel"]):
+    #             f.write(f"{fr},{ve},{st}\n")
+
+    def write_peak_json(self, fname):
+        msg = ".write_peak_json is deprecated use .to_json instead."
+        warnings.warn(msg, DeprecationWarning)
+        self.to_json(fname)
+
+    def to_json(self, fname, append=False):
+        """Write `Peaks` to json file.
+
+        Parameters
+        ----------
+        fname : str
+            Output file name, can include a relative or the full path.
+        append : bool, optional
+            Controls whether `fname` (if it exists) should be appended
+            to or overwritten, default is `False` indicating `fname`
+            will be overwritten. 
+
+        Returns
+        -------
+        None
+            Instead writes file to disk.
+
+        """
+        data = {}
+        keys = ["frequency", "velocity"] + self.extra
+        for key in keys:
+            data[key] = getattr(self, key).tolist()
+
+        # Assumes dict of the form {"id0":{data}, "id1":{data} ... }
+        if append:
+            with open(fname, "r") as f:
+                existing_data = json.load(f)
+            if self.ids in existing_data.keys():
+                msg = f"Data already exists in file with identifier {self.ids}, file left unmodified."
+                raise KeyError(msg)
+            else:
+                existing_data[self.ids] = data
+        else:
+            data = {self.ids:data}
+            with open(fname, "w") as f:
+                json.dump(data, f)
+
+    def __eq__(self, other):
+        # Check other is a Peak object
+        if not isinstance(other, Peaks):
+            return False
+
+        # Check non-iterable attributes
+        for key in ["ids"]:
+            try:
+                if getattr(self, key) != getattr(other, key):
+                    return False 
+            except AttributeError as e:
+                warnings.warn(f"self or other missing attribute {key}.")
+                return False
+
+        # Check iterable attributes
+        keys = ["frequency", "velocity"] + self.extra
+        for key in keys:
+            try:
+                myattr = getattr(self, key)
+                urattr = getattr(other, key)
+                for selfval, otherval in zip(myattr, urattr):
+                    if selfval != otherval:
+                        return False
+            except AttributeError as e:
+                warnings.warn(f"self or other missing attribute {key}.")
+                return False
+            
+        return True

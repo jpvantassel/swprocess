@@ -1,31 +1,23 @@
-"""File for derived class PeaksActive for handling peaks from active
-data."""
+# """PeaksActive class definition."""
 
-from swprocess import Peaks
+# import json
+# import logging
 
-import numpy as np
-import json
-import logging
-logger = logging.getLogger(__name__)
+# import numpy as np
+
+# from swprocess import Peaks
+
+# logger = logging.getLogger(__name__)
 
 
-class PeaksActive(Peaks):
-    """Spectral peaks of active-source dispersion."""
+# class PeaksActive(Peaks):
+#     """Spectral peaks of active-source dispersion."""
 
-    def __init__(self, peak_data_dicts):
-        super().__init__(peak_data_dicts)
+#     def __init__(self, frequency, velocity, identifier=0):
+#         super().__init__(frequency, velocity, identifier)
 
-    @classmethod
-    def from_json(cls, fname, max_vel=1000):
-        with open(fname, "r") as f:
-            data = json.load(f)
-
-        # frequency, velocity, offset = [], [], []
-        # for key, value in data.items():
-        #     frq = np.array(value["frequency"])
-        #     vel = np.array(value["velocity"])
-        #     frequency += [frq[np.where(vel<max_vel)]]
-        #     velocity += [vel[np.where(vel<max_vel)]]
-        #     offset += [key]
-        # return cls(frequency, velocity, offset)
-        return cls(data)
+#     @classmethod
+#     def from_json(cls, fname):
+#         with open(fname, "r") as f:
+#             data = json.load(f)
+#         return cls(data["frequency"], data["velocity"])

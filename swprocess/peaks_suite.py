@@ -7,7 +7,7 @@ class PeaksSuite():
     @staticmethod
     def _check_input(peaks):
         if isinstance(peaks, Peaks):
-            msg = f"peaks must be of type `Peaks`, not {type(Peaks)}."
+            msg = f"peaks must be an instance of `Peaks`, not {type(Peaks)}."
             raise TypeError(msg)
 
     def __init__(self, peaks):
@@ -44,10 +44,10 @@ class PeaksSuite():
         self._check_input(peaks)
         self.peaks.append(peaks)
 
-
-
-            # ValueError
-            # If `fnames` and `identifiers` are not the same length.
-
-    
-
+    @classmethod
+    def from_jsons(cls, fnames):
+        dicts = []
+        for fname in fnames:
+            with open(fname, "r") as f:
+                dicts.append(json.load(f))
+        return cls.from_dicts(dicts)
