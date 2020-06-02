@@ -50,7 +50,7 @@ class Test_Peaks(TestCase):
         self.assertArrayEqual(np.array(noi), my_peaks.noi)
         self.assertArrayEqual(np.array(pwr), my_peaks.pwr)
 
-    def test_from_peak_data_dicts(self):
+    def test_from_dict(self):
         # Basic Case: No keyword arguments
         frequency = [100., 50, 30, 10, 5, 3]
         velocity = [100., 120, 130, 140, 145, 150]
@@ -107,7 +107,7 @@ class Test_Peaks(TestCase):
 
     def test_from_max(self):
         # Check rayleigh (2 lines)
-        ray = swprocess.Peaks.from_max(fname=self.full_path + "data/myanmar/test_hfk_ds_short.max",
+        ray = swprocess.Peaks.from_max(fname=self.full_path + "data/mm/test_hfk_line2_0.max",
                                        identifier="test_short_rayleigh",
                                        rayleigh=True,
                                        love=False)
@@ -127,7 +127,7 @@ class Test_Peaks(TestCase):
                                                  16200]))
 
         # Check love (2 lines)
-        lov = swprocess.Peaks.from_max(fname=self.full_path+"data/myanmar/test_hfk_ds_short.max",
+        lov = swprocess.Peaks.from_max(fname=self.full_path+"data/mm/test_hfk_line2_0.max",
                                        identifier="test_short_love",
                                        rayleigh=False,
                                        love=True)
@@ -146,13 +146,13 @@ class Test_Peaks(TestCase):
 
 
     # # def test_partytime_real(self):
-    # #     lov = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_full.max",
+    # #     lov = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/mm/test_hfk_ds_full.max",
     # #                                     identifiers="test_lov",
     # #                                     rayleigh=False,
     # #                                     love=True)
     # #     lov.party_time(settings_file=self.full_path + "settings/test_ptimesettings.json")
 
-    # #     ray = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/myanmar/test_hfk_ds_full.max",
+    # #     ray = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/mm/test_hfk_ds_full.max",
     # #                                     identifiers="test_ray",
     # #                                     rayleigh=True,
     # #                                     love=False)

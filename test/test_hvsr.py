@@ -13,7 +13,7 @@ class Test_Hvsr(TestCase):
         self.fpath = get_full_path(__file__)
 
     def test_from_geopsy_file(self):
-        fname = self.fpath + "data/myanmar/test_ZM_STN01.hv"
+        fname = self.fpath + "data/mm/test_ZM_STN01.hv"
         test = swprocess.Hvsr.from_geopsy_file(fname=fname,
                                                            identifier="TaDa")
         frq = [[0.1, 0.101224, 0.102462, 50]]
@@ -25,10 +25,10 @@ class Test_Hvsr(TestCase):
         self.assertTrue(test.idn, idn)
 
     def test_from_geopsy_folder(self):
-        dirname = self.fpath + "data/myanmar/test_dir"
+        dirname = self.fpath + "data/mm/test_dir"
         hv = swprocess.Hvsr.from_geopsy_folder(dirname=dirname,
                                                            identifier="TADA")
-        with open(self.fpath + "data/myanmar/test_dir_data.json", "r") as f:
+        with open(self.fpath + "data/mm/test_dir_data.json", "r") as f:
             known = json.load(f)
 
         for test_frq, test_amp, known in zip(hv.frq, hv.amp, known):

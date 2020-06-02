@@ -26,7 +26,7 @@ class Peaks():
 
     """
 
-    def __init__(self, frequency, velocity, identifier, **kwargs):
+    def __init__(self, frequency, velocity, identifier="0", **kwargs):
         """Initialize an instance of Peaks from a list of frequency
         and velocity values.
 
@@ -98,12 +98,12 @@ class Peaks():
         raise DeprecationWarning(msg)
 
     @classmethod
-    def from_dict(cls, peak_dict, identifier="0"):
+    def from_dict(cls, data_dict, identifier="0"):
         """Initialize `Peaks` from `dict`.
 
         Parameters
         ----------
-        peak_dict: dict
+        data_dict: dict
             Of the form
             `{"frequency":freq, "velocity":vel, "kwarg1": kwarg1}`
             where `freq` is a list of floats denoting frequency values.
@@ -121,12 +121,11 @@ class Peaks():
 
         """
         for key in ["frequency", "velocity"]:
-            if key not in peak_dict.keys():
-                print(key)
+            if key not in data_dict.keys():
                 msg = f"`frequency` and `velocity` keys are not optional."
                 raise ValueError(msg)
 
-        return cls(identifier=identifier, **peak_dict)
+        return cls(identifier=identifier, **data_dict)
 
     @classmethod
     def from_jsons(self, *args, **kwargs):
@@ -732,12 +731,15 @@ class Peaks():
         # Assumes dict of the form {"id0":{data}, "id1":{data} ... }
         if append:
             with open(fname, "r") as f:
-                existing_data = json.load(f)
-            if self.ids in existing_data.keys():
+                data_to_update = json.load(f)
+            if self.ids in data_to_update.keys():
                 msg = f"Data already exists in file with identifier {self.ids}, file left unmodified."
                 raise KeyError(msg)
             else:
                 existing_data[self.ids] = data
+                with open(fname, "w") as f:
+                    json.dump(data_to_update, f)
+
         else:
             data = {self.ids:data}
             with open(fname, "w") as f:
