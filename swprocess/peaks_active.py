@@ -10,12 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class PeaksActive(Peaks):
-    """Class for storing and manipulating spectral peaks from
-    active-source dispersion measurments."""
+    """Spectral peaks of active-source dispersion."""
 
     def __init__(self, peak_data_dicts):
         super().__init__(peak_data_dicts)
-        # self.offset = offsest
 
     @classmethod
     def from_json(cls, fname, max_vel=1000):

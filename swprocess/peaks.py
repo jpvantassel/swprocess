@@ -1,9 +1,8 @@
-"""File defining the Peaks class that allows for read and modifying
-peak values from the dispersion data."""
-
+"""Peaks class definition."""
 
 import json
 import re
+import warnings
 import logging
 
 import numpy as np
@@ -13,100 +12,127 @@ from matplotlib.widgets import Cursor
 
 from swprocess import plot_tools
 
-colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
-# mpl.use('Qt4Agg')
+_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
 logger = logging.getLogger(__name__)
 
 
 class Peaks():
     """Class for handling peak dispersion data.
 
-    Attributes:
-        vel = List of np.arrays with velocity values (one per peak).
-        frq = List of np.arrays with frequency values (one per peak).
-        wav = List of np.arrays with wavelength values (one per peak).
-        ids = List of strings to uniquely identity each array.
-        ext
-        mean_disp
+    Attributes
+    ----------
+        TODO (jpv): Finish documentation.
+
     """
 
     def __init__(self, frequency, velocity, identifier, **kwargs):
         """Initialize an instance of Peaks from a list of frequency
         and velocity values.
 
-        Args:
-            frequency = List of frequency values (one per peaks).
-            velocity = List of velocity values (one per peak)
-            identifiers = Strings to uniquely identify the array.
-            **kwargs = Optional keyword argument(s) these may include
-                additional details about the dispersion peaks such as:
-                azimuth (azi), ellipticity (ell), power (pwr), and noise
-                (pwr). Will generally not be used directly.
+        Parameters
+        ----------
+        frequency, velocity : list
+            Frequency and velocity (one per peak), respectively.
+        identifiers : str
+            String to uniquely identify the provided frequency-velocity
+            pair.
+        **kwargs : kwargs
+            Optional keyword argument(s) these may include
+            additional details about the dispersion peaks such as:
+            azimuth (azi), ellipticity (ell), power (pwr), and noise
+            (pwr). Will generally not be used directly.
 
-        Returns:
-            Instantiated Peaks object.
+        Returns
+        -------
+        Peaks
+            Instantiated `Peaks` object.
 
-        Raises:
-            This method raises no exceptions.
         """
-
         self.frq = [np.array(frequency)]
         self.vel = [np.array(velocity)]
-        self.wav = [self.vel[-1]/self.frq[-1]]
-        self.ids = [identifier]
-        self.ext = {}
+        self.ids = [str(identifier)]
         logging.debug(f"**kwargs {kwargs}")
+        self.extra = list(kwargs.keys())
         for key, val in kwargs.items():
-            self.ext.update({key: [np.array(val)]})
-        logging.debug(f"self.ext {self.ext}")
-        self.mean_disp = self.compute_dc_stats(self.frq, self.vel,
-                                               minp=1, maxp=200, numbins=128,
-                                               binscale='log')
+            setattr(self, key, [np.array(val)])
+    
+    @property
+    def frequency(self):
+        return self.frq
+
+    @property
+    def velocity(self):
+        return self.velocity
+    
+    @property
+    def identifiers(self):
+        return self.ids
+
+    @property
+    def wav(self)
+        msg = "Use of wav is deprecated use wavelength instead."
+        warnings.warn(msg, DeprecationWarning)
+        return self.wavelength
+
+    @property
+    def wavelength(self):
+        wav = []
+        for frq, vel in zip(self.frq, self.vel):
+            wav.append(vel/frq)
+        return wave
+        
+    @property
+    def slowness(self)
+        slo = []
+        for vel in self.vel:
+            slo.append(1/vel)
+        return slo
+
+    @property
+    def mean_disp(self, **kwargs)
+        return self.compute_dc_stats(self.frq, self.vel, **kwargs)
 
     def append(self, frequency, velocity, identifier, **kwargs):
         """Method to append frequency and velocity data into the object.
 
-        Args:
-            For details regarding the input argument refer to __inti__.
+        Parameters
+        ----------
+        TODO (jpv): Finish documentation.
 
-        Returns:
-            Returns None, but updates object's state.
+        Returns
+        -------
+        None
+            Updates object.
 
-        Raises:
-            This method raises no exceptions.
         """
         self.frq.append(np.array(frequency))
         self.vel.append(np.array(velocity))
-        self.wav.append(self.vel[-1]/self.frq[-1])
-        self.ids.append(identifier)
+        self.ids.append(str(identifier))
+
         for key, val in kwargs.items():
-            self.ext[key].append(np.array(val))
-        self.mean_disp = self.compute_dc_stats(self.frq, self.vel,
-                                               minp=1, maxp=200, numbins=128,
-                                               binscale='log')
-        logging.debug(f"self.ext {self.ext}")
+            cval = getattr(self, key)
+            setattr(self, key, cval.append(np.array(val)))
 
     @classmethod
     def from_dicts(cls, peak_dicts):
-        """Alternate constructor to initialize an instance of the Peaks
-        class from a dictionary.
+        """Initialize `Peaks` from `dict`.
 
-        Args:
-            peak_dicts: Dictionary or list of dictionaries of the form
-                {"identifier": {"frequency":freq, "velocity":vel,
-                "kwarg1": kwarg1}}
-                where:
-                    identifier is a string identifying the data.
-                    freq is a list of floats denoting frequency values.
-                    vel is a list of floats denoting velocity values.
-                    kwarg1 is one of the optional keyword arguments,
-                        may use all of those listed in __init__.
+        Parameters
+        ----------
+        peak_dicts: dict or list
+            Dictionary or list of dictionaries of the form
+            {"identifier": {"frequency":freq, "velocity":vel,
+            "kwarg1": kwarg1}} where identifier is a string identifying
+            the data. freq is a list of floats denoting frequency
+            values. vel is a list of floats denoting velocity values.
+            kwarg1 is one of the optional keyword arguments,
+            may use all of those listed in __init__.
 
-        Returns:
-            Initialized Peaks instance.
+        Returns
+        -------
+        Peaks
+            Initialized `Peaks` instance.
 
-        Raises:
-            This method raises no exceptions.
         """
         if isinstance(peak_dicts, dict):
             peak_dicts = [peak_dicts]
@@ -116,6 +142,7 @@ class Peaks():
             for key, value in peak_dict.items():
                 logging.debug(key)
                 npts = len(value["frequency"])
+
                 if start:
                     logging.debug(f"For {key} new object was started.")
                     obj = cls(value["frequency"],
@@ -151,133 +178,53 @@ class Peaks():
                 dicts.append(json.load(f))
         return cls.from_dicts(dicts)
 
-    # @classmethod
-    # def from_hfk_historical(cls, fname):
-    #     pass
-
-    @classmethod
-    def from_maxs(cls, fnames, identifiers, rayleigh=True, love=False):
-        """Alternate constructor to initialize a Peaks object from
-        .max file(s). .max files are output from the Geopsy FK
-        processing.
-
-        Args:
-            fname = String or list of strings to denote the filename(s)
-                for the .max. Can be the relative or full path.
-
-            identifiers = String or list of strings unqiuely identifying
-                the dispersion data from each file.
-
-            rayleigh = Boolean to denote if rayleigh data should be
-                extracted.
-
-            love = Boolean to denote if love data should be extracted.
-
-        Returns:
-            Initialized PeaksPassive object.
-
-        Raises:
-            ValueError if both rayleigh and love are true or false.
-
-            ValueError if `fnames` and `identifiers` are not the same
-                length.
-        """
-
-        if rayleigh and love:
-            raise ValueError("`rayleigh` and `love` cannot both be True.")
-
-        if not rayleigh and not love:
-            raise ValueError("`rayleigh` and `love` cannot both be False.")
-
-        if isinstance(fnames, str):
-            fnames = [fnames]
-        if isinstance(identifiers, str):
-            identifiers = [identifiers]
-        if len(fnames) != len(identifiers):
-            raise ValueError("`len(fnames)` must equal `len(identifiers)`.")
-
-        disp_type = "Rayleigh" if rayleigh else "Love"
-        number = "-?\d+.?\d*[eE]?[+-]?\d*"
-        pattern = f"^\d+\.?\d* (\d+\.?\d*) (Rayleigh|Love) ({number}) ({number}) ({number}) (\d+\.?\d*|-?inf|nan) (\d+\.?\d*) (0|1)$"
-
-        for fnum, (fname, identifier) in enumerate(zip(fnames, identifiers)):
-            logging.debug(f"Attempting to Open File: {fname}")
-            with open(fname, "r") as f:
-                lines = f.read().splitlines()
-
-            for line_number, line in enumerate(lines):
-                if line.startswith("# BEGIN DATA"):
-                    start = line_number + 3
-                    break
-
-            frqs, vels, azis, ells, nois, pwrs = [], [], [], [], [], []
-            for line_number, line in enumerate(lines[start:]):
-                try:
-                    fr, pol, sl, az, el, noi, pw, ok = re.findall(pattern, line)[
-                        0]
-                except IndexError as e:
-                    print(line)
-                    raise e
-                if pol == disp_type and ok == "1":
-                    frqs.append(float(fr))
-                    vels.append(1/float(sl))
-                    azis.append(float(az))
-                    ells.append(float(el))
-                    nois.append(float(noi))
-                    pwrs.append(float(pw))
-                elif pol != disp_type:
-                    continue
-                elif ok == "0":
-                    logging.warn(f"Invalid point! Line #{line_number+start+1}")
-                else:
-                    logging.debug(pol)
-                    logging.debug(ok)
-                    raise ValueError("Check line")
-
-            if fnum == 0:
-                obj = cls(frqs, vels, identifier,
-                          azi=azis, ell=ells, noi=nois, pwr=pwrs)
-            else:
-                obj.append(frqs, vels, identifier,
-                           azi=azis, ell=ells, noi=nois, pwr=pwrs)
-        return obj
+    def from_maxs(self, *args, **kwargs):
+        msg = "Peaks.from_maxs has been deprecated, use PeaksPassive.from_max() or PeaksSuite.from_maxs() instead."
+        raise DeprecationWarning(msg)
 
     # def write_to_txt_dinver(self, fname):
     #     pass
 
-    def write_stat_swinvert(self, fname):
-        """Write statistics (mean and standard deviation) to csv file
-        of the form accepted by swinvert.
+    # TODO (jpv) : Broken b/c mean_disp
+    # def write_stat_swprepost(self, fname):
+    #     """Write statistics (mean and standard deviation) to csv file
+    #     of the form accepted by swprepost.
 
-        Args:
-            fname = String for file name. Can be a relative or a full
-                path.
+    #     Args:
+    #         fname = String for file name. Can be a relative or a full
+    #             path.
 
-        Returns:
-            Method returns None, but saves file to disk.
+    #     Returns:
+    #         Method returns None, but saves file to disk.
 
-        """
-        if fname.endswith(".csv"):
-            fname = fname[:-4]
-        with open(fname+".csv", "w") as f:
-            f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)\n")
-            for fr, ve, st in zip(self.mean_disp["mean"]["frq"],
-                                  self.mean_disp["mean"]["vel"],
-                                  self.mean_disp["std"]["vel"]):
-                f.write(f"{fr},{ve},{st}\n")
+    #     """
+    #     if fname.endswith(".csv"):
+    #         fname = fname[:-4]
+    #     with open(fname+".csv", "w") as f:
+    #         f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)\n")
+    #         for fr, ve, st in zip(self.mean_disp["mean"]["frq"],
+    #                               self.mean_disp["mean"]["vel"],
+    #                               self.mean_disp["std"]["vel"]):
+    #             f.write(f"{fr},{ve},{st}\n")
 
     def write_peak_json(self, fname):
-        """Write peak dispersion points to json file.
+        msg = ".write_peak_json is deprecated use .to_json instead."
+        warnings.warn(msg, DeprecationWarning)
+        self.to_json(fname)
 
-        Args:
-            fname = String for file name. Can be a relative or a full
-                path.
+    def to_json(self, fname):
+        """Write `Peaks` to json file.
 
-        Returns:
-            Method returns None, but saves file to disk.
+        Parameters
+        ----------
+        fname : str
+            Output file name, can include a relative or the full path.
 
-        Raises:
-            This method raises no exceptions.
+        Returns
+        -------
+        None
+            Instead writes file to disk.
+
         """
         data = {}
         for num, (f, v, label) in enumerate(zip(self.frq, self.vel, self.ids)):
@@ -289,48 +236,57 @@ class Peaks():
                 ext_dict.update({key: value[num].tolist()})
             data[label].update(ext_dict)
 
-        if fname.endswith(".json"):
-            fname = fname[:-5]
-        with open(fname+".json", "w") as f:
+        with open(fname, "w") as f:
             json.dump(data, f)
 
-    def plot(self, xtype="frequency"):
+    def plot(self, xtype="frequency", ax=None):
         """Create plot of dispersion data.
 
-        Args:
-            xtype = String denoting whether the x-axis should be either
-                frequency or wavelength.
+        Parameters
+        ----------
+        xtype : {'frequency', 'wavelength'}, optional
+            Denote whether the x-axis should be either `frequency` or
+            `wavelength`, default is `frequency`.
+        ytype : {'velocity', 'slowness', '}
+        ax : Axes, optional
+            Pass an `Axes` on which to plot, default is `None` meaning
+            a `Axes` will be generated on-the-fly.
 
-        Returns:
-            Tuple of the form (fig, ax) where fig is the figure handle
-            and ax is the axes handle.
-
-        Raises:
-            This method raises no exceptions.
-
-        Reference for weighted mean and standard deviation 
-        https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/weightsd.pdf
+        Returns
+        -------
+        None or tuple
+            `None` if `ax` is provided, otherwise `tuple` of the form
+            `(fig, ax)` where `fig` is the figure handle and `ax` is
+            the axes handle.
 
         """
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 3))
+        ax_was_none=False
+        if ax is None:
+            ax_was_none = True
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 3), dpi=150)
+
         if xtype.lower() == "wavelength":
             x = self.wav
             xlabel = "Wavelength (m)"
-        else:
+        else xtype.lower() == "frequency":
             x = self.frq
             xlabel = "Frequency (Hz)"
-        for x, v, color, label in zip(x, self.vel, colors, self.ids):
+        else:
+            raise ValueError(f"xtype = {xtype}, not recognized.")
+        for x, v, color, label in zip(x, self.vel, _colors, self.ids):
             ax.plot(x, v, color=color, linestyle="none",
                     marker="o", markerfacecolor="none", label=label)
         ax.set_xlabel(xlabel)
         ax.set_ylabel("Phase Velocity (m/s)")
         ax.set_xscale("log")
-        plt.legend()
-        return (fig, ax)
+        ax.legend()
+
+        if ax_was_none:
+            return (fig, ax)
 
     def plot_2pannel(self):
         fig, (axf, axw) = plt.subplots(nrows=1, ncols=2, figsize=(10, 4.5))
-        for f, v, w, i, color in zip(self.frq, self.vel, self.wav, self.ids, colors):
+        for f, v, w, i, color in zip(self.frq, self.vel, self.wav, self.ids, _colors):
             axf.plot(f, v, color=color, linestyle="none",
                      marker="o", markerfacecolor="none", label=i)
             axw.plot(w, v, color=color, linestyle="none",
@@ -369,6 +325,12 @@ class Peaks():
 
 # TODO (jpv): Add test.
 # TODO (jpv): Finish for wavelength and frequency.
+
+
+        # Reference for weighted mean and standard deviation 
+        # https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/weightsd.pdf
+
+
 
     def party_time(self, settings_file, klimits=None):
         with open(settings_file, "r") as f:

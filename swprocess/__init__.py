@@ -9,8 +9,8 @@ from .array1d import Array1D
 
 from .wavefieldtransform1d import WavefieldTransform1D
 
-from .peaks import *
-from .peaks_active import *
-# from .peaks_passive import *
+from .peaks import Peaks
+from .peaks_active import PeaksActive
+from .peaks_passive import PeaksPassive
 
 from .hvsr import *
