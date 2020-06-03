@@ -77,10 +77,7 @@ class Peaks():
 
     @property
     def slowness(self):
-        slo = []
-        for vel in self.velocity:
-            slo.append(1/vel)
-        return slo
+        return 1/self.velocity
 
     @property
     def mean_disp(self, **kwargs):
@@ -392,7 +389,7 @@ class Peaks():
         condition1 = np.logical_and(d1 > d1_min,
                                     d1 < d1_max)
         condition2 = np.logical_and(d2 > d2_min,
-                                    d1 < d2_max)
+                                    d2 < d2_max)
         return np.flatnonzero(np.logical_and(condition1, condition2))
 
     def _reject(self, reject_ids):

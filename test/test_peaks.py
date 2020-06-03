@@ -182,6 +182,19 @@ class Test_Peaks(TestCase):
         for attr, value in attrs.items():
             self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
 
+        # Method -> Reject on slowness and velocity
+        xs = np.array([1, 5, 8, 6, 4, 7, 7, 1, 3, 5])
+        ys = 1/np.array([1, 5, 9, 4, 5, 6, 7, 8, 1, 7])
+
+        peaks = swprocess.Peaks(xs, ys)
+        peaks.reject(xtype="frequency", xlims=(0, 10),
+                     ytype="slowness", ylims=(4.5, 7.5))
+
+        keep_ids = [0, 2, 3, 7, 8]
+        attrs = dict(frequency=xs, velocity=ys)
+        for attr, value in attrs.items():
+            self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
+
     def test_blitz(self):
         xs = np.array([1, 5, 9, 3, 5, 7, 4, 6, 2, 8])
         ys = np.array([1, 9, 4, 5, 6, 8, 5, 2, 1, 4])
@@ -236,6 +249,7 @@ class Test_Peaks(TestCase):
                              ytype=["velocity", "velocity", "velocity"],
                              plot_kwargs=dict(color="g"))
         plt.close()
+
 
 if __name__ == "__main__":
     unittest.main()

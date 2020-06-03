@@ -2,12 +2,15 @@
 
 import json
 import warnings
+import logging
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
 from swprocess import Peaks
+
+logger = logging.getLogger(__name__)
 
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
 
@@ -219,13 +222,17 @@ class PeaksSuite():
         with open(settings_file, "r") as f:
             settings = json.load(f)
 
-        for key, value in settings.get("limits", []):
+        for key, value in settings.get("limits", {}).items():
             self.blitz(key, value)
 
-        fig = 0
-        while True:
-            if fig:
-                plt.close(fig)
+        xtype = [pair[0] for pair in settings["domains"]]
+        ytype = [pair[1] for pair in settings["domains"]]
+
+        fig, ax = self.plot(xtype, ytype)
+        fig.show()
+
+        _continue = 1
+        while _continue:
             # self.mean_disp = self.compute_dc_stats(self.frq,
             #                                        self.vel,
             #                                        minp=settings["minval"],
@@ -233,14 +240,25 @@ class PeaksSuite():
             #                                        numbins=settings["nbins"],
             #                                        binscale=settings["binscale"],
             #                                        bintype=settings["bintype"])
-            fig = self.plot_dc_for_rmv(self.frq,
-                                       self.vel,
-                                       self.mean_disp,
-                                       self.ids,
-                                       klimits=klimits)
+            # fig = self.plot_dc_for_rmv(,
+            #                            self.vel,
+            #                            self.mean_disp,
+            #                            self.ids,
+            #                            klimits=klimits)
+            
+            (xlims, ylims, axclicked) = self._draw_box(fig)
 
-            ((xmin, xmax), (ymin, ymax)) = self._draw_box(fig)
+            print(xtype[axclicked], xlims)
+            print(ytype[axclicked], ylims)
 
+            self.reject(xtype[axclicked], xlims,  ytype[axclicked], ylims)
+
+            for _ax in ax:
+                _ax.clear()
+
+            self.plot(xtype, ytype, ax=ax)
+
+            
             # self.rmv_dc_points(self.frq,
             #                    self.vel,
             #                    self.wav,
@@ -251,27 +269,28 @@ class PeaksSuite():
         # If all data is removed for a given offset, delete corresponding entries
         # (Only delete entries for one offset at a time because indices change after
         # deletion. Continue while loop as long as emty entries are encountered).
-            prs = True
-            while prs:
-                n_empty = 0
-                for k in range(len(self.frq)):
-                    if len(self.frq[k]) == 0:
-                        del self.frq[k]
-                        del self.vel[k]
-                        del self.ids[k]
-                        n_empty += 1
-                        break
-                if n_empty == 0:
-                    prs = False
+            # prs = True
+            # while prs:
+            #     n_empty = 0
+            #     for k in range(len(self.frq)):
+            #         if len(self.frq[k]) == 0:
+            #             del self.frq[k]
+            #             del self.vel[k]
+            #             del self.ids[k]
+            #             n_empty += 1
+            #             break
+            #     if n_empty == 0:
+            #         prs = False
 
             while True:
-                cont = input("Enter 1 to continue, 0 to quit: ")
-                if cont == "":
+                _continue = input("Enter 1 to continue, 0 to quit: ")
+                if _continue not in ["0", "1"]:
+                    warnings.warn(f"Entry {_continue}, is not recognized.")
                     continue
                 else:
-                    cont = int(cont)
+                    _continue = int(_continue)
                     break
-
+    
     # Reference for weighted mean and standard deviation
     # https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/weightsd.pdf
 
@@ -602,10 +621,11 @@ class PeaksSuite():
         Returns
         -------
         tuple
-            Of the form `((xmin, xmax), (ymin,ymax))` where `xmin` and
-            `xmax` are the minimum and maximum abscissa and `ymin` and
-            `ymax` are the minimum and maximum ordinate of the
-            user-defined box.
+            Of the form `((xmin, xmax), (ymin,ymax)), axclicked` where
+            `xmin` and `xmax` are the minimum and maximum abscissa and
+            `ymin` and `ymax` are the minimum and maximum ordinate of
+            the user-defined box and `axclicked` determine which `Axes`
+            was clicked.
 
         """
         cursors = []
@@ -614,18 +634,22 @@ class PeaksSuite():
 
         def on_click(event):
             if event.inaxes is not None:
-                axclick.append(event.inaxes)
+                axclicked.append(event.inaxes)
 
         while True:
-            axclick = []
+            axclicked = []
             session = fig.canvas.mpl_connect('button_press_event', on_click)
-            xs, ys = fig.ginput(2, timeout=0)
+            (x1, y1), (x2, y2) = fig.ginput(2, timeout=0)
+            xs = (x1, x2)
+            ys = (y1, y2)
             fig.canvas.mpl_disconnect(session)
 
-            if len(axclick) == 2 and axclick[0] == axclick[1]:
+            if len(axclicked) == 2 and axclicked[0] == axclicked[1]:
                 xmin, xmax = min(xs), max(xs)
                 ymin, ymax = min(ys), max(ys)
-                return ((xmin, xmax), (ymin, ymax))
+                ax_index = fig.axes.index(axclicked[0])
+                logger.debug(f"\tax_index = {ax_index}")
+                return ((xmin, xmax), (ymin, ymax), ax_index)
             else:
                 warnings.warn("Both clicks must be inside the same axis.")
 

@@ -4,7 +4,24 @@
     "minval": 1,
     "maxval": 100,
     "nbins": 128,
-    "limits":{
-        "velocity":[50, 500]
+    "domains": [
+        [
+            "frequency",
+            "velocity"
+        ],
+        [
+            "wavelength",
+            "velocity"
+        ],
+        [
+            "frequency",
+            "slowness"
+        ]
+    ],
+    "limits": {
+        "velocity": [
+            50,
+            500
+        ]
     }
 }
