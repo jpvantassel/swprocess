@@ -99,8 +99,8 @@ class Test_Peaks(TestCase):
         identifer = "test"
         fname = "test.json"
 
-        expected = swprocess.Peaks(
-            frequency, velocity, identifer, azi=azi, pwr=pwr)
+        expected = swprocess.Peaks(frequency, velocity, identifer,
+                                   azi=azi, pwr=pwr)
         expected.to_json(fname)
         returned = swprocess.Peaks.from_json(fname)
         self.assertEqual(expected, returned)
@@ -116,16 +116,16 @@ class Test_Peaks(TestCase):
                                                        19.282217609815102577]))
         self.assertArrayEqual(ray.velocity, 1/np.array([0.0068859013683322750979,
                                                         0.0074117944332218188563]))
-        self.assertArrayEqual(ray.azi, np.array([144.53791572557310019,
-                                                 143.1083743693494057]))
-        self.assertArrayEqual(ray.ell, np.array([1.0214647665926679387,
-                                                 1.022287917081338593]))
-        self.assertArrayEqual(ray.noi, np.array([8.9773778053801098764,
-                                                 7.3044365524672443257]))
-        self.assertArrayEqual(ray.pwr, np.array([2092111.2367646128405,
-                                                 2074967.9391639579553]))
-        self.assertArrayEqual(ray.tim, np.array([16200,
-                                                 16200]))
+        self.assertArrayEqual(ray.azimuth, np.array([144.53791572557310019,
+                                                     143.1083743693494057]))
+        self.assertArrayEqual(ray.ellipticity, np.array([1.0214647665926679387,
+                                                         1.022287917081338593]))
+        self.assertArrayEqual(ray.noise, np.array([8.9773778053801098764,
+                                                   7.3044365524672443257]))
+        self.assertArrayEqual(ray.power, np.array([2092111.2367646128405,
+                                                   2074967.9391639579553]))
+        self.assertArrayEqual(ray.time, np.array([16200,
+                                                  16200]))
 
         # Check love (2 lines)
         lov = swprocess.Peaks.from_max(fname=self.full_path+"data/mm/test_hfk_line2_0.max",
@@ -136,14 +136,14 @@ class Test_Peaks(TestCase):
                                                        19.282217609815102577]))
         self.assertArrayEqual(lov.velocity, np.array([1/0.0088200863560403078983,
                                                       1/0.0089530611050798007688]))
-        self.assertArrayEqual(lov.azi, np.array([252.05441718438927978,
-                                                 99.345595852002077208]))
-        self.assertArrayEqual(lov.ell, np.array([0, 0]))
-        self.assertArrayEqual(lov.noi, np.array([0, 0]))
-        self.assertArrayEqual(lov.pwr, np.array([3832630.8840260845609,
-                                                 4039408.6602126094513]))
-        self.assertArrayEqual(ray.tim, np.array([16200,
-                                                 16200]))
+        self.assertArrayEqual(lov.azimuth, np.array([252.05441718438927978,
+                                                     99.345595852002077208]))
+        self.assertArrayEqual(lov.ellipticity, np.array([0, 0]))
+        self.assertArrayEqual(lov.noise, np.array([0, 0]))
+        self.assertArrayEqual(lov.power, np.array([3832630.8840260845609,
+                                                   4039408.6602126094513]))
+        self.assertArrayEqual(ray.time, np.array([16200,
+                                                  16200]))
 
     def test_reject(self):
         xs = np.array([1, 2, 4, 5, 1, 2, 6, 4, 9, 4])
@@ -186,7 +186,7 @@ class Test_Peaks(TestCase):
         xs = np.array([1, 5, 9, 3, 5, 7, 4, 6, 2, 8])
         ys = np.array([1, 9, 4, 5, 6, 8, 5, 2, 1, 4])
 
-        ## Helper function
+        # Helper function
 
         # Remove all above 4.5
         _min, _max = None, 4.5
@@ -214,7 +214,7 @@ class Test_Peaks(TestCase):
             returned = swprocess.Peaks._reject_outside_ids(xs, _min, _max)
         self.assertArrayEqual(expected, returned)
 
-        ## Method
+        # Method
 
         # Remove all below 0.5 and above 6.5
         limits = (0.5, 6.5)
@@ -228,6 +228,14 @@ class Test_Peaks(TestCase):
         for attr, value in attrs.items():
             self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
 
+    def test_plot(self):
+        import matplotlib.pyplot as plt
+        fname = self.full_path + "data/mm/test_hfk_full.max"
+        peaks = swprocess.Peaks.from_max(fname)
+        fig, ax = peaks.plot(xtype=["frequency", "wavelength", "azimuth"],
+                             ytype=["velocity", "velocity", "velocity"],
+                             plot_kwargs=dict(color="g"))
+        plt.close()
 
 if __name__ == "__main__":
     unittest.main()

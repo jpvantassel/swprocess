@@ -9,6 +9,7 @@ from matplotlib.widgets import Cursor
 
 from swprocess import Peaks
 
+_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
 
 class PeaksSuite():
 
@@ -146,21 +147,73 @@ class PeaksSuite():
 
         return obj
 
-# TODO (jpv): Add test.
-# TODO (jpv): Finish for wavelength and frequency.
-
-        # Reference for weighted mean and standard deviation
-        # https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/weightsd.pdf
-
-
     def blitz(self, attr, limits):
         """Reject peaks outside the stated boundary.
-        
+
         TODO (jpv): Refence Peaks.blitz for more information.
 
         """
         for peak in self.peaks:
             peak.blitz(attr, limits)
+
+    def reject(self, xtype, xlims, ytype, ylims):
+        """Reject peaks inside the stated boundary.
+
+        TODO (jpv): Refence Peaks.reject for more information.
+
+        """
+        for peak in self.peaks:
+            peak.reject(xtype, xlims, ytype, ylims)
+    
+    def plot(self, xtype="frequency", ytype="velocity", ax=None,
+             plot_kwargs=None, ax_kwargs=None):
+        """Create plot of dispersion data.
+
+        TODO (jpv): Refence Peaks.plot for more information.
+
+        plot_kwargs = {"key":value}
+        plot_kwargs = {"key":[value1, value2, value3 ... ]}
+
+        """
+        if plot_kwargs is None:
+            plot_kwargs = {}
+
+        if ax_kwargs is None:
+            ax_kwargs = {}
+
+        if "color" not in plot_kwargs:
+            plot_kwargs["color"] = _colors
+
+        _plot_kwargs = self._prepare_kwargs(plot_kwargs, 0)
+        _ax_kwargs = self._prepare_kwargs(ax_kwargs, 1)
+        result = self.peaks[0].plot(xtype, ytype, ax, _plot_kwargs, _ax_kwargs)
+
+        if ax is None:
+            ax_was_none = True
+            fig, ax = result
+        else:
+            ax_was_none = False
+            
+        if len(self.peaks) > 1:
+            for index, peak in enumerate(self.peaks[1:], 1):
+                _plot_kwargs = self._prepare_kwargs(plot_kwargs, index)
+                _ax_kwargs = self._prepare_kwargs(ax_kwargs, index)
+                peak.plot(xtype, ytype, ax, _plot_kwargs, _ax_kwargs)
+
+        if ax_was_none:
+            return (fig, ax)
+
+    @staticmethod
+    def _prepare_kwargs(kwargs, index):
+        new_kwargs = {}
+        for key, value in kwargs.items():
+            if isinstance(value, (str, int, float)):
+                new_kwargs[key] = value
+            # elif len(value) == 1:
+            #     new_kwargs[key] = value[0]
+            else:
+                new_kwargs[key] = value[index]
+        return new_kwargs        
 
     def interactive_trimming(self, settings_file):
         with open(settings_file, "r") as f:
@@ -169,29 +222,31 @@ class PeaksSuite():
         for key, value in settings.get("limits", []):
             self.blitz(key, value)
 
-        cont = True
-        cfig = 0
-        while cont:
-            if cfig:
-                plt.close(cfig)
-            self.mean_disp = self.compute_dc_stats(self.frq,
-                                                   self.vel,
-                                                   minp=settings["minval"],
-                                                   maxp=settings["maxval"],
-                                                   numbins=settings["nbins"],
-                                                   binscale=settings["binscale"],
-                                                   bintype=settings["bintype"])
-            cfig = self.plot_dc_for_rmv(self.frq,
-                                        self.vel,
-                                        self.mean_disp,
-                                        self.ids,
-                                        klimits=klimits)
-            self.rmv_dc_points(self.frq,
-                               self.vel,
-                               self.wav,
-                               self.ids,
-                               cfig,
-                               extras=self.ext)
+        fig = 0
+        while True:
+            if fig:
+                plt.close(fig)
+            # self.mean_disp = self.compute_dc_stats(self.frq,
+            #                                        self.vel,
+            #                                        minp=settings["minval"],
+            #                                        maxp=settings["maxval"],
+            #                                        numbins=settings["nbins"],
+            #                                        binscale=settings["binscale"],
+            #                                        bintype=settings["bintype"])
+            fig = self.plot_dc_for_rmv(self.frq,
+                                       self.vel,
+                                       self.mean_disp,
+                                       self.ids,
+                                       klimits=klimits)
+
+            ((xmin, xmax), (ymin, ymax)) = self._draw_box(fig)
+
+            # self.rmv_dc_points(self.frq,
+            #                    self.vel,
+            #                    self.wav,
+            #                    self.ids,
+            #                    cfig,
+            #                    extras=self.ext)
 
         # If all data is removed for a given offset, delete corresponding entries
         # (Only delete entries for one offset at a time because indices change after
@@ -209,7 +264,6 @@ class PeaksSuite():
                 if n_empty == 0:
                     prs = False
 
-            # Ask user if they would like to continue cutting data
             while True:
                 cont = input("Enter 1 to continue, 0 to quit: ")
                 if cont == "":
@@ -217,6 +271,9 @@ class PeaksSuite():
                 else:
                     cont = int(cont)
                     break
+
+    # Reference for weighted mean and standard deviation
+    # https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/weightsd.pdf
 
     # @staticmethod
     # def compute_dc_stats(frequency, velocity, minp=5, maxp=100, numbins=96, binscale="linear", bintype="frequency", arrayweights=None):
@@ -327,117 +384,117 @@ class PeaksSuite():
     #                 }
     #     return meandisp
 
-    @staticmethod
-    def plot_dc_for_rmv(frequency, velocity, mean_disp, legend, marker_type=None, color_spec=None, xscaletype="log", klimits=None):
-        """Function to plot dispersion data along with averages and standard deviations.
-        (Note that the min(klimits) and max(klimits) curves are used for passive-source FK processing,
-        thus, min(klimits) and max(klimits) are set equal to NaN for MASW testing to avoid plotting.)
-        """
+    # @staticmethod
+    # def plot_dc_for_rmv(frequency, velocity, mean_disp, legend, marker_type=None, color_spec=None, xscaletype="log", klimits=None):
+    #     """Function to plot dispersion data along with averages and standard deviations.
+    #     (Note that the min(klimits) and max(klimits) curves are used for passive-source FK processing,
+    #     thus, min(klimits) and max(klimits) are set equal to NaN for MASW testing to avoid plotting.)
+    #     """
 
-        n_off = len(velocity)
+    #     n_off = len(velocity)
 
-        if marker_type is None:
-            marker_type = ['o']*n_off
-        if color_spec is None:
-            color_spec = plot_tools.makecolormap(n_off)
+    #     if marker_type is None:
+    #         marker_type = ['o']*n_off
+    #     if color_spec is None:
+    #         color_spec = plot_tools.makecolormap(n_off)
 
-        minf = np.min(mean_disp["mean"]["frq"])
-        maxf = np.max(mean_disp["mean"]["frq"])
-        maxv, maxw = 0, 0
-        for vl, fr in zip(velocity, frequency):
-            if max(vl) > maxv:
-                maxv = max(vl)
-            if max(vl/fr) > maxw:
-                maxw = max(vl/fr)
+    #     minf = np.min(mean_disp["mean"]["frq"])
+    #     maxf = np.max(mean_disp["mean"]["frq"])
+    #     maxv, maxw = 0, 0
+    #     for vl, fr in zip(velocity, frequency):
+    #         if max(vl) > maxv:
+    #             maxv = max(vl)
+    #         if max(vl/fr) > maxw:
+    #             maxw = max(vl/fr)
 
-        if klimits:
-            freq_klim = np.logspace(np.log10(minf), np.log10(maxf), 100)
-            vel_klimf = np.vstack((2*np.pi*freq_klim/max(klimits), 2*np.pi*freq_klim /
-                                   (max(klimits)/2), 2*np.pi*freq_klim/min(klimits), 2*np.pi*freq_klim/(min(klimits)/2)))
-            vel_klimf = vel_klimf.transpose()
-            if not(np.isnan(max(klimits))):
-                for j in range(np.shape(vel_klimf)[1]):
-                    rmvID = np.where(vel_klimf[:, j] > maxv)[0]
-                    vel_klimf[rmvID, j] = float('nan')
-            wave_lim = np.hstack((2*np.pi/max(klimits)*np.array([[1], [1]]), 2*np.pi/(max(klimits)/2)*np.array(
-                [[1], [1]]), 2*np.pi/min(klimits)*np.array([[1], [1]]), 2*np.pi/(min(klimits)/2)*np.array([[1], [1]])))
-            vel_klimW = np.array([0, maxv])
+    #     if klimits:
+    #         freq_klim = np.logspace(np.log10(minf), np.log10(maxf), 100)
+    #         vel_klimf = np.vstack((2*np.pi*freq_klim/max(klimits), 2*np.pi*freq_klim /
+    #                                (max(klimits)/2), 2*np.pi*freq_klim/min(klimits), 2*np.pi*freq_klim/(min(klimits)/2)))
+    #         vel_klimf = vel_klimf.transpose()
+    #         if not(np.isnan(max(klimits))):
+    #             for j in range(np.shape(vel_klimf)[1]):
+    #                 rmvID = np.where(vel_klimf[:, j] > maxv)[0]
+    #                 vel_klimf[rmvID, j] = float('nan')
+    #         wave_lim = np.hstack((2*np.pi/max(klimits)*np.array([[1], [1]]), 2*np.pi/(max(klimits)/2)*np.array(
+    #             [[1], [1]]), 2*np.pi/min(klimits)*np.array([[1], [1]]), 2*np.pi/(min(klimits)/2)*np.array([[1], [1]])))
+    #         vel_klimW = np.array([0, maxv])
 
-        mwdth = 10
-        mhght = 6
-        fsize = 11
-        cfig, (axf, axw) = plt.subplots(
-            nrows=1, ncols=2, figsize=(mwdth, mhght))
+    #     mwdth = 10
+    #     mhght = 6
+    #     fsize = 11
+    #     cfig, (axf, axw) = plt.subplots(
+    #         nrows=1, ncols=2, figsize=(mwdth, mhght))
 
-        for fr, vl, mk, co in zip(frequency, velocity, marker_type, color_spec):
-            axf.plot(fr,
-                     vl,
-                     marker=mk,
-                     markersize=5,
-                     markeredgecolor=co,
-                     markerfacecolor="none",
-                     linestyle="none")
-        axf.errorbar(mean_disp["mean"]["frq"],
-                     mean_disp["mean"]["vel"],
-                     mean_disp["std"]["vel"],
-                     marker="o",
-                     markersize=5,
-                     color="k",
-                     linestyle="none")
+    #     for fr, vl, mk, co in zip(frequency, velocity, marker_type, color_spec):
+    #         axf.plot(fr,
+    #                  vl,
+    #                  marker=mk,
+    #                  markersize=5,
+    #                  markeredgecolor=co,
+    #                  markerfacecolor="none",
+    #                  linestyle="none")
+    #     axf.errorbar(mean_disp["mean"]["frq"],
+    #                  mean_disp["mean"]["vel"],
+    #                  mean_disp["std"]["vel"],
+    #                  marker="o",
+    #                  markersize=5,
+    #                  color="k",
+    #                  linestyle="none")
 
-        if klimits:
-            axf.plot(freq_klim, vel_klimf[:, 0],
-                     linestyle=":", color='#000000')
-            axf.plot(freq_klim, vel_klimf[:, 1],
-                     linestyle="-", color='#000000')
-            axf.plot(freq_klim, vel_klimf[:, 2],
-                     linestyle="--", color='#000000')
-            axf.plot(freq_klim, vel_klimf[:, 3],
-                     linestyle="-.", color='#000000')
-        axf.set_xlabel("Frequency (Hz)", fontsize=fsize, fontname="arial")
-        axf.set_ylabel("Velocity (m/s)", fontsize=fsize, fontname="arial")
-        axf.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
-        axf.set_xscale(xscaletype)
+    #     if klimits:
+    #         axf.plot(freq_klim, vel_klimf[:, 0],
+    #                  linestyle=":", color='#000000')
+    #         axf.plot(freq_klim, vel_klimf[:, 1],
+    #                  linestyle="-", color='#000000')
+    #         axf.plot(freq_klim, vel_klimf[:, 2],
+    #                  linestyle="--", color='#000000')
+    #         axf.plot(freq_klim, vel_klimf[:, 3],
+    #                  linestyle="-.", color='#000000')
+    #     axf.set_xlabel("Frequency (Hz)", fontsize=fsize, fontname="arial")
+    #     axf.set_ylabel("Velocity (m/s)", fontsize=fsize, fontname="arial")
+    #     axf.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
+    #     axf.set_xscale(xscaletype)
 
-        for fr, vl, mk, co, le in zip(frequency, velocity, marker_type, color_spec, legend):
-            axw.plot(vl/fr,
-                     vl,
-                     marker=mk,
-                     markersize=5,
-                     markeredgecolor=co,
-                     markerfacecolor="none",
-                     linestyle="none",
-                     label=le)
-        axw.errorbar(mean_disp["mean"]["wav"],
-                     mean_disp["mean"]["vel"],
-                     mean_disp["std"]["vel"],
-                     marker="o",
-                     markersize=5,
-                     color="k",
-                     linestyle="none")
+    #     for fr, vl, mk, co, le in zip(frequency, velocity, marker_type, color_spec, legend):
+    #         axw.plot(vl/fr,
+    #                  vl,
+    #                  marker=mk,
+    #                  markersize=5,
+    #                  markeredgecolor=co,
+    #                  markerfacecolor="none",
+    #                  linestyle="none",
+    #                  label=le)
+    #     axw.errorbar(mean_disp["mean"]["wav"],
+    #                  mean_disp["mean"]["vel"],
+    #                  mean_disp["std"]["vel"],
+    #                  marker="o",
+    #                  markersize=5,
+    #                  color="k",
+    #                  linestyle="none")
 
-        if klimits:
-            axw.plot(wave_lim[:, 0], vel_klimW, linestyle=":",
-                     color='#000000', label='kmax')
-            axw.plot(wave_lim[:, 1], vel_klimW, linestyle="-",
-                     color='#000000', label='kmax/2')
-            axw.plot(wave_lim[:, 2], vel_klimW,
-                     linestyle="--", color='#000000', label='kmin')
-            axw.plot(wave_lim[:, 3], vel_klimW, linestyle="-.",
-                     color='#000000', label='kmin/2')
+    #     if klimits:
+    #         axw.plot(wave_lim[:, 0], vel_klimW, linestyle=":",
+    #                  color='#000000', label='kmax')
+    #         axw.plot(wave_lim[:, 1], vel_klimW, linestyle="-",
+    #                  color='#000000', label='kmax/2')
+    #         axw.plot(wave_lim[:, 2], vel_klimW,
+    #                  linestyle="--", color='#000000', label='kmin')
+    #         axw.plot(wave_lim[:, 3], vel_klimW, linestyle="-.",
+    #                  color='#000000', label='kmin/2')
 
-        # handles, labels = axw.get_legend_handles_labels()
-        # axw.legend(handles, labels, loc='upper left')
-        axw.legend(loc="upper left")
-        axw.set_xlabel("Wavelength (m)", fontsize=fsize, fontname="arial")
-        axw.set_xscale(xscaletype)
-        # axw.set_xticklabels(axw.get_xticks(), fontsize=fsize, fontname="arial")
-        # axw.set_yticklabels(axw.get_yticks(), fontsize=fsize, fontname="arial")
-        axw.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
-        cfig.show()
-        axf.set_autoscale_on(False)
-        axw.set_autoscale_on(False)
-        return cfig
+    #     # handles, labels = axw.get_legend_handles_labels()
+    #     # axw.legend(handles, labels, loc='upper left')
+    #     axw.legend(loc="upper left")
+    #     axw.set_xlabel("Wavelength (m)", fontsize=fsize, fontname="arial")
+    #     axw.set_xscale(xscaletype)
+    #     # axw.set_xticklabels(axw.get_xticks(), fontsize=fsize, fontname="arial")
+    #     # axw.set_yticklabels(axw.get_yticks(), fontsize=fsize, fontname="arial")
+    #     axw.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
+    #     cfig.show()
+    #     axf.set_autoscale_on(False)
+    #     axw.set_autoscale_on(False)
+    #     return cfig
 
     # @staticmethod
     # def rmv_dc_points(frequency, velocity, wavelength, offset, cfig, extras=None):
@@ -578,7 +635,6 @@ class PeaksSuite():
     #     axw.plot(wrmv, vrmv,
     #                 marker="x", color="k", markersize=5, linestyle="none")
     #     fig.canvas.draw_idle()
-
 
     # TODO (jpv) : Broken b/c mean_disp
     # def write_stat_swprepost(self, fname):

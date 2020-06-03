@@ -13,7 +13,6 @@ from matplotlib.widgets import Cursor
 from swprocess import plot_tools
 from swprocess.regex import *
 
-_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
 logger = logging.getLogger(__name__)
 
 
@@ -69,10 +68,12 @@ class Peaks():
 
     @property
     def wavelength(self):
-        wav = []
-        for frq, vel in zip(self.frequency, self.velocity):
-            wav.append(vel/frq)
-        return wave
+        return self.velocity/self.frequency
+    
+    @property
+    def extended_attrs(self):
+        others = ["wavelength", "slowness"]
+        return self.attrs + others
 
     @property
     def slowness(self):
@@ -203,10 +204,42 @@ class Peaks():
             raise ValueError(msg)
 
         args = (frqs, vels, identifier)
-        kwargs = dict(azi=azis, ell=ells, noi=nois, pwr=pwrs, tim=tims)
+        kwargs = dict(azimuth=azis, ellipticity=ells,
+                      noise=nois, power=pwrs, time=tims)
         return cls(*args, **kwargs)
 
-    def plot(self, xtype="frequency", ax=None):
+    def _plot(self, xtype, ytype, ax, plot_kwargs=None, ax_kwargs=None):
+        """Plot requested `Peaks` data to provided `Axes`."""
+        for _type, value in zip(["xtype", "ytype"], [xtype, ytype]):
+            if value not in self.extended_attrs:
+                msg = f"{_type} = {value} is not an attribute. Attributes are: {self.attrs}"
+                raise ValueError(msg)
+
+        default_plot_kwargs = dict(linestyle="", marker="o", color="b",
+                                   markerfacecolor="none", label=self.ids)
+        plot_kwargs = {} if plot_kwargs is None else plot_kwargs
+        plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
+
+        pot_ax_kwargs = {"frequency": {"set_xlabel": "Frequency (Hz)",
+                                       "set_xscale": "log"},
+                         "wavelength": {"set_xlabel": "Wavelength (m)",
+                                        "set_xscale": "log"},
+                         "velocity": {"set_ylabel": "Velocity (m/s)",
+                                      "set_yscale": "linear"},
+                         "slowness": {"set_ylabel": "Slowness (s/m)",
+                                      "set_yscale": "log"}
+                         }
+        ax_kwargs = {} if ax_kwargs is None else ax_kwargs
+        ax_kwargs = {**pot_ax_kwargs.get(xtype, {}),
+                     **pot_ax_kwargs.get(ytype, {}),
+                     **ax_kwargs}
+
+        ax.plot(getattr(self, xtype), getattr(self, ytype), **plot_kwargs)
+        for key, value in ax_kwargs.items():
+            getattr(ax, key)(value)
+
+    def plot(self, xtype="frequency", ytype="velocity", ax=None,
+             plot_kwargs=None, ax_kwargs=None):
         """Create plot of dispersion data.
 
         Parameters
@@ -214,10 +247,16 @@ class Peaks():
         xtype : {'frequency', 'wavelength'}, optional
             Denote whether the x-axis should be either `frequency` or
             `wavelength`, default is `frequency`.
-        ytype : {'velocity', 'slowness', '}
+        ytype : {'velocity', 'slowness'}, optional
+            Denote whether the y-axis should be either `velocity` or
+            `slowness`, default is `velocity`.
         ax : Axes, optional
             Pass an `Axes` on which to plot, default is `None` meaning
             a `Axes` will be generated on-the-fly.
+        plot_kwargs : dict, optional
+            Optional keyword arguements to pass to plot.
+        ax_kwargs : dict, optional
+            Optional keyword arguements to control plotting `Axes`.
 
         Returns
         -------
@@ -227,44 +266,55 @@ class Peaks():
             the axes handle.
 
         """
-        ax_was_none = False
-        if ax is None:
-            ax_was_none = True
-            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 3), dpi=150)
-
-        if xtype.lower() == "wavelength":
-            x = self.wavelength
-            xlabel = "Wavelength (m)"
-        elif xtype.lower() == "frequency":
-            x = self.frequency
-            xlabel = "Frequency (Hz)"
-        else:
-            raise ValueError(f"xtype = {xtype}, not recognized.")
-
-        for x, v, color, label in zip(x, self.vel, _colors, self.ids):
-            ax.plot(x, v, color=color, linestyle="none",
-                    marker="o", markerfacecolor="none", label=label)
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel("Phase Velocity (m/s)")
-        ax.set_xscale("log")
-        ax.legend()
+        values = self._check_plot(xtype, ytype, ax, plot_kwargs, ax_kwargs)
+        xtype, ytype, plot_kwargs, ax_kwargs, ax_was_none = values
 
         if ax_was_none:
+            ncols = len(xtype)
+            fig, ax = plt.subplots(nrows=1, ncols=ncols,
+                                   figsize=(3*ncols, 3), dpi=150)
+            if ncols == 1:
+                ax = [ax]
+
+        for _ax, _xtype, _ytype, _plot_kwargs, _ax_kwargs in zip(ax, xtype, ytype, plot_kwargs, ax_kwargs):
+            self._plot(xtype=_xtype, ytype=_ytype, ax=_ax,
+                       plot_kwargs=_plot_kwargs, ax_kwargs=_ax_kwargs)
+        _ax.legend()
+
+        if ax_was_none:
+            fig.tight_layout()
             return (fig, ax)
 
-    def plot_2pannel(self):
-        fig, (axf, axw) = plt.subplots(nrows=1, ncols=2, figsize=(10, 4.5))
-        for f, v, i, color in zip(self.frequency, self.velocity, self.ids, _colors):
-            axf.plot(f, v, color=color, linestyle="none",
-                     marker="o", markerfacecolor="none", label=i)
-            axw.plot(v/f, v, color=color, linestyle="none",
-                     marker="o", markerfacecolor="none")
-        axf.set_xlabel("Frequency (Hz)")
-        axw.set_xlabel("Wavelength (m)")
-        axf.set_ylabel("Phase Velocity (m/s)")
-        axw.set_ylabel("Phase Velocity (m/s)")
-        axw.set_xscale("log")
-        return (fig, axf, axw)
+    @staticmethod
+    def _check_plot(xtype, ytype, ax, plot_kwargs, ax_kwargs):
+        if isinstance(xtype, str):
+            xtype = [xtype]
+        if isinstance(ytype, str):
+            ytype = [ytype]
+        ncols = len(xtype)
+
+        plot_kwargs = Peaks._check_kwargs(plot_kwargs, ncols)
+        ax_kwargs = Peaks._check_kwargs(ax_kwargs, ncols)
+
+        if ax is None:
+            ax_was_none = True
+        else:
+            ax_was_none = False
+            if len(xtype) != len(ax):
+                msg = f"len(xtype) must equal len(ax), {len(xtype)} != {len(ax)}"
+                raise ValueError(msg)
+
+        return (xtype, ytype, plot_kwargs, ax_kwargs, ax_was_none)
+
+    @staticmethod
+    def _check_kwargs(kwargs, ncols):
+        if kwargs is None or isinstance(kwargs, dict):
+            return [kwargs]*ncols
+        elif isinstance(kwargs, list) and len(kwargs) == ncols:
+            return kwargs
+        else:
+            msg = f"`kwargs` must be `None` or `dict`, not {type(kwargs)}."
+            raise TypeError(msg)
 
     def blitz(self, attr, limits):
         """Reject peaks outside the stated boundary.
@@ -283,7 +333,7 @@ class Peaks():
             reject all values below `5`.
 
         Returns
-        -------        
+        -------
         None
             Instead updates the `Peaks` object's state.
 
@@ -322,7 +372,7 @@ class Peaks():
             boundaries.
 
         Returns
-        -------        
+        -------
         None
             Instead updates the `Peaks` object's state.
 
@@ -335,7 +385,6 @@ class Peaks():
 
         reject_ids = self._reject_inside_ids(xs, x_min, x_max,
                                              ys, y_min, y_max)
-
         self._reject(reject_ids)
 
     @staticmethod
@@ -365,7 +414,7 @@ class Peaks():
         append : bool, optional
             Controls whether `fname` (if it exists) should be appended
             to or overwritten, default is `False` indicating `fname`
-            will be overwritten. 
+            will be overwritten.
 
         Returns
         -------
@@ -388,7 +437,6 @@ class Peaks():
                 existing_data[self.ids] = data
                 with open(fname, "w") as f:
                     json.dump(data_to_update, f)
-
         else:
             data = {self.ids: data}
             with open(fname, "w") as f:
