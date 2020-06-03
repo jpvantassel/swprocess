@@ -347,7 +347,8 @@ class Array1D():
         Returns
         -------
         Tuple
-            Of the form (distance, picked_time) 
+            Of the form (distance, picked_time)
+
         """
         if waterfall_kwargs is None:
             waterfall_kwargs = {}

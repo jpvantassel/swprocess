@@ -106,5 +106,84 @@ class Test_PeaksSuite(TestCase):
         self.assertEqual(expected, returned)
 
 
+    # # def test_partytime_real(self):
+    # #     lov = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/mm/test_hfk_ds_full.max",
+    # #                                     identifiers="test_lov",
+    # #                                     rayleigh=False,
+    # #                                     love=True)
+    # #     lov.party_time(settings_file=self.full_path + "settings/test_ptimesettings.json")
+
+    # #     ray = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/mm/test_hfk_ds_full.max",
+    # #                                     identifiers="test_ray",
+    # #                                     rayleigh=True,
+    # #                                     love=False)
+    # #     ray.party_time(settings_file=self.full_path + "settings/test_ptimesettings.json")
+
+    # # def test_partytime_fake(self):
+    # #     # Standard With Extras (Remove Center Point [3,150])
+    # #     frq = [1, 5, 5, 1, 3]
+    # #     vel = [100, 100, 200, 200, 150]
+    # #     ell = [5, 5, 5, 5, 10]
+    # #     ids = "Failure is always an option"
+    # #     peak = swprocess.Peaks(frequency=frq,
+    # #                            velocity=vel,
+    # #                            identifier=ids,
+    # #                            ell=ell)
+    # #     peak.party_time(settings_file=self.full_path + "settings/test_ptimesettings_fake.json")
+    # #     self.assertListEqual(peak.frequency[0].tolist(), frq[:-1])
+    # #     self.assertListEqual(peak.velocity[0].tolist(), vel[:-1])
+    # #     self.assertListEqual(peak.ext["ell"][0].tolist(), ell[:-1])
+
+    # def test_compute_dc_stats(self):
+    #     # Two bins, arrayweights=1
+    #     frq = [np.array([2.25, 2.75, 4.25, 4.75])]
+    #     vel = [np.array([100, 120, 115, 120])]
+    #     for arrayweight in [[1], None]:
+    #         mdisp = swprocess.Peaks.compute_dc_stats(frq,
+    #                                                  vel,
+    #                                                  minp=1,
+    #                                                  maxp=5,
+    #                                                  numbins=2,
+    #                                                  binscale="linear",
+    #                                                  bintype="frequency",
+    #                                                  arrayweights=arrayweight)
+    #         self.assertListEqual(mdisp["mean"]["frq"].tolist(), [2.5, 4.5])
+    #         self.assertListEqual(mdisp["mean"]["vel"].tolist(), [110., 117.5])
+
+    #         for test, known in zip(mdisp["mean"]["slo"].tolist(), [0.009166667, 0.008514493]):
+    #             self.assertAlmostEqual(test, known)
+    #         for test, known in zip(mdisp["mean"]["wav"].tolist(), [44.04040404, 26.16099071]):
+    #             self.assertAlmostEqual(test, known)
+    #         for test, known in zip(mdisp["std"]["vel"].tolist(), [14.14213562, 3.535533906]):
+    #             self.assertAlmostEqual(test, known)
+    #         for test, known in zip(mdisp["std"]["slo"].tolist(), [0.001178511, 0.000256198]):
+    #             self.assertAlmostEqual(test, known)
+
+    #     # Two bins, two arrays of different weight
+    #     frq = [np.array([2.3, 2.8, 4.2, 4.7]), np.array([2.6, 2.4, 4.5, 4.5])]
+    #     vel = [np.array([100, 120, 115, 120]), np.array([110, 150, 100, 100])]
+    #     mdisp = swprocess.Peaks.compute_dc_stats(frq,
+    #                                              vel,
+    #                                              minp=1,
+    #                                              maxp=5,
+    #                                              numbins=2,
+    #                                              binscale="linear",
+    #                                              bintype="frequency",
+    #                                              arrayweights=[1, 2])
+
+    #     for test, known in zip(mdisp["mean"]["frq"].tolist(), [2.516666667, 4.483333333]):
+    #         self.assertAlmostEqual(test, known)
+    #     for test, known in zip(mdisp["mean"]["vel"].tolist(), [123.3333333, 105.8333333]):
+    #         self.assertAlmostEqual(test, known)
+    #     for test, known in zip(mdisp["mean"]["slo"].tolist(), [0.008308081, 0.009504831]):
+    #         self.assertAlmostEqual(test, known)
+    #     for test, known in zip(mdisp["mean"]["wav"].tolist(), [49.32513139, 23.63362603]):
+    #         self.assertAlmostEqual(test, known)
+    #     for test, known in zip(mdisp["std"]["vel"].tolist(), [22.7710017, 9.670497325]):
+    #         self.assertAlmostEqual(test, known)
+    #     for test, known in zip(mdisp["std"]["slo"].tolist(), [0.001451233, 0.000817577]):
+    #         self.assertAlmostEqual(test, known)
+
+
 if __name__ == "__main__":
     unittest.main()
