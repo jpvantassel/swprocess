@@ -108,42 +108,36 @@ class Test_Peaks(TestCase):
 
     def test_from_max(self):
         # Check rayleigh (2 lines)
-        ray = swprocess.Peaks.from_max(fname=self.full_path + "data/mm/test_hfk_line2_0.max",
-                                       identifier="test_short_rayleigh",
-                                       rayleigh=True,
-                                       love=False)
-        self.assertArrayEqual(ray.frequency, np.array([20.000000000000106581,
-                                                       19.282217609815102577]))
-        self.assertArrayEqual(ray.velocity, 1/np.array([0.0068859013683322750979,
-                                                        0.0074117944332218188563]))
-        self.assertArrayEqual(ray.azimuth, np.array([144.53791572557310019,
-                                                     143.1083743693494057]))
-        self.assertArrayEqual(ray.ellipticity, np.array([1.0214647665926679387,
-                                                         1.022287917081338593]))
-        self.assertArrayEqual(ray.noise, np.array([8.9773778053801098764,
-                                                   7.3044365524672443257]))
-        self.assertArrayEqual(ray.power, np.array([2092111.2367646128405,
-                                                   2074967.9391639579553]))
-        self.assertArrayEqual(ray.time, np.array([16200,
-                                                  16200]))
+        fname = self.full_path + "data/mm/test_hfk_line2_0.max"
+        peaks = swprocess.Peaks.from_max(fname=fname, wavetype="rayleigh")
+        self.assertArrayEqual(peaks.frequency, np.array([20.000000000000106581,
+                                                         19.282217609815102577]))
+        self.assertArrayEqual(peaks.velocity, 1/np.array([0.0068859013683322750979,
+                                                          0.0074117944332218188563]))
+        self.assertArrayEqual(peaks.azimuth, np.array([144.53791572557310019,
+                                                       143.1083743693494057]))
+        self.assertArrayEqual(peaks.ellipticity, np.array([1.0214647665926679387,
+                                                           1.022287917081338593]))
+        self.assertArrayEqual(peaks.noise, np.array([8.9773778053801098764,
+                                                     7.3044365524672443257]))
+        self.assertArrayEqual(peaks.power, np.array([2092111.2367646128405,
+                                                     2074967.9391639579553]))
+        self.assertEqual("16200", peaks.ids)
 
         # Check love (2 lines)
-        lov = swprocess.Peaks.from_max(fname=self.full_path+"data/mm/test_hfk_line2_0.max",
-                                       identifier="test_short_love",
-                                       rayleigh=False,
-                                       love=True)
-        self.assertArrayEqual(lov.frequency, np.array([20.000000000000106581,
-                                                       19.282217609815102577]))
-        self.assertArrayEqual(lov.velocity, np.array([1/0.0088200863560403078983,
-                                                      1/0.0089530611050798007688]))
-        self.assertArrayEqual(lov.azimuth, np.array([252.05441718438927978,
-                                                     99.345595852002077208]))
-        self.assertArrayEqual(lov.ellipticity, np.array([0, 0]))
-        self.assertArrayEqual(lov.noise, np.array([0, 0]))
-        self.assertArrayEqual(lov.power, np.array([3832630.8840260845609,
-                                                   4039408.6602126094513]))
-        self.assertArrayEqual(ray.time, np.array([16200,
-                                                  16200]))
+        fname = self.full_path+"data/mm/test_hfk_line2_0.max"
+        peaks = swprocess.Peaks.from_max(fname=fname, wavetype="love")
+        self.assertArrayEqual(peaks.frequency, np.array([20.000000000000106581,
+                                                         19.282217609815102577]))
+        self.assertArrayEqual(peaks.velocity, np.array([1/0.0088200863560403078983,
+                                                        1/0.0089530611050798007688]))
+        self.assertArrayEqual(peaks.azimuth, np.array([252.05441718438927978,
+                                                       99.345595852002077208]))
+        self.assertArrayEqual(peaks.ellipticity, np.array([0, 0]))
+        self.assertArrayEqual(peaks.noise, np.array([0, 0]))
+        self.assertArrayEqual(peaks.power, np.array([3832630.8840260845609,
+                                                     4039408.6602126094513]))
+        self.assertEqual("16200", peaks.ids)
 
     def test_reject(self):
         xs = np.array([1, 2, 4, 5, 1, 2, 6, 4, 9, 4])
@@ -241,14 +235,14 @@ class Test_Peaks(TestCase):
         for attr, value in attrs.items():
             self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
 
-    def test_plot(self):
-        import matplotlib.pyplot as plt
-        fname = self.full_path + "data/mm/test_hfk_full.max"
-        peaks = swprocess.Peaks.from_max(fname)
-        fig, ax = peaks.plot(xtype=["frequency", "wavelength", "azimuth"],
-                             ytype=["velocity", "velocity", "velocity"],
-                             plot_kwargs=dict(color="g"))
-        plt.close()
+    # def test_plot(self):
+    #     import matplotlib.pyplot as plt
+    #     fname = self.full_path + "data/mm/test_hfk_full.max"
+    #     peaks = swprocess.Peaks.from_max(fname)
+    #     fig, ax = peaks.plot(xtype=["frequency", "wavelength", "azimuth"],
+    #                          ytype=["velocity", "velocity", "velocity"],
+    #                          plot_kwargs=dict(color="g"))
+    #     plt.close()
 
 
 if __name__ == "__main__":

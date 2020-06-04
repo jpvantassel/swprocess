@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
 from swprocess import Peaks
+from swprocess.regex import get_all
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ class PeaksSuite():
         ----------
         dicts : list of dict or dict
             List of `dict` or a single `dict` containing dispersion
-            data. 
+            data.
 
         Returns
         -------
@@ -116,17 +117,22 @@ class PeaksSuite():
         return cls.from_dicts(dicts)
 
     @classmethod
-    def from_maxs(cls, fnames, identifiers, rayleigh=True, love=False):
-
-        if len(fnames) != len(identifiers):
-            msg = f"len(fnames) must equal len(identifiers), {len(fnames)} != {len(identifiers)}"
-            ValueError(msg)
-
+    def from_maxs(cls, fnames, wavetype="rayleigh"):
         iterable = []
-        for fname, identifier in zip(fnames, identifiers):
-            peaks = Peaks.from_max(
-                fname, identifier=identifier, rayleigh=rayleigh, love=love)
-            iterable.append(peaks)
+        for fname in fnames:
+            with open(fname, "r") as f:
+                peak_data = f.read()
+
+            regex = get_all(time="(\d+\.?\d*)", wavetype=wavetype)
+            found_times = []
+            for found in regex.finditer(peak_data):
+                start_time = found.groups()[0]
+                if start_time in found_times:
+                    continue
+                found_times.append(start_time)
+                peak = Peaks._parse_peaks(peak_data, wavetype=wavetype,
+                                          start_time=start_time)
+                iterable.append(peak)
 
         return cls.from_iter(iterable)
 
@@ -284,7 +290,7 @@ class PeaksSuite():
             stat_settings = {key: stat_settings[key] for key in keys}
 
             for stat_ax_index, (_xtype, _ytype) in enumerate(zip(xtype, ytype)):
-                if _xtype == stat_settings["xtype"] and  _ytype == stat_settings["ytype"]:
+                if _xtype == stat_settings["xtype"] and _ytype == stat_settings["ytype"]:
                     break
             else:
                 msg = f"Can only calculate statistics on a displayed domain."
@@ -420,7 +426,8 @@ class PeaksSuite():
         for index, column in enumerate(data_matrix.T):
             if np.isnan(column).any():
                 drop_cols.append(index)
-        data_matrix = np.delete(data_matrix, np.array(drop_cols, dtype=int), axis=1)
+        data_matrix = np.delete(data_matrix, np.array(
+            drop_cols, dtype=int), axis=1)
 
         return (xx, data_matrix)
 

@@ -1,7 +1,6 @@
 """Peaks class definition."""
 
 import json
-import re
 import warnings
 import logging
 
@@ -11,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
 from swprocess import plot_tools
-from swprocess.regex import *
+from swprocess.regex import get_peak_from_max, get_all
 
 logger = logging.getLogger(__name__)
 
@@ -136,22 +135,51 @@ class Peaks():
         raise DeprecationWarning(msg)
 
     @classmethod
-    def from_max(cls, fname, identifier="0", rayleigh=True, love=False):
+    def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None):
+        """Parse data for given time_block."""
+        if start_time is None:
+            regex = get_peak_from_max(time=None, wavetype=wavetype)
+            start_time, *_ = regex.search(peak_data).groups()
+
+        getpeak = get_peak_from_max(time=start_time, wavetype=wavetype)
+
+        frqs, vels, azis, ells, nois, pwrs = [], [], [], [], [], []
+        for lineinfo in getpeak.finditer(peak_data):
+            _frq, _slo, _azi, _ell, _noi, _pwr = lineinfo.groups()
+
+            frqs.append(float(_frq))
+            vels.append(1/float(_slo))
+            azis.append(float(_azi))
+            ells.append(float(_ell))
+            nois.append(float(_noi))
+            pwrs.append(float(_pwr))
+
+        # Check got everything
+        getall = get_all(start_time, wavetype)
+        count = len(getall.findall(peak_data))
+        if len(frqs) != count:
+            msg = f"Missing {count- len(frqs)} dispersion peaks."
+            raise ValueError(msg)
+
+        args = (frqs, vels, start_time)
+        kwargs = dict(azimuth=azis, ellipticity=ells, noise=nois, power=pwrs)
+        return cls(*args, **kwargs)
+
+    @classmethod
+    def from_max(cls, fname, wavetype="rayleigh"):
         """Initialize `Peaks` from `.max` file(s).
+
+        If the results from multiple time-windows are in the same file,
+        as is most often the case, this method ignores all but the
+        first instance found.
 
         Parameters
         ----------
         fnames : str
             Denotes the filename(s) for the .max file, may include a
             relative or the full path.
-        identifier : str
-            Uniquely identifying the dispersion data from each file.
-        rayleigh : bool, optional
-            Denote if Rayleigh data should be extracted, default is
-            `True`.
-        love : bool, optional
-            Denote if Love data should be extracted, default is
-            `False`.
+        wavetype : {'rayleigh','love'}, optional
+            Wavetype to extract from file, default is 'rayleigh'.
 
         Returns
         -------
@@ -165,41 +193,14 @@ class Peaks():
             `True`.
 
         """
-        if not isinstance(rayleigh, bool) and not isinstance(love, bool):
-            msg = f"`rayleigh` and `love` must both be of type `bool`, not {type(rayleigh)} and {type(love)}."
-            raise TypeError(msg)
-        if rayleigh == True and love == True:
-            raise ValueError("`rayleigh` and `love` cannot both be `True`.")
-        if rayleigh == False and love == False:
-            raise ValueError("`rayleigh` and `love` cannot both be `False`.")
-
-        with open(fname, "r") as f:
-            lines = f.read()
-
-        getpeak = getpeak_rayleigh if rayleigh else getpeak_love
-
-        tims, frqs, vels, azis, ells, nois, pwrs = [], [], [], [], [], [], []
-        for lineinfo in getpeak.finditer(lines):
-            _tim, _frq, _slo, _azi, _ell, _noi, _pwr = lineinfo.groups()
-
-            tims.append(float(_tim))
-            frqs.append(float(_frq))
-            vels.append(1/float(_slo))
-            azis.append(float(_azi))
-            ells.append(float(_ell))
-            nois.append(float(_noi))
-            pwrs.append(float(_pwr))
-
-        # Check got everything
-        getall = getall_rayleigh if rayleigh else getall_love
-        if len(tims) != len(getall.findall(lines)):
-            msg = f"Missing {len(getall.findall(lines)) - len(times)} dispersion peaks."
+        if wavetype not in ["rayleigh", "love"]:
+            msg = f"wavetype must be 'rayleigh' or 'love', not {wavetype}"
             raise ValueError(msg)
 
-        args = (frqs, vels, identifier)
-        kwargs = dict(azimuth=azis, ellipticity=ells,
-                      noise=nois, power=pwrs, time=tims)
-        return cls(*args, **kwargs)
+        with open(fname, "r") as f:
+            peak_data = f.read()
+
+        return cls._parse_peaks(peak_data, wavetype=wavetype, start_time=None)
 
     def _plot(self, xtype, ytype, ax, plot_kwargs=None, ax_kwargs=None):
         """Plot requested `Peaks` data to provided `Axes`."""
@@ -457,6 +458,7 @@ class Peaks():
 
         # Check iterable attributes
         for attr in self.attrs:
+
             try:
                 myattr = getattr(self, attr)
                 urattr = getattr(other, attr)
