@@ -4,6 +4,7 @@ import json
 import warnings
 import logging
 
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
@@ -13,6 +14,7 @@ from swprocess import Peaks
 logger = logging.getLogger(__name__)
 
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
+
 
 class PeaksSuite():
 
@@ -167,7 +169,23 @@ class PeaksSuite():
         """
         for peak in self.peaks:
             peak.reject(xtype, xlims, ytype, ylims)
-    
+
+    def reject_ids(self, xtype, xlims, ytype, ylims):
+        """Reject peaks inside the stated boundary.
+
+        TODO (jpv): Refence Peaks.reject for more information.
+
+        """
+        rejection = []
+        for peak in self.peaks:
+            rejection.append(peak.reject_ids(xtype, xlims, ytype, ylims))
+        return rejection
+
+    def _reject(self, reject_ids):
+        for _peak, _reject_ids in zip(self.peaks, reject_ids):
+            print(_reject_ids)
+            _peak._reject(_reject_ids)
+
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
              plot_kwargs=None, ax_kwargs=None):
         """Create plot of dispersion data.
@@ -196,7 +214,7 @@ class PeaksSuite():
             fig, ax = result
         else:
             ax_was_none = False
-            
+
         if len(self.peaks) > 1:
             for index, peak in enumerate(self.peaks[1:], 1):
                 _plot_kwargs = self._prepare_kwargs(plot_kwargs, index)
@@ -205,6 +223,27 @@ class PeaksSuite():
 
         if ax_was_none:
             return (fig, ax)
+
+    def plot_subset(self, ax, xtype, ytype, indices, plot_kwargs=None):
+        if isinstance(xtype, str):
+            ax = [ax]
+            xtype = [xtype]
+            ytype = [ytype]
+            indices = [indices]
+        elif len(ax) != len(xtype) or len(ax) != len(ytype):
+            msg = f"`ax`, `xtype`, and `ytype` must all be the same size, not {len(ax)}, {len(xtype)}, {len(ytype)}s."
+            raise IndexError(msg)
+
+        default_plot_kwargs = dict(linestyle="", marker="x", color="k",
+                                   markerfacecolor="none", label=None)
+        plot_kwargs = {} if plot_kwargs is None else plot_kwargs
+        plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
+
+        for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
+            for _peaks, _indices in zip(self.peaks, indices):
+                _ax.plot(getattr(_peaks, _xtype)[_indices],
+                         getattr(_peaks, _ytype)[_indices],
+                         **plot_kwargs)
 
     @staticmethod
     def _prepare_kwargs(kwargs, index):
@@ -216,7 +255,7 @@ class PeaksSuite():
             #     new_kwargs[key] = value[0]
             else:
                 new_kwargs[key] = value[index]
-        return new_kwargs        
+        return new_kwargs
 
     def interactive_trimming(self, settings_file):
         with open(settings_file, "r") as f:
@@ -229,9 +268,12 @@ class PeaksSuite():
         ytype = [pair[1] for pair in settings["domains"]]
 
         fig, ax = self.plot(xtype, ytype)
+        for _ax in ax:
+            _ax.autoscale(False)
         fig.show()
 
         _continue = 1
+        master_indices = [np.array([]) for _ in self.peaks]
         while _continue:
             # self.mean_disp = self.compute_dc_stats(self.frq,
             #                                        self.vel,
@@ -240,57 +282,42 @@ class PeaksSuite():
             #                                        numbins=settings["nbins"],
             #                                        binscale=settings["binscale"],
             #                                        bintype=settings["bintype"])
-            # fig = self.plot_dc_for_rmv(,
-            #                            self.vel,
-            #                            self.mean_disp,
-            #                            self.ids,
-            #                            klimits=klimits)
-            
+
             (xlims, ylims, axclicked) = self._draw_box(fig)
 
-            print(xtype[axclicked], xlims)
-            print(ytype[axclicked], ylims)
+            rejection_ids = self.reject_ids(xtype[axclicked], xlims,
+                                            ytype[axclicked], ylims)
+            rejection_count = 0
+            for _rejection_id in rejection_ids:
+                rejection_count += _rejection_id.size
+            logging.debug(f"\trejection_count = {rejection_count}")
 
-            self.reject(xtype[axclicked], xlims,  ytype[axclicked], ylims)
+            if rejection_count > 0:
+                self.plot_subset(ax, xtype, ytype, rejection_ids)
 
-            for _ax in ax:
-                _ax.clear()
+                master_indices = [np.union1d(master, slave) for master, slave in zip(master_indices, rejection_ids)]
+            else:
+                while True:
+                    msg = "Enter 1 to continue, 0 to quit, 2 to undo): "
+                    _continue = input(msg)
+                    if _continue not in ["0", "1", "2"]:
+                        warnings.warn(f"Entry {_continue}, is not recognized.")
+                        continue
+                    else:
+                        _continue = int(_continue)
 
-            self.plot(xtype, ytype, ax=ax)
+                        if _continue in [0, 1]:
+                            self._reject(master_indices)
+                            master_indices = [np.array([]) for _ in self.peaks]
 
-            
-            # self.rmv_dc_points(self.frq,
-            #                    self.vel,
-            #                    self.wav,
-            #                    self.ids,
-            #                    cfig,
-            #                    extras=self.ext)
+                        for _ax in ax:
+                            _ax.clear()
+                        self.plot(xtype, ytype, ax=ax)
 
-        # If all data is removed for a given offset, delete corresponding entries
-        # (Only delete entries for one offset at a time because indices change after
-        # deletion. Continue while loop as long as emty entries are encountered).
-            # prs = True
-            # while prs:
-            #     n_empty = 0
-            #     for k in range(len(self.frq)):
-            #         if len(self.frq[k]) == 0:
-            #             del self.frq[k]
-            #             del self.vel[k]
-            #             del self.ids[k]
-            #             n_empty += 1
-            #             break
-            #     if n_empty == 0:
-            #         prs = False
+                        for _ax in ax:
+                            _ax.autoscale(False)
+                        break
 
-            while True:
-                _continue = input("Enter 1 to continue, 0 to quit: ")
-                if _continue not in ["0", "1"]:
-                    warnings.warn(f"Entry {_continue}, is not recognized.")
-                    continue
-                else:
-                    _continue = int(_continue)
-                    break
-    
     # Reference for weighted mean and standard deviation
     # https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/weightsd.pdf
 

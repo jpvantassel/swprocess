@@ -69,7 +69,7 @@ class Peaks():
     @property
     def wavelength(self):
         return self.velocity/self.frequency
-    
+
     @property
     def extended_attrs(self):
         others = ["wavelength", "slowness"]
@@ -217,6 +217,8 @@ class Peaks():
         plot_kwargs = {} if plot_kwargs is None else plot_kwargs
         plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
 
+        # TODO (jpv): I don't need this information here, this get run
+        # on each loop iteration.
         pot_ax_kwargs = {"frequency": {"set_xlabel": "Frequency (Hz)",
                                        "set_xscale": "log"},
                          "wavelength": {"set_xlabel": "Wavelength (m)",
@@ -374,15 +376,18 @@ class Peaks():
             Instead updates the `Peaks` object's state.
 
         """
+        reject_ids = self.reject_ids(xtype, xlims, ytype, ylims)
+        self._reject(reject_ids)
+
+    def reject_ids(self, xtype, xlims, ytype, ylims):
         xs = getattr(self, xtype)
         x_min, x_max = min(xlims), max(xlims)
 
         ys = getattr(self, ytype)
         y_min, y_max = min(ylims), max(ylims)
 
-        reject_ids = self._reject_inside_ids(xs, x_min, x_max,
-                                             ys, y_min, y_max)
-        self._reject(reject_ids)
+        return self._reject_inside_ids(xs, x_min, x_max,
+                                       ys, y_min, y_max)
 
     @staticmethod
     def _reject_inside_ids(d1, d1_min, d1_max, d2, d2_min, d2_max):
