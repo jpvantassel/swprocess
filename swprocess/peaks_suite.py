@@ -5,6 +5,7 @@ import warnings
 import logging
 
 import numpy as np
+from scipy.interpolate import interp1d
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
@@ -234,10 +235,10 @@ class PeaksSuite():
             msg = f"`ax`, `xtype`, and `ytype` must all be the same size, not {len(ax)}, {len(xtype)}, {len(ytype)}s."
             raise IndexError(msg)
 
-        default_plot_kwargs = dict(linestyle="", marker="x", color="k",
-                                   markerfacecolor="none", label=None)
-        plot_kwargs = {} if plot_kwargs is None else plot_kwargs
-        plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
+        default_plot_kwargs = dict(linestyle="", marker="x", color="#ababab",
+                                   markersize=1, markerfacecolor="none",
+                                   label=None)
+        plot_kwargs = self._merge_kwargs(default_plot_kwargs, plot_kwargs)
 
         for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
             for _peaks, _indices in zip(self.peaks, indices):
@@ -267,6 +268,28 @@ class PeaksSuite():
         xtype = [pair[0] for pair in settings["domains"]]
         ytype = [pair[1] for pair in settings["domains"]]
 
+        stat_settings = settings.get("statistics")
+        if stat_settings is not None:
+            if stat_settings["type"] == "log":
+                stat_settings["xx"] = np.geomspace(stat_settings["start"],
+                                                   stat_settings["stop"],
+                                                   stat_settings["num"])
+            elif stat_settings["type"] == "linear":
+                stat_settings["xx"] = np.linspace(stat_settings["start"],
+                                                  stat_settings["stop"],
+                                                  stat_settings["num"])
+            else:
+                raise NotImplementedError
+            keys = ["xtype", "ytype", "xx"]
+            stat_settings = {key: stat_settings[key] for key in keys}
+
+            for stat_ax_index, (_xtype, _ytype) in enumerate(zip(xtype, ytype)):
+                if _xtype == stat_settings["xtype"] and  _ytype == stat_settings["ytype"]:
+                    break
+            else:
+                msg = f"Can only calculate statistics on a displayed domain."
+                raise ValueError(msg)
+
         fig, ax = self.plot(xtype, ytype)
         for _ax in ax:
             _ax.autoscale(False)
@@ -274,14 +297,13 @@ class PeaksSuite():
 
         _continue = 1
         master_indices = [np.array([]) for _ in self.peaks]
+        err_bar = None
         while _continue:
-            # self.mean_disp = self.compute_dc_stats(self.frq,
-            #                                        self.vel,
-            #                                        minp=settings["minval"],
-            #                                        maxp=settings["maxval"],
-            #                                        numbins=settings["nbins"],
-            #                                        binscale=settings["binscale"],
-            #                                        bintype=settings["bintype"])
+            if stat_settings is not None:
+                if err_bar is not None:
+                    del err_bar
+                statistics = self.statistics(**stat_settings)
+                self.plot_statistics(statistics, ax=ax[stat_ax_index])
 
             (xlims, ylims, axclicked) = self._draw_box(fig)
 
@@ -295,7 +317,8 @@ class PeaksSuite():
             if rejection_count > 0:
                 self.plot_subset(ax, xtype, ytype, rejection_ids)
 
-                master_indices = [np.union1d(master, slave) for master, slave in zip(master_indices, rejection_ids)]
+                master_indices = [np.union1d(master, slave) for master, slave in zip(
+                    master_indices, rejection_ids)]
             else:
                 while True:
                     msg = "Enter 1 to continue, 0 to quit, 2 to undo): "
@@ -317,6 +340,89 @@ class PeaksSuite():
                         for _ax in ax:
                             _ax.autoscale(False)
                         break
+
+    def statistics(self, xx, xtype, ytype, missing_data_procedure="drop"):
+        """Determine the statistiscs of the `PeaksSuite`.
+
+        Parameters
+        ----------
+        xx : ndarray
+        xtype : {"frequency","wavelength"}
+            Axis along which to calculate statistics.
+        ytype : {"velocity", "slowness"}
+            Axis along which to define uncertainty.
+
+        Returns
+        -------
+        tuple
+            Of the form `(points, mean, std, corr)` where `mean` and `std` are
+            the mean and standard deviation at each point and `corr` are
+            the correlation coefficients between every point and all
+            other points.
+
+        """
+        npeaks = len(self.peaks)
+        if npeaks < 3:
+            msg = f"Cannot calculate statistics on fewer than 3 `Peaks`."
+            raise ValueError(msg)
+
+        data_matrix = np.empty((len(xx), npeaks))
+
+        for col, _peaks in enumerate(self.peaks):
+            # TODO (jpv): Allow assume_sorted should improve speed.
+            interpfxn = interp1d(getattr(_peaks, xtype),
+                                 getattr(_peaks, ytype),
+                                 copy=False, bounds_error=False)
+            data_matrix[:, col] = interpfxn(xx)
+
+        if missing_data_procedure == "drop":
+            xx, data_matrix = self._drop(xx, data_matrix)
+        else:
+            NotImplementedError
+
+        mean = np.mean(data_matrix, axis=1)
+        std = np.std(data_matrix, axis=1, ddof=1)
+        corr = np.corrcoef(data_matrix)
+
+        return (xx, mean, std, corr)
+
+    @staticmethod
+    def _merge_kwargs(default, custom):
+        custom = {} if custom is None else custom
+        return {**default, **custom}
+
+    def plot_statistics(self, statistics=None, ax=None, statistics_kwargs=None,
+                        plot_kwargs=None):
+        if ax is None:
+            raise NotImplementedError
+
+        if statistics is None:
+            raise NotImplementedError
+
+        default_plot_kwargs = dict(linestyle="", color="k", label=None,
+                                   marker="o", markerfacecolor="k", markersize=0.5,
+                                   capsize=2, zorder=20)
+        plot_kwargs = self._merge_kwargs(default_plot_kwargs, plot_kwargs)
+        xx, mean, stddev, corr = statistics
+        ax.errorbar(xx, mean, yerr=stddev, **plot_kwargs)
+
+    @staticmethod
+    def _drop(xx, data_matrix):
+        drop_rows = []
+        for index, row in enumerate(data_matrix):
+            if np.isnan(row).all():
+                drop_rows.append(index)
+        drop_rows = np.array(drop_rows, dtype=int)
+        xx = np.delete(xx, drop_rows)
+        data_matrix = np.delete(data_matrix, drop_rows, axis=0)
+
+        drop_cols = []
+        for index, column in enumerate(data_matrix.T):
+            if np.isnan(column).any():
+                drop_cols.append(index)
+        data_matrix = np.delete(data_matrix, np.array(drop_cols, dtype=int), axis=1)
+
+        return (xx, data_matrix)
 
     # Reference for weighted mean and standard deviation
     # https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/weightsd.pdf

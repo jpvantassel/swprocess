@@ -1,9 +1,12 @@
 {
-    "bintype": "frequency",
-    "binscale": "log",
-    "minval": 1,
-    "maxval": 100,
-    "nbins": 128,
+    "statistics": {
+        "xtype": "wavelength",
+        "ytype": "velocity",
+        "type": "log",
+        "start": 3,
+        "stop": 100,
+        "num": 30
+    },
     "domains": [
         [
             "frequency",

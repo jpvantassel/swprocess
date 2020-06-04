@@ -79,10 +79,6 @@ class Peaks():
     def slowness(self):
         return 1/self.velocity
 
-    @property
-    def mean_disp(self, **kwargs):
-        return self.compute_dc_stats(self.frequency, self.velocity, **kwargs)
-
     def from_dicts(self, *args, **kwargs):
         msg = "Peaks.from_dicts has been deprecated, use Peaks.from_dict or PeaksSuite.from_dicts() instead."
         raise DeprecationWarning(msg)
@@ -213,7 +209,8 @@ class Peaks():
                 raise ValueError(msg)
 
         default_plot_kwargs = dict(linestyle="", marker="o", color="b",
-                                   markerfacecolor="none", label=self.ids)
+                                   markersize=1, markerfacecolor="none",
+                                   label=self.ids)
         plot_kwargs = {} if plot_kwargs is None else plot_kwargs
         plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
 

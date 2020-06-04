@@ -114,10 +114,10 @@ class Test_PeaksSuite(TestCase):
     #     fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"], ytype=["velocity", "velocity", "slowness"])
     #     plt.show()
 
-    # def test_plot(self):
-    #     suite = swprocess.PeaksSuite.from_jsons(self.full_path + "data/denise/peaks_raw.json")
-    #     suite.blitz("velocity", (None, 500))
-    #     suite.interactive_trimming(self.full_path + "settings/settings_post.json")
+    def test_plot(self):
+        suite = swprocess.PeaksSuite.from_jsons(self.full_path + "data/denise/peaks_raw.json")
+        suite.blitz("velocity", (None, 500))
+        suite.interactive_trimming(self.full_path + "settings/settings_post.json")
 
     # # def test_partytime_real(self):
     # #     lov = swprocess.Peaks.from_maxs(fnames=self.full_path + "data/mm/test_hfk_ds_full.max",
