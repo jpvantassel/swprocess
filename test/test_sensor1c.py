@@ -41,7 +41,7 @@ class Test_Sensor1C(TestCase):
         # seg2
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            traces = obspy.read(self.full_path+"data/vuws/6.dat")
+            traces = obspy.read(self.full_path+"../examples/sample_data/vuws/6.dat")
         trace = traces[0]
         sensor = Sensor1C.from_trace(trace)
         self.assertArrayEqual(trace.data, sensor.amp)
@@ -70,7 +70,7 @@ class Test_Sensor1C(TestCase):
         self.assertEqual(int(header[nstack_key])+1, sensor.nstacks)
 
         # read_header=False
-        for cpath in ["vuws/11.dat", "denise/v1.2_x.su.shot1"]:
+        for cpath in ["../../examples/sample_data/vuws/11.dat", "denise/v1.2_x.su.shot1"]:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 traces = obspy.read(self.full_path+"data/"+cpath)

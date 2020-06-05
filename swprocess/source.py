@@ -38,3 +38,17 @@ class Source():
     @property
     def z(self):
         return self._z
+
+    def __repr__(self):
+        return f"Source(x={self._x}, y={self._y}, z={self._z})"
+
+    def __eq__(self, other):
+        if not isinstance(other, Source):
+            return False
+
+        for attr in ["x", "y", "z"]:
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+        return True
+
+

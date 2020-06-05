@@ -17,7 +17,8 @@ class Test_Array1D(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.full_path = get_full_path(__file__)
+        cls.full_path = get_full_path(__file__) 
+        cls.vuws_path = cls.full_path + "../examples/sample_data/vuws/"
 
     @staticmethod
     def dummy_array(amp, dt, nstacks, delay, nsensors, spacing, source_x):
@@ -47,7 +48,7 @@ class Test_Array1D(TestCase):
 
     def test_from_files(self):
         # Single File
-        fname = self.full_path + "data/vuws/1.dat"
+        fname = self.vuws_path + "1.dat"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             known = obspy.read(fname)
@@ -56,7 +57,7 @@ class Test_Array1D(TestCase):
                               test.timeseriesmatrix[0, :])
 
         # Multiple Files
-        fnames = [f"{self.full_path}data/vuws/{x}.dat" for x in range(1, 5)]
+        fnames = [f"{self.vuws_path}{x}.dat" for x in range(1, 5)]
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             tmp_stream = obspy.read(fname)
@@ -68,24 +69,28 @@ class Test_Array1D(TestCase):
         returned = swprocess.Array1D.from_files(fnames)[0].amp
         self.assertArrayAlmostEqual(expected, returned, places=2)
 
+        # Multiple Files -> Incompatable sources
+        fnames = [f"{self.vuws_path}{x}.dat" for x in range(1, 10)]
+        self.assertRaises(ValueError, swprocess.Array1D.from_files, fnames)
+
     def test_plot_waterfall(self):
         # Single shot (near-side)
-        fname = self.full_path+"data/vuws/1.dat"
+        fname = self.vuws_path+"1.dat"
         array1 = swprocess.Array1D.from_files(fname)
         array1.waterfall()
 
         # Multiple shots (near-side)
-        fnames = [f"{self.full_path}data/vuws/{x}.dat" for x in range(1, 6)]
+        fnames = [f"{self.vuws_path}{x}.dat" for x in range(1, 6)]
         array2 = swprocess.Array1D.from_files(fnames)
         array2.waterfall()
 
         # Single shot (far-side)
-        fname = self.full_path+"data/vuws/16.dat"
+        fname = self.vuws_path+"16.dat"
         array3 = swprocess.Array1D.from_files(fname)
         array3.waterfall()
 
         # Multiple shots (near-side)
-        fnames = [f"{self.full_path}data/vuws/{x}.dat" for x in range(16, 20)]
+        fnames = [f"{self.vuws_path}{x}.dat" for x in range(16, 20)]
         array4 = swprocess.Array1D.from_files(fnames)
         array4.waterfall()
         plt.close('all')
@@ -93,7 +98,7 @@ class Test_Array1D(TestCase):
 
     def test_plot_array(self):
         # Basic case (near-side, 2m spacing)
-        fname = self.full_path+"data/vuws/1.dat"
+        fname = self.vuws_path+"1.dat"
         swprocess.Array1D.from_files(fname).plot()
 
         # Non-linear spacing
@@ -104,7 +109,7 @@ class Test_Array1D(TestCase):
         array.plot()
 
         # Basic case (far-side, 2m spacing)
-        fname = self.full_path+"data/vuws/20.dat"
+        fname = self.vuws_path+"20.dat"
         swprocess.Array1D.from_files(fname).plot()
         plt.close("all")
         # plt.show()

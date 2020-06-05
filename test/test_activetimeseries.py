@@ -18,6 +18,7 @@ class Test_ActiveTimeSeries(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.full_path = get_full_path(__file__)
+        cls.vuws_path = cls.full_path + "../examples/sample_data/vuws/"
 
     def test_check(self):
         good_nstacks = 1
@@ -73,7 +74,7 @@ class Test_ActiveTimeSeries(TestCase):
     def test_from_trace_seg2(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            trace = obspy.read(self.full_path + "data/vuws/1.dat")[0]
+            trace = obspy.read(self.vuws_path + "1.dat")[0]
         returned = swprocess.ActiveTimeSeries.from_trace_seg2(trace)
         self.assertArrayEqual(trace.data, returned.amp)
         self.assertEqual(trace.stats.delta, returned.dt)
@@ -83,7 +84,7 @@ class Test_ActiveTimeSeries(TestCase):
     def test_from_trace(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            trace = obspy.read(self.full_path + "data/vuws/1.dat")[0]
+            trace = obspy.read(self.vuws_path + "1.dat")[0]
         tseries = swprocess.ActiveTimeSeries.from_trace(trace, delay=-0.5)
         self.assertListEqual(tseries.amp.tolist(), trace.data.tolist())
         self.assertEqual(trace.stats.delta, tseries.dt)

@@ -442,16 +442,17 @@ class Array1D():
         # Define source
         _format = trace.stats._format
         if _format == "SEG2":
-            source = Source(x=float(trace.stats.seg2.SOURCE_LOCATION),
-                            y=0,
-                            z=0)
+            def parse_source(stats):
+                x = float(stats.seg2.SOURCE_LOCATION)
+                return Source(x=x, y=0, z=0)
         elif _format == "SU":
-            source = Source(x=float(trace.stats.su.trace_header["source_coordinate_x"])/1000,
-                            y=float(
-                                trace.stats.su.trace_header["source_coordinate_y"])/1000,
-                            z=0)
+            def parse_source(stats):
+                x = float(stats.su.trace_header["source_coordinate_x"])/1000
+                y = float(stats.su.trace_header["source_coordinate_y"])/1000
+                return Source(x=x, y=y, z=0)
         else:
             raise ValueError(f"_format={_format} not recognized.")
+        source = parse_source(trace.stats)
         obj = cls(sensors, source)
 
         # Stack additional traces, if necessary
@@ -460,6 +461,9 @@ class Array1D():
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     stream = obspy.read(fname)
+                if source != parse_source(stream[0].stats):
+                    msg = f"fname = {fname} has incompatable source."
+                    raise ValueError(msg)
                 for sensor, trace in zip(obj.sensors, stream.traces):
                     new_sensor = Sensor1C.from_trace(trace)
                     sensor.stack_append(new_sensor)
