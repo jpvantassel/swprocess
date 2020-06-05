@@ -9,3 +9,4 @@ build
 dist
 test/htmlcov
 test/.coverage
+examples/active.json

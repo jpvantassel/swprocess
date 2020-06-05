@@ -190,7 +190,6 @@ class PeaksSuite():
 
     def _reject(self, reject_ids):
         for _peak, _reject_ids in zip(self.peaks, reject_ids):
-            print(_reject_ids)
             _peak._reject(_reject_ids)
 
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
@@ -414,20 +413,21 @@ class PeaksSuite():
 
     @staticmethod
     def _drop(xx, data_matrix):
+        drop_cols = []
+        for index, column in enumerate(data_matrix.T):
+            if np.isnan(column).all():
+                drop_cols.append(index)
+        drop_cols =  np.array(drop_cols, dtype=int)
+        data_matrix = np.delete(data_matrix, drop_cols, axis=1)
+
         drop_rows = []
         for index, row in enumerate(data_matrix):
-            if np.isnan(row).all():
+            if np.isnan(row).any():
                 drop_rows.append(index)
         drop_rows = np.array(drop_rows, dtype=int)
         xx = np.delete(xx, drop_rows)
         data_matrix = np.delete(data_matrix, drop_rows, axis=0)
 
-        drop_cols = []
-        for index, column in enumerate(data_matrix.T):
-            if np.isnan(column).any():
-                drop_cols.append(index)
-        data_matrix = np.delete(data_matrix, np.array(
-            drop_cols, dtype=int), axis=1)
 
         return (xx, data_matrix)
 
