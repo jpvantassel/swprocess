@@ -9,7 +9,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
-from swprocess import plot_tools
 from swprocess.regex import get_peak_from_max, get_all
 
 logger = logging.getLogger(__name__)

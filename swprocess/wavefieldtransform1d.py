@@ -171,7 +171,7 @@ class WavefieldTransform1D():
 
             json.dump(data, fp)
 
-    def plot_spectra(self, stype="fv", plot_peak=True, plot_limit=None):
+    def plot_spectra(self, stype="fv", plot_peak=True, plot_limit=None): #pragma: no cover
         if plot_limit != None and len(plot_limit) != 4:
             raise ValueError("plotLim should be a four element list")
 

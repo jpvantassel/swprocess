@@ -61,7 +61,7 @@ class PeaksSuite():
         self._check_input(peaks)
         if peaks.identifier in self.ids:
             msg = f"There already exists a member object with identifiers = {peaks.identifier}."
-            raise ValueError(msg)
+            raise KeyError(msg)
         self.peaks.append(peaks)
         self.ids.append(peaks.identifier)
 
@@ -193,7 +193,7 @@ class PeaksSuite():
             _peak._reject(_reject_ids)
 
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
-             plot_kwargs=None, ax_kwargs=None):
+             plot_kwargs=None, ax_kwargs=None): # pragma: no cover
         """Create plot of dispersion data.
 
         TODO (jpv): Refence Peaks.plot for more information.
@@ -230,7 +230,7 @@ class PeaksSuite():
         if ax_was_none:
             return (fig, ax)
 
-    def plot_subset(self, ax, xtype, ytype, indices, plot_kwargs=None):
+    def plot_subset(self, ax, xtype, ytype, indices, plot_kwargs=None): # pragma: no cover
         if isinstance(xtype, str):
             ax = [ax]
             xtype = [xtype]
@@ -252,7 +252,7 @@ class PeaksSuite():
                          **plot_kwargs)
 
     @staticmethod
-    def _prepare_kwargs(kwargs, index):
+    def _prepare_kwargs(kwargs, index): # pragma: no cover
         new_kwargs = {}
         for key, value in kwargs.items():
             if isinstance(value, (str, int, float)):
@@ -263,7 +263,7 @@ class PeaksSuite():
                 new_kwargs[key] = value[index]
         return new_kwargs
 
-    def interactive_trimming(self, settings_file):
+    def interactive_trimming(self, settings_file): # pragma: no cover
         with open(settings_file, "r") as f:
             settings = json.load(f)
 
@@ -360,10 +360,10 @@ class PeaksSuite():
         Returns
         -------
         tuple
-            Of the form `(points, mean, std, corr)` where `mean` and `std` are
-            the mean and standard deviation at each point and `corr` are
-            the correlation coefficients between every point and all
-            other points.
+            Of the form `(xx, mean, std, corr)` where `mean` and
+            `std` are the mean and standard deviation at each point and
+            `corr` are the correlation coefficients between every point
+            and all other points.
 
         """
         npeaks = len(self.peaks)
@@ -397,7 +397,7 @@ class PeaksSuite():
         return {**default, **custom}
 
     def plot_statistics(self, statistics=None, ax=None, statistics_kwargs=None,
-                        plot_kwargs=None):
+                        plot_kwargs=None): # pragma: no cover
         if ax is None:
             raise NotImplementedError
 
@@ -427,7 +427,6 @@ class PeaksSuite():
         drop_rows = np.array(drop_rows, dtype=int)
         xx = np.delete(xx, drop_rows)
         data_matrix = np.delete(data_matrix, drop_rows, axis=0)
-
 
         return (xx, data_matrix)
 
@@ -750,7 +749,7 @@ class PeaksSuite():
 
     #         del cid
 
-    def _draw_box(self, fig):
+    def _draw_box(self, fig): # pragma: no cover
         """Prompt user to define a rectangular box on a two-panel plot.
 
         Parameters
@@ -793,40 +792,17 @@ class PeaksSuite():
             else:
                 warnings.warn("Both clicks must be inside the same axis.")
 
-    # def _indicate_rejections(self, fig, plot_kwargs):
-    #     axf.plot(frmv, vrmv,
-    #                 marker="x", color="k", markersize=5, linestyle="none")
-    #     axw.plot(wrmv, vrmv,
-    #                 marker="x", color="k", markersize=5, linestyle="none")
-    #     fig.canvas.draw_idle()
-
-    # TODO (jpv) : Broken b/c mean_disp
-    # def write_stat_swprepost(self, fname):
-    #     """Write statistics (mean and standard deviation) to csv file
-    #     of the form accepted by swprepost.
-
-    #     Args:
-    #         fname = String for file name. Can be a relative or a full
-    #             path.
-
-    #     Returns:
-    #         Method returns None, but saves file to disk.
-
-    #     """
-    #     if fname.endswith(".csv"):
-    #         fname = fname[:-4]
-    #     with open(fname+".csv", "w") as f:
-    #         f.write("Frequency (Hz), Velocity (m/s), VelStd (m/s)\n")
-    #         for fr, ve, st in zip(self.mean_disp["mean"]["frq"],
-    #                               self.mean_disp["mean"]["vel"],
-    #                               self.mean_disp["std"]["vel"]):
-    #             f.write(f"{fr},{ve},{st}\n")
-
     def __getitem__(self, index):
         return self.peaks[index]
 
+    def __len__(self):
+        return len(self.peaks)
+
     def __eq__(self, other):
         if not isinstance(other, PeaksSuite):
+            return False
+
+        if len(self) != len(other):
             return False
 
         for mypeaks, urpeaks in zip(self.peaks, other.peaks):
