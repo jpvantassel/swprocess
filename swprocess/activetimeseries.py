@@ -211,12 +211,7 @@ class ActiveTimeSeries(TimeSeries):
 
         """
         super().trim(start_time, end_time)
-
-        if start_time < self.delay:
-            # TODO (jpv): I dont think I need this, because this should be checked in super().trim()
-            raise ValueError(f"`start_time` must be >= `delay`={self.delay}.")
-        else:
-            self._delay = start_time
+        self._delay = start_time
 
     def zero_pad(self, df):
         """Append zeros to `amp` to achieve a desired frequency step.
@@ -333,6 +328,6 @@ class ActiveTimeSeries(TimeSeries):
         """Unambiguous representation of an `ActiveTimeSeries` object."""
         return f"ActiveTimeSeries(dt={self.dt}, amplitude={self.amp}, nstacks={self._nstacks}, delay={self._delay})"
 
-    def __repr__(self):
+    def __str__(self):
         """Human-readable representation of an `ActiveTimeSeries` object."""
         return f"ActiveTimeSeries with:\n\tdt={self.dt}\n\tnsamples={self.nsamples}\n\tnstacks={self._nstacks}\n\tdelay={self._delay}"

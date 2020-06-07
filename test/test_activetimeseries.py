@@ -111,8 +111,8 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertEqual(expected, returned)
 
         # Bad stack
-        tseries = swprocess.ActiveTimeSeries([1,2,3], dt=1)
-        nseries = swprocess.ActiveTimeSeries([0,0,0], dt=2)
+        tseries = swprocess.ActiveTimeSeries([1, 2, 3], dt=1)
+        nseries = swprocess.ActiveTimeSeries([0, 0, 0], dt=2)
         self.assertRaises(ValueError, tseries.stack_append, nseries)
 
     def test_zero_pad(self):
@@ -178,7 +178,6 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertEqual(201, thist.nsamples)
         self.assertEqual(0, thist.delay)
 
-
         # Second Example: with delay
         dt = 0.001
         thist = swprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, dt),
@@ -199,6 +198,9 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertAlmostEqual(min(thist.time), 0, delta=dt)
         self.assertAlmostEqual(max(thist.time), 0.25, delta=dt)
 
+        # Bad: Trim before trigger
+        self.assertRaises(IndexError, thist.trim, -1,0.1)
+
     def test_eq(self):
         thist_a = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1)
         thist_b = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1)
@@ -206,18 +208,21 @@ class Test_ActiveTimeSeries(TestCase):
         thist_d = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=0.5)
         thist_e = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1, delay=-1)
         thist_f = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1, nstacks=2)
+        thist_g = np.array([0, 1, 0, -1, 0])
 
         self.assertEqual(thist_a, thist_b)
         self.assertNotEqual(thist_a, thist_c)
         self.assertNotEqual(thist_a, thist_d)
         self.assertNotEqual(thist_a, thist_e)
         self.assertNotEqual(thist_a, thist_f)
+        self.assertNotEqual(thist_a, thist_g)
 
         self.assertTrue(thist_a._is_similar(thist_b))
         self.assertTrue(thist_a._is_similar(thist_c))
         self.assertFalse(thist_a._is_similar(thist_d))
         self.assertFalse(thist_a._is_similar(thist_e))
         self.assertFalse(thist_a._is_similar(thist_f))
+        self.assertFalse(thist_a._is_similar(thist_g))
 
     def test_crosscorr(self):
         ampa = [0, 1, 0]
@@ -308,6 +313,17 @@ class Test_ActiveTimeSeries(TestCase):
                                                              tseries_b)
         self.assertArrayEqual(ampa, shifted)
 
+        # No shift
+        dt = 0.1
+        f = 10
+        time = np.arange(0, 5, dt)
+        amp = np.concatenate((np.zeros(15), np.sin(2*np.pi*f*time)))
+        tseries_a = swprocess.ActiveTimeSeries(amp, dt)
+        tseries_b = swprocess.ActiveTimeSeries.from_activetimeseries(tseries_a)
+        shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+                                                             tseries_b)
+        self.assertArrayEqual(tseries_a.amp, shifted)
+
     def test_from_cross_stack(self):
         # Simple pulse
         ampa = [0, 0, 1, 0]
@@ -328,6 +344,37 @@ class Test_ActiveTimeSeries(TestCase):
         stacked = swprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
                                                               tseries_b)
         self.assertListEqual(ampa, stacked.amp.tolist())
+
+    def test_properties(self):
+        amp = [0, 1, 0, 1, 0, 1, 0, 1]
+        dt = 0.5
+        tseries = swprocess.ActiveTimeSeries(amp, dt, nstacks=3, delay=-1)
+
+        # nstacks
+        self.assertEqual(3, tseries.nstacks)
+
+        # n_stacks (Deprecated)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.assertEqual(3, tseries.n_stacks)
+
+    def test_str_and_repr(self):
+        amp = [0, 1, 2, 3, 4, 5]
+        dt = 0.25
+        delay = -0.5
+        nstacks = 5
+        tseries = swprocess.ActiveTimeSeries(
+            amp, dt, nstacks=nstacks, delay=delay)
+
+        # __repr__
+        expected = f"ActiveTimeSeries(dt={tseries.dt}, amplitude={tseries.amp}, nstacks={tseries._nstacks}, delay={tseries._delay})"
+        returned = tseries.__repr__()
+        self.assertEqual(expected, returned)
+
+        # __str__
+        expected = f"ActiveTimeSeries with:\n\tdt={tseries.dt}\n\tnsamples={tseries.nsamples}\n\tnstacks={tseries._nstacks}\n\tdelay={tseries._delay}"
+        returned = tseries.__str__()
+        self.assertEqual(expected, returned)
 
 
 if __name__ == '__main__':
