@@ -1,5 +1,3 @@
-from .plot_tools import *
-
 from .activetimeseries import ActiveTimeSeries
 
 from .sensor1c import Sensor1C
