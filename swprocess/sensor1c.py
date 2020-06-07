@@ -33,6 +33,13 @@ class Sensor1C(ActiveTimeSeries):
         return self._z
 
     @classmethod
+    def from_sensor1c(cls, sensor1c):
+        attrs = ["amplitude", "dt", "x", "y", "z"]
+        args = [getattr(sensor1c, attr) for attr in attrs]
+        kwargs = {key: getattr(sensor1c, key) for key in ["nstacks", "delay"]}
+        return cls(*args, **kwargs)
+
+    @classmethod
     def from_activetimeseries(cls, activetimeseries, x, y, z):
         return cls(activetimeseries.amp, activetimeseries.dt, x, y, z,
                    nstacks=activetimeseries.nstacks,
@@ -148,7 +155,6 @@ class Sensor1C(ActiveTimeSeries):
                 continue
             if getattr(self, attr) != getattr(other, attr):
                 return False
-
 
         if not super()._is_similar(other, exclude=exclude):
             return False

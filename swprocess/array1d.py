@@ -46,10 +46,11 @@ class Array1D():
         return (sensors, source)
 
     def _normalize_positions(self):
-        self.absolute_minus_relative = min(position)
+        self.absolute_minus_relative = min(self.position)
         self._regen_position = True
         for sensor in self.sensors:
-            sensors.x -= self.absolute_minus_relative
+            sensor._x -= self.absolute_minus_relative
+        self.source._x -= self.absolute_minus_relative
 
     def _make_timeseries_matrix(self):
         """Pull information from each `Sensor1C` into a 2D matrix."""
@@ -89,12 +90,9 @@ class Array1D():
         else:
             self.absolute_minus_relative = 0
 
-        if self.kres < 0:
-            msg = "Invalid receiver position, kres must be greater than 0."
-            raise ValueError(msg)
-
     @property
     def timeseriesmatrix(self):
+        """Sensors amplitudes as 2D `np.ndarray`."""
         if self._regen_matrix:
             self._regen_matrix = True
             self._matrix = self._make_timeseries_matrix()
@@ -102,6 +100,7 @@ class Array1D():
 
     @property
     def position(self):
+        """Relative sensor positions as `list`."""
         if self._regen_position:
             self._regen_position = False
             self._position = [sensor.x for sensor in self.sensors]
@@ -114,6 +113,7 @@ class Array1D():
 
     @property
     def nchannels(self):
+        """Number of `Sensors` in the array."""
         return len(self.sensors)
 
     @property
@@ -127,14 +127,16 @@ class Array1D():
 
     @property
     def _source_inside(self):
-        source = self.source.x
-        return ((source > self.position[0]) and (source < self.position[-1]))
+        sx = self.source.x
+        position = self.position
+        return ((sx > position[0]) and (sx < position[-1]))
 
+    @property
     def _safe_spacing(self):
         try:
             spacing = self.spacing
         except ValueError:
-            logger.warn("Array1D does not have equal spacing.")
+            logger.warning("Array1D does not have equal spacing.")
             spacing = self.position[1] - self.position[0]
         return spacing
 
@@ -183,11 +185,12 @@ class Array1D():
 
     def _norm_traces(self, scale_factor):
         norm_traces = np.empty_like(self.timeseriesmatrix)
+        position = self.position
         for k, current_trace in enumerate(self.timeseriesmatrix):
             current_trace = signal.detrend(current_trace)
-            current_trace /= np.amax(current_trace)
+            current_trace /= current_trace[abs(current_trace) == np.max(np.abs(current_trace))]
             current_trace *= scale_factor
-            current_trace += self.position[k]
+            current_trace += position[k]
             norm_traces[k, :] = current_trace
         return norm_traces
 
@@ -221,10 +224,13 @@ class Array1D():
         ax_was_none = False
         if ax is None:
             ax_was_none = True
-            if time_along == "y":
+            if time_along == "x":
+                size = (6, 4)
+            elif time_along == "y":
                 size = (4, 6)
             else:
-                size = (6, 4)
+                msg = f"time_along = {time_along} not recognized, use 'x' or 'y'."
+                raise ValueError(msg)
             fig, ax = plt.subplots(figsize=size)
 
         time = self.sensors[0].time
@@ -238,13 +244,10 @@ class Array1D():
             for trace in norm_traces:
                 ax.plot(time, trace, **kwargs)
                 kwargs["label"] = None
-        elif time_along == "y":
+        else:
             for trace in norm_traces:
                 ax.plot(trace, time, **kwargs)
                 kwargs["label"] = None
-        else:
-            msg = f"time_along = {time_along} not recognized, use 'x' or 'y'."
-            raise NotImplementedError(msg)
 
         time_ax = time_along
         dist_ax = "x" if time_ax == "y" else "y"
@@ -253,7 +256,7 @@ class Array1D():
             max(time), min(time))
         getattr(ax, f"set_{time_ax}lim")(time_tuple)
 
-        spacing = self._safe_spacing()
+        spacing = self._safe_spacing
         getattr(ax, f"set_{dist_ax}lim")(self.position[0]-spacing,
                                          self.position[-1]+spacing)
         getattr(ax, "grid")(axis=time_ax, linestyle=":")
@@ -334,7 +337,7 @@ class Array1D():
 
         return (self.position, times)
 
-    def manual_pick_first_arrivals(self, waterfall_kwargs=None):
+    def manual_pick_first_arrivals(self, waterfall_kwargs=None): # pragma: no cover
         """Allow for interactive picking of first arrivals.
 
         Parameters
@@ -353,7 +356,7 @@ class Array1D():
         if waterfall_kwargs is None:
             waterfall_kwargs = {}
 
-        fig, ax = self.plot_waterfall(**waterfall_kwargs)
+        fig, ax = self.waterfall(**waterfall_kwargs)
 
         xs, ys = [], []
 
@@ -451,7 +454,8 @@ class Array1D():
                 y = float(stats.su.trace_header["source_coordinate_y"])/1000
                 return Source(x=x, y=y, z=0)
         else:
-            raise ValueError(f"_format={_format} not recognized.")
+            # Here for "belt and suspenders".s
+            raise NotImplementedError(f"_format={_format} not recognized.")
         source = parse_source(trace.stats)
         obj = cls(sensors, source)
 
@@ -469,6 +473,29 @@ class Array1D():
                     sensor.stack_append(new_sensor)
 
         return obj
+
+    @classmethod
+    def from_array1d(cls, array1d):
+        obj = cls(array1d.sensors, array1d.source)
+
+        if array1d.absolute_minus_relative != 0:
+            obj.absolute_minus_relative = float(array1d.absolute_minus_relative)
+        
+        return obj
+
+    def __eq__(self, other):
+        if not isinstance(other, Array1D):
+            return False
+
+        for attr in ["nchannels", "source", "absolute_minus_relative"]:
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+
+        for my, ur in zip(self.sensors, other.sensors):
+            if my != ur:
+                return False
+        
+        return True
 
     def __getitem__(self, index):
         return self.sensors[index]
