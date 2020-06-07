@@ -42,7 +42,7 @@ class PeaksSuite():
         """
         self._check_input(peaks)
         self.peaks = [peaks]
-        self.ids = [peaks.ids]
+        self.ids = [peaks.identifier]
 
     def append(self, peaks):
         """Append a `Peaks` object.
@@ -59,11 +59,11 @@ class PeaksSuite():
 
         """
         self._check_input(peaks)
-        if peaks.ids in self.ids:
-            msg = f"There already exists a member object with ids = {peaks.ids}."
+        if peaks.identifier in self.ids:
+            msg = f"There already exists a member object with identifiers = {peaks.identifier}."
             raise ValueError(msg)
         self.peaks.append(peaks)
-        self.ids.append(peaks.ids)
+        self.ids.append(peaks.identifier)
 
     @classmethod
     def from_dicts(cls, dicts):
@@ -821,6 +821,9 @@ class PeaksSuite():
     #                               self.mean_disp["mean"]["vel"],
     #                               self.mean_disp["std"]["vel"]):
     #             f.write(f"{fr},{ve},{st}\n")
+
+    def __getitem__(self, index):
+        return self.peaks[index]
 
     def __eq__(self, other):
         if not isinstance(other, PeaksSuite):

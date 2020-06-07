@@ -18,93 +18,126 @@ class Test_Peaks(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.full_path = get_full_path(__file__)
+        cls._id = "-5m"
+        cls.frq = [100., 50, 30, 10, 5, 3]
+        cls.vel = [100., 120, 130, 140, 145, 150]
+        cls.azi = [10., 15, 20, 35, 10, 20]
+        cls.ell = [10., 15, 20, 35, 11, 20]
+        cls.noi = [10., 15, 20, 35, 12, 20]
+        cls.pwr = [10., 15, 20, 35, 13, 20]
 
     def test_init(self):
         # Basic Case: No keyword arguments
-        frequency = [100., 50, 30, 10, 5, 3]
-        velocity = [100., 120, 130, 140, 145, 150]
-        identifier = "-5m"
-        peaks = swprocess.Peaks(frequency=frequency,
-                                velocity=velocity,
-                                identifier=identifier)
-        self.assertArrayEqual(np.array(frequency), peaks.frequency)
-        self.assertArrayEqual(np.array(velocity), peaks.velocity)
-        self.assertEqual(identifier, peaks.ids)
+        peaks = swprocess.Peaks(frequency=self.frq,
+                                velocity=self.vel,
+                                identifier=self._id)
+        self.assertArrayEqual(np.array(self.frq), peaks.frequency)
+        self.assertArrayEqual(np.array(self.vel), peaks.velocity)
+        self.assertEqual(self._id, peaks.identifier)
 
         # Advanced Case: Four keyword arguments
-        frequency = [100., 50, 30, 10, 5, 3]
-        velocity = [100., 120, 130, 140, 145, 150]
-        azi = [10., 15, 20, 35, 10, 20]
-        ell = [10., 15, 20, 35, 11, 20]
-        noi = [10., 15, 20, 35, 12, 20]
-        pwr = [10., 15, 20, 35, 13, 20]
         identifier = "-5m"
-        my_peaks = swprocess.Peaks(frequency=frequency,
-                                   velocity=velocity,
-                                   identifier=identifier,
-                                   azi=azi,
-                                   ell=ell,
-                                   noi=noi,
-                                   pwr=pwr)
-        self.assertArrayEqual(np.array(azi), my_peaks.azi)
-        self.assertArrayEqual(np.array(ell), my_peaks.ell)
-        self.assertArrayEqual(np.array(noi), my_peaks.noi)
-        self.assertArrayEqual(np.array(pwr), my_peaks.pwr)
+        my_peaks = swprocess.Peaks(frequency=self.frq,
+                                   velocity=self.vel,
+                                   identifier=self._id,
+                                   azi=self.azi,
+                                   ell=self.ell,
+                                   noi=self.noi,
+                                   pwr=self.pwr)
+        self.assertArrayEqual(np.array(self.azi), my_peaks.azi)
+        self.assertArrayEqual(np.array(self.ell), my_peaks.ell)
+        self.assertArrayEqual(np.array(self.noi), my_peaks.noi)
+        self.assertArrayEqual(np.array(self.pwr), my_peaks.pwr)
 
     def test_from_dict(self):
         # Basic Case: No keyword arguments
-        frequency = [100., 50, 30, 10, 5, 3]
-        velocity = [100., 120, 130, 140, 145, 150]
-        identifier = "-5m"
-        data = {"frequency": frequency, "velocity": velocity}
-        peaks = swprocess.Peaks.from_dict(data, identifier=identifier)
-        self.assertArrayEqual(np.array(frequency), peaks.frequency)
-        self.assertArrayEqual(np.array(velocity), peaks.velocity)
-        self.assertEqual(identifier, peaks.ids)
+        data = {"frequency": self.frq, "velocity": self.vel}
+        peaks = swprocess.Peaks.from_dict(data, identifier=self._id)
+        self.assertArrayEqual(np.array(self.frq), peaks.frequency)
+        self.assertArrayEqual(np.array(self.vel), peaks.velocity)
+        self.assertEqual(self._id, peaks.identifier)
 
         # Advanced Case: Four keyword arguments
-        frequency = [100., 50, 30, 10, 5, 3]
-        velocity = [100., 120, 130, 140, 145, 150]
-        azi = [10., 15, 20, 35, 10, 20]
-        ell = [10., 15, 20, 35, 11, 20]
-        noi = [10., 15, 20, 35, 12, 20]
-        pwr = [10., 15, 20, 35, 13, 20]
-        identifier = "-5m"
-        data = {"frequency": frequency, "velocity": velocity,
-                "azi": azi, "ell": ell, "noi": noi, "pwr": pwr}
-        peaks = swprocess.Peaks.from_dict(data, identifier=identifier)
-        self.assertArrayEqual(np.array(azi), peaks.azi)
-        self.assertArrayEqual(np.array(ell), peaks.ell)
-        self.assertArrayEqual(np.array(noi), peaks.noi)
-        self.assertArrayEqual(np.array(pwr), peaks.pwr)
+        data = {"frequency": self.frq, "velocity": self.vel,
+                "azi": self.azi, "ell": self.ell, "noi": self.noi,
+                "pwr": self.pwr}
+        peaks = swprocess.Peaks.from_dict(data, identifier=self._id)
+        self.assertArrayEqual(np.array(self.azi), peaks.azi)
+        self.assertArrayEqual(np.array(self.ell), peaks.ell)
+        self.assertArrayEqual(np.array(self.noi), peaks.noi)
+        self.assertArrayEqual(np.array(self.pwr), peaks.pwr)
 
         # Advanced Case: Two keyword arguments
-        frequency = [100, 50, 30, 10, 5, 3]
-        velocity = [100, 120, 130, 140, 145, 150]
-        azi = [10, 15, 20, 35, 10, 20]
-        pwr = [10, 15, 20, 35, 11, 20]
-        identifier = "-5m"
-        data = {"frequency": frequency, "velocity": velocity,
-                "azi": azi, "pwr": pwr}
-        peaks = swprocess.Peaks.from_dict(data, identifier=identifier)
-        self.assertArrayEqual(np.array(azi), peaks.azi)
-        self.assertArrayEqual(np.array(pwr), peaks.pwr)
+        data = {"frequency": self.frq, "velocity": self.vel,
+                "azi": self.azi, "pwr": self.pwr}
+        peaks = swprocess.Peaks.from_dict(data, identifier=self._id)
+        self.assertArrayEqual(np.array(self.azi), peaks.azi)
+        self.assertArrayEqual(np.array(self.pwr), peaks.pwr)
+
+        # Bad: reference to deprecated from_dicts
+        self.assertRaises(DeprecationWarning, swprocess.Peaks.from_dicts)
+
+        # Bad: missing frequency or velocity
+        del data["frequency"]
+        self.assertRaises(ValueError, swprocess.Peaks.from_dict, data)
 
     def test_to_and_from_jsons(self):
-        # Advanced Case: Two keywosrd arguements
-        frequency = [100., 50, 30, 10, 5, 3]
-        velocity = [100., 120, 130, 140, 145, 150]
-        azi = [10., 15, 20, 35, 10, 20]
-        pwr = [10., 15, 20, 35, 11, 20]
-        identifer = "test"
+        # Standard to_json and from_json
         fname = "test.json"
-
-        expected = swprocess.Peaks(frequency, velocity, identifer,
-                                   azi=azi, pwr=pwr)
+        expected = swprocess.Peaks(self.frq, self.vel, self._id,
+                                   azi=self.azi, pwr=self.pwr)
         expected.to_json(fname)
         returned = swprocess.Peaks.from_json(fname)
         self.assertEqual(expected, returned)
         os.remove(fname)
+
+        # Deprecated write_peak_json
+        expected = swprocess.Peaks(self.frq, self.vel, self._id,
+                                   azi=self.azi, pwr=self.pwr)
+        fname = "test_1.json"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            expected.write_peak_json(fname)
+        returned = swprocess.Peaks.from_json(fname)
+        self.assertEqual(expected, returned)
+        os.remove(fname)
+
+        # to_json append data does not exist
+        fname = "test_2.json"
+        peaks = swprocess.Peaks(self.frq, self.vel, "org")
+        peaks.to_json(fname)
+        peaks.identifier = "app"
+        peaks.to_json(fname, append=True)
+        suite = swprocess.PeaksSuite.from_jsons(fname)
+        for _peaks, _id in zip(suite, suite.ids):
+            peaks.identifier = _id
+            self.assertEqual(peaks, _peaks)
+
+        # to_json append data already exists
+        self.assertRaises(KeyError, peaks.to_json, fname, append=True)
+        os.remove(fname)
+
+        # to_json overwrite
+        fname = "test_3.json"
+        peaks = swprocess.Peaks(self.frq, self.vel, "org")
+        peaks.to_json(fname)
+        peaks.identifier = "app"
+        peaks.to_json(fname, append=False)
+        returned = swprocess.Peaks.from_json(fname)
+        self.assertEqual(peaks, returned)
+        os.remove(fname)
+
+        # from_json ignore multiple data
+        fname = self.full_path + "data/peak/peaks_c2.json"
+        peak_suite = swprocess.PeaksSuite.from_jsons(fname)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            returned = swprocess.Peaks.from_json(fname)
+        expected = peak_suite[peak_suite.ids.index(returned.identifier)]
+        self.assertEqual(expected, returned)
+
+        # Bad: reference to deprecated from_jsons
+        self.assertRaises(DeprecationWarning, swprocess.Peaks.from_jsons)
 
     def test_from_max(self):
         # Check rayleigh (2 lines)
@@ -122,7 +155,7 @@ class Test_Peaks(TestCase):
                                                      7.3044365524672443257]))
         self.assertArrayEqual(peaks.power, np.array([2092111.2367646128405,
                                                      2074967.9391639579553]))
-        self.assertEqual("16200", peaks.ids)
+        self.assertEqual("16200", peaks.identifier)
 
         # Check love (2 lines)
         fname = self.full_path+"data/mm/test_hfk_line2_0.max"
@@ -137,7 +170,14 @@ class Test_Peaks(TestCase):
         self.assertArrayEqual(peaks.noise, np.array([0, 0]))
         self.assertArrayEqual(peaks.power, np.array([3832630.8840260845609,
                                                      4039408.6602126094513]))
-        self.assertEqual("16200", peaks.ids)
+        self.assertEqual("16200", peaks.identifier)
+
+        # Bad reference to deprecated from_maxs
+        self.assertRaises(DeprecationWarning, swprocess.Peaks.from_maxs)
+
+        # Bad wavetype
+        self.assertRaises(ValueError, swprocess.Peaks.from_max,
+                          fname, wavetype="incorrect")
 
     def test_reject(self):
         xs = np.array([1, 2, 4, 5, 1, 2, 6, 4, 9, 4])
@@ -243,6 +283,54 @@ class Test_Peaks(TestCase):
     #                          ytype=["velocity", "velocity", "velocity"],
     #                          plot_kwargs=dict(color="g"))
     #     plt.close()
+
+    def test_properties(self):
+        peaks = swprocess.Peaks(self.frq, self.vel, self._id, azi=self.azi)
+
+        # Deprecated properties
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ids = peaks.ids
+            wav = peaks.wav
+        self.assertEqual(self._id, ids)
+        self.assertArrayEqual(np.array(self.vel)/np.array(self.frq), wav)
+
+        # Wavelength
+        self.assertArrayEqual(np.array(self.vel)/np.array(self.frq),
+                              peaks.wavelength)
+
+        # Extended Attrs
+        expected = ["frequency", "velocity", "azi", "wavelength", "slowness"]
+        returned = peaks.extended_attrs
+        self.assertListEqual(expected, returned)
+
+    def test__eq__(self):
+        peaks_a = swprocess.Peaks(self.frq, self.vel, self._id,
+                                  azimuth=self.azi)
+        peaks_b = "I am not even a Peaks object"
+        peaks_c = swprocess.Peaks(self.frq, self.vel, "diff", azimuth=self.azi)
+        peaks_d = swprocess.Peaks(self.frq[:-2], self.vel[:-2], self._id,
+                                  azimuth=self.azi[:-2])
+        peaks_e = swprocess.Peaks(np.zeros_like(self.frq), self.vel, self._id,
+                                  azimuth=self.azi)
+        peaks_f = swprocess.Peaks(np.zeros_like(self.frq), self.vel, self._id)
+        peaks_g = swprocess.Peaks(self.frq, self.vel, self._id,
+                                  azimuth=self.azi)
+        del peaks_g.identifier
+        peaks_h = swprocess.Peaks(self.frq, self.vel, self._id,
+                                  noise=self.noi)
+        peaks_i = swprocess.Peaks(self.frq, self.vel, self._id,
+                                  azimuth=self.azi)
+
+        self.assertTrue(peaks_a == peaks_a)
+        self.assertFalse(peaks_a == peaks_b)
+        self.assertFalse(peaks_a == peaks_c)
+        self.assertFalse(peaks_a == peaks_d)
+        self.assertFalse(peaks_a == peaks_e)
+        self.assertFalse(peaks_a == peaks_f)
+        self.assertFalse(peaks_a == peaks_g)
+        self.assertFalse(peaks_a == peaks_h)
+        self.assertTrue(peaks_a == peaks_i)
 
 
 if __name__ == "__main__":

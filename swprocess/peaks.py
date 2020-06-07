@@ -49,15 +49,17 @@ class Peaks():
         """
         self.frequency = np.array(frequency, dtype=float)
         self.velocity = np.array(velocity, dtype=float)
-        self.ids = str(identifier)
+        self.identifier = str(identifier)
         logging.debug(f"**kwargs = {kwargs}")
         self.attrs = ["frequency", "velocity"] + list(kwargs.keys())
         for key, val in kwargs.items():
             setattr(self, key, np.array(val, dtype=float))
 
     @property
-    def identifiers(self):
-        return self.ids
+    def ids(self):
+        msg = f"ids is deprecated use, `identifier` instead"
+        warnings.warn(msg, DeprecationWarning)
+        return self.identifier
 
     @property
     def wav(self):
@@ -78,7 +80,8 @@ class Peaks():
     def slowness(self):
         return 1/self.velocity
 
-    def from_dicts(self, *args, **kwargs):
+    @classmethod
+    def from_dicts(cls, *args, **kwargs):
         msg = "Peaks.from_dicts has been deprecated, use Peaks.from_dict or PeaksSuite.from_dicts() instead."
         raise DeprecationWarning(msg)
 
@@ -154,7 +157,7 @@ class Peaks():
             nois.append(float(_noi))
             pwrs.append(float(_pwr))
 
-        # Check got everything
+        # Include for "belt and suspenders".
         getall = get_all(start_time, wavetype)
         count = len(getall.findall(peak_data))
         if len(frqs) != count:
@@ -202,7 +205,7 @@ class Peaks():
 
         return cls._parse_peaks(peak_data, wavetype=wavetype, start_time=None)
 
-    def _plot(self, xtype, ytype, ax, plot_kwargs=None, ax_kwargs=None):
+    def _plot(self, xtype, ytype, ax, plot_kwargs=None, ax_kwargs=None): # pragma: no cover
         """Plot requested `Peaks` data to provided `Axes`."""
         for _type, value in zip(["xtype", "ytype"], [xtype, ytype]):
             if value not in self.extended_attrs:
@@ -211,7 +214,7 @@ class Peaks():
 
         default_plot_kwargs = dict(linestyle="", marker="o", color="b",
                                    markersize=1, markerfacecolor="none",
-                                   label=self.ids)
+                                   label=self.identifier)
         plot_kwargs = {} if plot_kwargs is None else plot_kwargs
         plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
 
@@ -236,7 +239,7 @@ class Peaks():
             getattr(ax, key)(value)
 
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
-             plot_kwargs=None, ax_kwargs=None):
+             plot_kwargs=None, ax_kwargs=None): # pragma: no cover
         """Create plot of dispersion data.
 
         Parameters
@@ -283,7 +286,7 @@ class Peaks():
             return (fig, ax)
 
     @staticmethod
-    def _check_plot(xtype, ytype, ax, plot_kwargs, ax_kwargs):
+    def _check_plot(xtype, ytype, ax, plot_kwargs, ax_kwargs): # pragma: no cover
         if isinstance(xtype, str):
             xtype = [xtype]
         if isinstance(ytype, str):
@@ -304,7 +307,7 @@ class Peaks():
         return (xtype, ytype, plot_kwargs, ax_kwargs, ax_was_none)
 
     @staticmethod
-    def _check_kwargs(kwargs, ncols):
+    def _check_kwargs(kwargs, ncols): # pragma: no cover
         if kwargs is None or isinstance(kwargs, dict):
             return [kwargs]*ncols
         elif isinstance(kwargs, list) and len(kwargs) == ncols:
@@ -430,43 +433,46 @@ class Peaks():
         if append:
             with open(fname, "r") as f:
                 data_to_update = json.load(f)
-            if self.ids in data_to_update.keys():
-                msg = f"Data already exists in file with identifier {self.ids}, file left unmodified."
+            if self.identifier in data_to_update.keys():
+                msg = f"Data already exists in file with identifier {self.identifier}, file left unmodified."
                 raise KeyError(msg)
             else:
-                existing_data[self.ids] = data
+                data_to_update[self.identifier] = data
                 with open(fname, "w") as f:
                     json.dump(data_to_update, f)
         else:
-            data = {self.ids: data}
+            data = {self.identifier: data}
             with open(fname, "w") as f:
                 json.dump(data, f)
 
     def __eq__(self, other):
-        # Check other is a Peak object
         if not isinstance(other, Peaks):
             return False
 
         # Check non-iterable attributes
-        for key in ["ids"]:
+        for key in ["identifier"]:
             try:
                 if getattr(self, key) != getattr(other, key):
                     return False
             except AttributeError as e:
-                warnings.warn(f"self or other missing attribute {key}.")
                 return False
+        
+        # Check attributes
+        if len(self.attrs) != len(other.attrs):
+            return False
 
         # Check iterable attributes
         for attr in self.attrs:
-
             try:
                 myattr = getattr(self, attr)
                 urattr = getattr(other, attr)
-                for selfval, otherval in zip(myattr, urattr):
-                    if selfval != otherval:
-                        return False
             except AttributeError as e:
-                warnings.warn(f"self or other missing attribute {attr}.")
                 return False
+            else:
+                if len(myattr) != len(urattr):
+                    return False
+                for myval, urval in zip(myattr, urattr):
+                    if myval != urval:
+                        return False
 
         return True
