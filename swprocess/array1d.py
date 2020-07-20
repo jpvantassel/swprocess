@@ -402,7 +402,7 @@ class Array1D():
         return (distance, time)
 
     @classmethod
-    def from_files(cls, fnames):
+    def from_files(cls, fnames, map_x=lambda x:x, map_y=lambda y:y):
         """Initialize an `Array1D` object from one or more data files.
 
         This classmethod creates an `Array1D` object by reading the
@@ -416,6 +416,10 @@ class Array1D():
         fnames : str or iterable
             File name or iterable of file names. If multiple files 
             are provided the traces are stacked.
+        map_x, map_y : function, optional
+            Convert x and y coordinates using some function, default
+            is not transformation. Can be useful for converting between
+            coordinate systems.
 
         Returns
         -------
@@ -439,19 +443,19 @@ class Array1D():
         # Create array of sensors
         sensors = []
         for trace in stream.traces:
-            sensor = Sensor1C.from_trace(trace)
+            sensor = Sensor1C.from_trace(trace, map_x=map_x, map_y=map_y)
             sensors.append(sensor)
 
         # Define source
         _format = trace.stats._format
         if _format == "SEG2":
             def parse_source(stats):
-                x = float(stats.seg2.SOURCE_LOCATION)
+                x = map_x(float(stats.seg2.SOURCE_LOCATION))
                 return Source(x=x, y=0, z=0)
         elif _format == "SU":
             def parse_source(stats):
-                x = float(stats.su.trace_header["source_coordinate_x"])/1000
-                y = float(stats.su.trace_header["source_coordinate_y"])/1000
+                x = map_x(float(stats.su.trace_header["source_coordinate_x"]))
+                y = map_y(float(stats.su.trace_header["source_coordinate_y"]))
                 return Source(x=x, y=y, z=0)
         else:
             # Here for "belt and suspenders".s

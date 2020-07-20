@@ -52,12 +52,12 @@ class Test_Sensor1C(TestCase):
         self.assertEqual(float(trace.stats.seg2.DELAY), sensor.delay)
         self.assertEqual(int(trace.stats.seg2.STACK), sensor.nstacks)
 
-        # su
+        # su - from denise
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             traces = obspy.read(self.full_path+"data/denise/v1.2_x.su.shot1")
         trace = traces[0]
-        sensor = Sensor1C.from_trace(trace)
+        sensor = Sensor1C.from_trace(trace, map_y=lambda y:y/1000, map_x=lambda x:x/1000)
         self.assertArrayEqual(trace.data, sensor.amp)
         self.assertEqual(trace.stats.delta, sensor.dt)
         header = trace.stats.su.trace_header

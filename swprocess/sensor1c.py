@@ -46,7 +46,8 @@ class Sensor1C(ActiveTimeSeries):
                    delay=activetimeseries.delay)
 
     @classmethod
-    def from_trace(cls, trace, read_header=True,
+    def from_trace(cls, trace,
+                   read_header=True, map_x=lambda x:x, map_y=lambda y:y,
                    nstacks=1, delay=0, x=0, y=0, z=0):
         """Create a `Sensor1C` object from a `Trace` object.
 
@@ -58,6 +59,10 @@ class Sensor1C(ActiveTimeSeries):
             Flag to indicate whether the data in the header of the
             file should be parsed, default is `True` indicating that
             the header data will be read.
+        map_x, map_y : function, optional
+            Convert x and y coordinates using some function, default
+            is not transformation. Can be useful for converting between
+            coordinate systems.
         nstacks : int, optional
             Number of stacks included in the present trace, default
             is 1 (i.e., no stacking). Ignored if `read_header=True`.
@@ -87,23 +92,27 @@ class Sensor1C(ActiveTimeSeries):
 
         if read_header:
             if _format == "SEG2":
-                return cls._from_trace_seg2(trace)
+                return cls._from_trace_seg2(trace, map_x=map_x, map_y=map_y)
             elif _format == "SU":
-                return cls._from_trace_su(trace)
+                return cls._from_trace_su(trace, map_x=map_x, map_y=map_y)
             else:
                 raise NotImplementedError
         else:
             return cls(amplitude=trace.data, dt=trace.stats.delta,
-                       x=x, y=y, z=z,  nstacks=nstacks, delay=delay)
+                       x=x, y=y, z=z, nstacks=nstacks, delay=delay)
 
     @classmethod
-    def _from_trace_seg2(cls, trace):
+    def _from_trace_seg2(cls, trace, map_x=lambda x:x, map_y=lambda y:y):
         """Create a `Sensor1C` object form a SEG2-style `Trace` object.
 
         Parameters
         ----------
         trace : Trace
             SEG2-style Trace with header information entered correctly.
+        map_x, map_y : function, optional
+            Convert x and y coordinates using some function, default
+            is not transformation. Can be useful for converting between
+            coordinate systems.
 
         Returns
         -------
@@ -116,18 +125,22 @@ class Sensor1C(ActiveTimeSeries):
                               read_header=False,
                               nstacks=int(header.STACK),
                               delay=float(header.DELAY),
-                              x=float(header.RECEIVER_LOCATION),
-                              y=0,
+                              x=map_x(float(header.RECEIVER_LOCATION)),
+                              y=map_y(0),
                               z=0)
 
     @classmethod
-    def _from_trace_su(cls, trace):
+    def _from_trace_su(cls, trace, map_x=lambda x:x, map_y=lambda y:y):
         """Create a `Sensor1C` object form a SU-style `Trace` object.
 
         Parameters
         ----------
         trace : Trace
             SU-style trace with header information entered correctly.
+        map_x, map_y : function, optional
+            Convert x and y coordinates using some function, default
+            is not transformation. Can be useful for converting between
+            coordinate systems.
 
         Returns
         -------
@@ -141,8 +154,8 @@ class Sensor1C(ActiveTimeSeries):
                               read_header=False,
                               nstacks=int(header[nstack_key])+1,
                               delay=float(header["delay_recording_time"]),
-                              x=float(header["group_coordinate_x"]/1000),
-                              y=float(header["group_coordinate_y"]/1000),
+                              x=map_x(float(header["group_coordinate_x"])),
+                              y=map_y(float(header["group_coordinate_y"])),
                               z=0)
 
     def _is_similar(self, other, exclude=[]):

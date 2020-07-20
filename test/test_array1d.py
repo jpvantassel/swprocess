@@ -280,7 +280,7 @@ class Test_Array1D(TestCase):
         self.assertFalse(array_a == array_c)
         self.assertFalse(array_a == array_d)
         self.assertFalse(array_a == array_e)
-        self.assertTrue(array_a == array_f)
+        self.assertFalse(array_a != array_f)
 
 
 if __name__ == '__main__':
