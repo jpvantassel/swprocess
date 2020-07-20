@@ -218,7 +218,8 @@ class Array1D():
         -------
         Tuple
             Of the form (fig, ax) where `fig` is the figure object and
-            `ax` the axes object on which the schematic is plotted.
+            `ax` the axes object on which the schematic is plotted, if
+            `ax=None`.
 
         """
         ax_was_none = False
@@ -270,7 +271,7 @@ class Array1D():
             fig.tight_layout()
             return (fig, ax)
 
-    def plot(self):
+    def plot(self, ax=None):
         """Plot a schematic of the `Array1D` object.
 
         The schematic shows the relative position of the receivers and
@@ -278,15 +279,25 @@ class Array1D():
         and axes are returned to the user for use in further editing if
         desired.
 
+        Parameters
+        ----------
+        ax : Axis, optional
+            Axes on which to plot, default is `None` indicating a 
+            `Figure` and `Axis` will be generated on-the-fly.
+
         Returns
         -------
         Tuple
-            Of the form `(fig, ax)` where `fig` is the Figure object
-            and `ax` is the Axes object on which the schematic is
-            plotted.
+            Of the form (fig, ax) where `fig` is the figure object and
+            `ax` the axes object on which the schematic is plotted, if
+            `ax=None`.
 
         """
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 2))
+        if ax is None:
+            ax_was_none = True
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 2))
+        else:
+            ax_was_none = False
 
         for n_rec, sensor in enumerate(self.sensors):
             label = "Sensor" if n_rec == 1 else None
@@ -308,7 +319,9 @@ class Array1D():
         ax.legend()
         ax.set_ylim([-2, 5])
         ax.set_xlabel("Distance Along Array (m)")
-        return (fig, ax)
+
+        if ax_was_none:
+            return (fig, ax)
 
     def auto_pick_first_arrivals(self, algorithm='threshold', **kwargs):
         if algorithm == "threshold":
