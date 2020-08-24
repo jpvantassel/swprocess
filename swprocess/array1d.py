@@ -188,7 +188,8 @@ class Array1D():
         position = self.position
         for k, current_trace in enumerate(self.timeseriesmatrix):
             current_trace = signal.detrend(current_trace)
-            current_trace /= current_trace[abs(current_trace) == np.max(np.abs(current_trace))]
+            current_trace /= np.abs(current_trace[np.abs(
+                current_trace) == np.max(np.abs(current_trace))])
             current_trace *= scale_factor
             current_trace += position[k]
             norm_traces[k, :] = current_trace
@@ -295,7 +296,7 @@ class Array1D():
         """
         if ax is None:
             ax_was_none = True
-            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 2))
+            fig, ax = plt.subplots(figsize=(6, 2))
         else:
             ax_was_none = False
 
@@ -350,15 +351,15 @@ class Array1D():
 
         return (self.position, times)
 
-    def manual_pick_first_arrivals(self, waterfall_kwargs=None): # pragma: no cover
+    def manual_pick_first_arrivals(self, waterfall_kwargs=None):  # pragma: no cover
         """Allow for interactive picking of first arrivals.
 
         Parameters
         ----------
         waterfall_kwargs : dict, optional
-            Dictionary of keyword arguements for
+            Dictionary of keyword arguments for
             meth: `<plot_waterfall>`, default is `None` indicating
-            default keyword arugements.
+            default keyword arguments.
 
         Returns
         -------
@@ -415,14 +416,13 @@ class Array1D():
         return (distance, time)
 
     @classmethod
-    def from_files(cls, fnames, map_x=lambda x:x, map_y=lambda y:y):
+    def from_files(cls, fnames, map_x=lambda x: x, map_y=lambda y: y):
         """Initialize an `Array1D` object from one or more data files.
 
         This classmethod creates an `Array1D` object by reading the
         header information in the provided file(s). Each file
         should contain multiple traces where each trace corresponds to a
-        single receiver. Currently supported file types are SEGY
-        and SU.
+        single receiver. Currently supported file types are SEGY and SU.
 
         Parameters
         ----------
@@ -496,8 +496,9 @@ class Array1D():
         obj = cls(array1d.sensors, array1d.source)
 
         if array1d.absolute_minus_relative != 0:
-            obj.absolute_minus_relative = float(array1d.absolute_minus_relative)
-        
+            obj.absolute_minus_relative = float(
+                array1d.absolute_minus_relative)
+
         return obj
 
     def __eq__(self, other):
@@ -511,7 +512,7 @@ class Array1D():
         for my, ur in zip(self.sensors, other.sensors):
             if my != ur:
                 return False
-        
+
         return True
 
     def __getitem__(self, index):
