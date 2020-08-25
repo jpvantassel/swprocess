@@ -84,10 +84,6 @@ class ActiveTimeSeries(TimeSeries):
         return self._delay
 
     @property
-    def df(self):
-        return super().df * self._multiple
-
-    @property
     def multiple(self):
         return self._multiple
 
@@ -118,7 +114,7 @@ class ActiveTimeSeries(TimeSeries):
 
         """
         if not self._is_similar(timeseries, exclude=["_nstacks"]):
-            msg = f"The provided `timeseries` object is incompatable, and cannot be stacked."
+            msg = f"The provided `timeseries` object is incompatible, and cannot be stacked."
             raise ValueError(msg)
 
         namp = timeseries.amp
@@ -240,22 +236,19 @@ class ActiveTimeSeries(TimeSeries):
         logging.info(f"df={self.df} --> df={df}")
         logging.debug(f"  new_nsamples = {new_nsamples}")
 
-        # If new_nsamples > nsamples, padd zeros.
+        # If new_nsamples > nsamples, pad zeros.
         if new_nsamples > self.nsamples:
             padding = new_nsamples - self.nsamples
             self._multiple = 1
-
-        # If new_nsamples <= nsamples, padd zeros to achieve a multiple
+        # If new_nsamples <= nsamples, pad zeros to achieve a multiple
         # of new_nsamples (i.e.,  a fraction of df). After processing,
         # extract the results at the frequencies of interest.
         else:
-            multiple = 1
             for _ in range(10):
-                trial_nsamples = new_nsamples*multiple
+                trial_nsamples = new_nsamples*self.multiple
                 if trial_nsamples >= self.nsamples:
-                    self._multiple = multiple
                     break
-                multiple *= 2
+                self._multiple *= 2
             else:
                 msg = f"Could not find an acceptable multiple, after 10 attempts."
                 raise ValueError(msg)

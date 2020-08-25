@@ -48,10 +48,6 @@ class WavefieldTransform1D():
             array.trim(start_time=self.settings["start_time"],
                        end_time=self.settings["end_time"])
 
-        # TODO (jpv): Somethings not quite right on zero pad.
-        # If df is large (assumed greater than current df) padding
-        # results in incorrect phase velocity.
-        # See vs_uncertainty/0_intro/masw
         if self.settings["zero_pad"]:
             logger.info("padding ... ")
             array.zero_pad(df=self.settings["df"])

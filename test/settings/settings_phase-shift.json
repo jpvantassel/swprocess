@@ -1,19 +1,19 @@
 {
-    "method": "fk",
+    "method": "phase-shift",
     "trim": false,
     "start_time": 0,
     "end_time": 0.75,
     "zero_pad": true,
-    "df": 0.5,
+    "df": 2,
     "fmin": 5,
     "fmax": 100,
     "vmin": 75,
-    "vmax": 600,
+    "vmax": 400,
     "fk-specific": {
         "nwavenumbers":512
     },
     "phaseshift-specific": {
-        "nvelocities":500
+        "nvelocities":300
     },
     "slantstack-specific": {},
     "fdbf-specific": {
