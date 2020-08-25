@@ -46,6 +46,7 @@ class Array1D():
         return (sensors, source)
 
     def _normalize_positions(self):
+        """Shift array so that the left-most sensor is at x=0."""
         self.absolute_minus_relative = min(self.position)
         self._regen_position = True
         for sensor in self.sensors:
@@ -92,7 +93,7 @@ class Array1D():
 
     @property
     def timeseriesmatrix(self):
-        """Sensors amplitudes as 2D `np.ndarray`."""
+        """Sensor amplitudes as 2D `ndarray`."""
         if self._regen_matrix:
             self._regen_matrix = True
             self._matrix = self._make_timeseries_matrix()
@@ -105,6 +106,15 @@ class Array1D():
             self._regen_position = False
             self._position = [sensor.x for sensor in self.sensors]
         return self._position
+
+    @property
+    def offsets(self):
+        """Receiver offsets relative to source position as `list`."""
+        positions = self.position
+        offsets = []
+        for position in positions:
+            offsets.append(abs(self.source._x - position))
+        return offsets
 
     @property
     def kres(self):

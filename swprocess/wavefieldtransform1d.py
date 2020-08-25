@@ -1,4 +1,4 @@
-"""WavefieldTransform1D class defintion."""
+"""WavefieldTransform1D class definition."""
 
 import json
 import logging
@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 class WavefieldTransform1D():
     """Wavefield transformation of a `Array1D`.
 
-    Attributues
-    ------------
+    Attributes
+    ----------
 
     """
 
@@ -48,50 +48,63 @@ class WavefieldTransform1D():
             array.trim(start_time=self.settings["start_time"],
                        end_time=self.settings["end_time"])
 
+        # TODO (jpv): Somethings not quite right on zero pad.
+        # If df is large (assumed greater than current df) padding
+        # results in incorrect phase velocity.
+        # See vs_uncertainty/0_intro/masw
         if self.settings["zero_pad"]:
             logger.info("padding ... ")
             array.zero_pad(df=self.settings["df"])
 
+        self.kres = array.kres
         self._perform_transform(array=array)
 
     def _perform_transform(self, array):
         if self.settings["method"] == "fk":
             results = self._fk_transform(array=array,
-                                         ntrial=self.settings["ntrial"],
+                                         nwave=self.settings["fk-specific"]["nwavenumbers"],
                                          fmin=self.settings["fmin"],
                                          fmax=self.settings["fmax"],
                                          )
+        elif self.settings["method"] == "phase-shift":
+            results = self._phase_shift_transform(array=array,
+                                                  fmin=self.settings["fmin"],
+                                                  fmax=self.settings["fmax"],
+                                                  vmin=self.settings["vmin"],
+                                                  vmax=self.settings["vmax"],
+                                                  nvel=self.settings["phaseshift-specific"]["nvelocities"]
+                                                  )
+
         else:
             raise NotImplementedError
 
-        self.frqs, self.domain, self.vals, self.pnorm, self.peaks, self.kres = results
+        self.frqs, self.domain, self.vals, self.pnorm, self.peaks = results
 
     @staticmethod
-    def _fk_transform(array, ntrial, fmin, fmax):
+    def _fk_transform(array, nwave, fmin, fmax):
         """Perform fk transform on the provided array."""
-        sensor = array.sensors[0]
-
         # Frequency vector
+        sensor = array.sensors[0]
         frqs = np.arange(0, sensor.fnyq+sensor.df, sensor.df)
 
         # Perform 2D FFT
         if array._flip_required:
-            tseries = np.fliplr(array.timeseriesmatrix)
+            tseries = np.flipud(array.timeseriesmatrix)
         else:
             tseries = array.timeseriesmatrix
-        fk = np.fft.fft2(tseries, s=(ntrial, sensor.nsamples))
+        fk = np.fft.fft2(tseries, s=(nwave, sensor.nsamples))
         fk = np.abs(fk[-2::-1, 0:len(frqs)])
 
         # Trim frequencies and downsample (if required by zero padding)
-        fmin_ids = np.argmin(np.absolute(frqs-fmin))
-        fmax_ids = np.argmin(np.absolute(frqs-fmax))
+        fmin_ids = np.argmin(np.abs(frqs-fmin))
+        fmax_ids = np.argmin(np.abs(frqs-fmax))
         freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
         frqs = frqs[freq_ids]
         fk = fk[:, freq_ids]
 
         # Wavenumber vector
         kres = array.kres
-        dk = 2*kres / ntrial
+        dk = 2*kres / nwave
         ks = np.arange(dk, 2*kres, dk)
 
         # Normalize power and find peaks
@@ -102,7 +115,50 @@ class WavefieldTransform1D():
             pnorm[:, k] = normed_fk
             kpeaks[k] = ks[np.argmax(normed_fk)]
 
-        return (frqs, "wavenumber", ks, pnorm, kpeaks, kres)
+        return (frqs, "wavenumber", ks, pnorm, kpeaks)
+
+    @staticmethod
+    def _phase_shift_transform(array, fmin, fmax, vmin, vmax, nvel):
+        # Frequency vector
+        sensor = array.sensors[0]
+        frqs = np.arange(0, sensor.fnyq+sensor.df, sensor.df)
+
+        # u(x,t) -> FFT -> U(x,f)
+        if array._flip_required:
+            offsets = array.offsets[::-1]
+            tseries = np.flipud(array.timeseriesmatrix)
+        else:
+            offsets = array.offsets
+            tseries = array.timeseriesmatrix
+        offsets = np.array(offsets)
+        transformed = np.fft.fft(tseries)
+
+        # Trim frequencies and downsample (if required by zero padding)
+        fmin_ids = np.argmin(np.abs(frqs-fmin))
+        fmax_ids = np.argmin(np.abs(frqs-fmax))
+        freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
+        frqs = frqs[freq_ids]
+        transformed = transformed[:, freq_ids]
+
+        # Integrate across the array offsets
+        phase_shift = np.empty((len(frqs), nvel))
+        vels = np.linspace(vmin, vmax, nvel)
+        dx = offsets[1:] - offsets[:-1]
+        for f_index, frq in enumerate(frqs):
+            for v_index, vel in enumerate(vels):
+                exponent = 1j * 2*np.pi*frq/vel * offsets
+                inner = np.exp(exponent) * transformed[:, f_index]/np.abs(transformed[:, f_index])
+                phase_shift[f_index, v_index] = np.abs(np.sum(0.5*dx*(inner[:-1] + inner[1:])))
+
+        # Normalize power and find peaks
+        pnorm = np.empty_like(phase_shift)
+        vpeaks = np.empty_like(frqs)
+        for k, _phase_shift in enumerate(phase_shift):
+            normed_phase_shift = np.abs(_phase_shift/np.max(_phase_shift))
+            pnorm[k, :] = normed_phase_shift
+            vpeaks[k] = vels[np.argmax(normed_phase_shift)]
+
+        return (frqs, "velocity", vels, pnorm.T, vpeaks)
 
     # TODO (jpv): Generate a default settings file on the fly.
     @staticmethod
@@ -142,7 +198,7 @@ class WavefieldTransform1D():
 
         if ftype != "json":
             raise ValueError()
-        
+
         if fname.endswith(".json"):
             fname = fname[:-5]
 
@@ -171,9 +227,9 @@ class WavefieldTransform1D():
 
             json.dump(data, fp)
 
-    def plot_spectra(self, stype="fv", plot_peak=True, plot_limit=None): #pragma: no cover
-        if plot_limit != None and len(plot_limit) != 4:
-            raise ValueError("plotLim should be a four element list")
+    def plot_spectra(self, stype="fv", plot_peak=True, plot_limit=None):  # pragma: no cover
+        if plot_limit is not None and len(plot_limit) != 4:
+            raise ValueError("plot_limit should be a four element list")
 
         if self.domain == "wavenumber":
             fgrid, kgrid = np.meshgrid(self.frqs, self.vals)
@@ -186,7 +242,7 @@ class WavefieldTransform1D():
             fgrid, vgrid = np.meshgrid(self.frqs, self.vals)
             wgrid = vgrid / fgrid
             wgrid = 2*np.pi / wgrid
-            vpeak = self.peak
+            vpeak = self.peaks
             kpeak = 2*np.pi*self.frqs / vpeak
             wpeak = 2*np.pi / kpeak
         else:
@@ -252,10 +308,8 @@ class WavefieldTransform1D():
             msg = f"`stype`= {stype} not recognized, use 'fk', 'fw', 'fv', 'fp', or 'wv'."
             raise ValueError(msg)
 
-        mwdth = 6
-        mhght = 4
         zgrid = self.pnorm
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(mwdth, mhght))
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
         contour = ax.contourf(xgrid,
                               ygrid,
                               zgrid,
