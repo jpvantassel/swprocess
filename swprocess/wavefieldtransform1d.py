@@ -122,37 +122,38 @@ class WavefieldTransform1D():
         # u(x,t) -> FFT -> U(x,f)
         if array._flip_required:
             offsets = array.offsets[::-1]
-            tseries = np.flipud(array.timeseriesmatrix)
+            tmatrix = np.flipud(array.timeseriesmatrix)
         else:
             offsets = array.offsets
-            tseries = array.timeseriesmatrix
+            tmatrix = array.timeseriesmatrix
         offsets = np.array(offsets)
-        transformed = np.fft.fft(tseries)
+        trans = np.fft.fft(tmatrix)
 
         # Trim frequencies and downsample (if required by zero padding)
         fmin_ids = np.argmin(np.abs(frqs-fmin))
         fmax_ids = np.argmin(np.abs(frqs-fmax))
         freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
         frqs = frqs[freq_ids]
-        transformed = transformed[:, freq_ids]
+        trans = trans[:, freq_ids]
 
         # Integrate across the array offsets
-        phase_shift = np.empty((len(frqs), nvel))
+        power = np.empty((len(frqs), nvel))
         vels = np.linspace(vmin, vmax, nvel)
         dx = offsets[1:] - offsets[:-1]
         for f_index, frq in enumerate(frqs):
             for v_index, vel in enumerate(vels):
-                exponent = 1j * 2*np.pi*frq/vel * offsets
-                inner = np.exp(exponent) * transformed[:, f_index]/np.abs(transformed[:, f_index])
-                phase_shift[f_index, v_index] = np.abs(np.sum(0.5*dx*(inner[:-1] + inner[1:])))
+                shift = np.exp(1j * 2*np.pi*frq/vel * offsets)
+                inner = shift*trans[:, f_index]/np.abs(trans[:, f_index])
+                power[f_index, v_index] = np.abs(np.sum(0.5*dx*(inner[:-1] + inner[1:])))
 
         # Normalize power and find peaks
-        pnorm = np.empty_like(phase_shift)
+        pnorm = np.empty_like(power)
         vpeaks = np.empty_like(frqs)
-        for k, _phase_shift in enumerate(phase_shift):
-            normed_phase_shift = np.abs(_phase_shift/np.max(_phase_shift))
-            pnorm[k, :] = normed_phase_shift
-            vpeaks[k] = vels[np.argmax(normed_phase_shift)]
+        pnorm = power/np.max(power)
+        for k, _power in enumerate(pnorm):
+            # normed_power = np.abs(_power/np.max(_power))
+            # pnorm[k, :] = normed_power
+            vpeaks[k] = vels[np.argmax(_power)]
 
         return (frqs, "velocity", vels, pnorm.T, vpeaks)
 
