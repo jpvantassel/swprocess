@@ -195,8 +195,7 @@ class WavefieldTransform1D():
             for v_index, vel in enumerate(vels):
                 shift = np.exp(1j * 2*np.pi*frq/vel * offsets)
                 inner = shift*trans[:, f_index]/np.abs(trans[:, f_index])
-                power[f_index, v_index] = np.abs(
-                    np.sum(0.5*dx*(inner[:-1] + inner[1:])))
+                power[f_index, v_index] = np.abs(np.sum(0.5*dx*(inner[:-1] + inner[1:])))
 
         # Normalize power and find peaks
         pnorm = np.empty_like(power)
@@ -266,7 +265,8 @@ class WavefieldTransform1D():
 
         # Frequency vector
         sensor = array.sensors[0]
-        frqs = np.arange(tau_p.shape[1]) * sensor.df
+        ntaus = tau_p.shape[1]
+        frqs = np.arange(ntaus) * 1/(ntaus*sensor.dt)
 
         # Fourier Transform of Slant Stack
         fp = np.fft.fft(tau_p)
@@ -281,8 +281,10 @@ class WavefieldTransform1D():
         # Normalize power and find peaks
         pnorm = np.empty(fp.shape)
         vpeaks = np.empty_like(frqs)
-        for k, _fp in enumerate(fp.T):
-            normed_fp = np.abs(_fp/np.max(_fp))
+        # fp = np.abs(fp/np.max(fp))
+        abs_fp = np.abs(fp)
+        for k, _fp in enumerate(abs_fp.T):
+            normed_fp = _fp/np.max(_fp)
             pnorm[:, k] = normed_fp
             vpeaks[k] = velocities[np.argmax(normed_fp)]
 

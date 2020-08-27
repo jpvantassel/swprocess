@@ -4,20 +4,15 @@
     "start_time": 0,
     "end_time": 0.75,
     "zero_pad": true,
-    "df": 1,
+    "df": 0.5,
     "fmin": 5,
     "fmax": 100,
-    "vmin": 75,
+    "vmin": 100,
     "vmax": 400,
-    "fk-specific": {
-        "nwavenumbers":512
-    },
+    "fk-specific": {},
     "phaseshift-specific": {
         "nvelocities": 200
     },
     "slantstack-specific": {},
-    "fdbf-specific": {
-        "weighting": "none",
-        "steering_vector": "plane"
-    }
+    "fdbf-specific": {}
 }

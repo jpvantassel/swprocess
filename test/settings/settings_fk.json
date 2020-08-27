@@ -7,17 +7,12 @@
     "df": 0.5,
     "fmin": 5,
     "fmax": 100,
-    "vmin": 75,
-    "vmax": 600,
+    "vmin": 100,
+    "vmax": 400,
     "fk-specific": {
-        "nwavenumbers":512
+        "nwavenumbers": 512
     },
-    "phaseshift-specific": {
-        "nvelocities":500
-    },
+    "phaseshift-specific": {},
     "slantstack-specific": {},
-    "fdbf-specific": {
-        "weighting": "none",
-        "steering_vector": "plane"
-    }
+    "fdbf-specific": {}
 }
