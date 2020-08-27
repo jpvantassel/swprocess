@@ -70,7 +70,14 @@ class WavefieldTransform1D():
                                                   vmax=self.settings["vmax"],
                                                   nvel=self.settings["phaseshift-specific"]["nvelocities"]
                                                   )
-
+        elif self.settings["method"] == "slant-stack":
+            vels = np.linspace(self.settings["vmin"], self.settings["vmax"],
+                               self.settings["slantstack-specific"]["nvelocities"])
+            results = self._slant_stack_transform(array=array,
+                                                  fmin=self.settings["fmin"],
+                                                  fmax=self.settings["fmax"],
+                                                  velocities=vels
+                                                  )
         else:
             raise NotImplementedError
 
@@ -79,7 +86,7 @@ class WavefieldTransform1D():
     @staticmethod
     def _fk_transform(array, nwave, fmin, fmax):
         """Perform Frequency-Wavenumber (fk) transform.
-        
+
         The FK approach utilizes a 2D Fourier Transform to transform
         data from the time-space domain to the frequency-wavenumber
         domain. The FK approach was adapted by Gabriels et al. (1987)
@@ -100,11 +107,11 @@ class WavefieldTransform1D():
         -------
         Tuple
             Of the form `(frqs, domain, ks, pnorm, kpeaks)`.
-        
+
         """
         # Frequency vector
         sensor = array.sensors[0]
-        frqs = np.arange(0, sensor.fnyq+sensor.df, sensor.df)
+        frqs = np.arange(sensor.nsamples) * sensor.df
 
         # Perform 2D FFT
         if array._flip_required:
@@ -161,7 +168,7 @@ class WavefieldTransform1D():
         """
         # Frequency vector
         sensor = array.sensors[0]
-        frqs = np.arange(0, sensor.fnyq+sensor.df, sensor.df)
+        frqs = np.arange(sensor.nsamples) * sensor.df
 
         # u(x,t) -> FFT -> U(x,f)
         if array._flip_required:
@@ -188,7 +195,8 @@ class WavefieldTransform1D():
             for v_index, vel in enumerate(vels):
                 shift = np.exp(1j * 2*np.pi*frq/vel * offsets)
                 inner = shift*trans[:, f_index]/np.abs(trans[:, f_index])
-                power[f_index, v_index] = np.abs(np.sum(0.5*dx*(inner[:-1] + inner[1:])))
+                power[f_index, v_index] = np.abs(
+                    np.sum(0.5*dx*(inner[:-1] + inner[1:])))
 
         # Normalize power and find peaks
         pnorm = np.empty_like(power)
@@ -204,7 +212,7 @@ class WavefieldTransform1D():
     @staticmethod
     def _slant_stack(array, velocities):
         """Perform a Slant-Stack on wavefield data.
-        
+
         Parameters
         ----------
         array : Array1d
@@ -214,7 +222,7 @@ class WavefieldTransform1D():
         -------
         ndarray
             With slant-stacked waveform
-                
+
         """
         if array._flip_required:
             tmatrix = np.flipud(array.timeseriesmatrix)
@@ -226,21 +234,22 @@ class WavefieldTransform1D():
         diff = position[1:] - position[:-1]
         dt = array.sensors[0].dt
         npts = tmatrix.shape[1]
-        ntaus = npts - int(np.max(position)*np.max(1/velocities)/dt)
+        ntaus = npts - int(np.max(position)*np.max(1/velocities)/dt) - 1
         slant_stack = np.empty((len(velocities), ntaus))
+        rows = np.arange(len(position))
         for i, velocity in enumerate(velocities):
             float_indices = position/(dt*velocity)
-            lower_indices = np.floor(float_indices, dtype=int)
+            lower_indices = np.array(np.floor(float_indices), dtype=int)
             delta = float_indices - lower_indices
-            upper_indices = np.ceil(float_indices, dtype=int)
-            for j in range(ntaus):
-                amplitudes = tmatrix[:, lower_indices+j]*(1-delta) + tmatrix[:, upper_indices+j]*delta
-                slant_stack[i, j] = np.sum(0.5*diff*(amplitudes[1:] + amplitudes[:-1]))
 
+            for j in range(ntaus):
+                amplitudes = tmatrix[rows, lower_indices+j]*(1-delta) + tmatrix[rows, lower_indices+j+1]*delta
+                slant_stack[i, j] = np.sum(0.5*diff*(amplitudes[1:] + amplitudes[:-1]))
+        
         return slant_stack
 
     @staticmethod
-    def _slant_stack_transform(array, velocities):
+    def _slant_stack_transform(array, fmin, fmax, velocities):
         """Perform the Slant-Stack transform.
 
         Parameters
@@ -253,13 +262,31 @@ class WavefieldTransform1D():
         -------
 
         """
-        slant_stack = WavefieldTransform1D._slant_stack(array, velocities)
+        tau_p = WavefieldTransform1D._slant_stack(array, velocities)
 
-        tau_p = np.fft.fft(slant_stack)
+        # Frequency vector
+        sensor = array.sensors[0]
+        frqs = np.arange(tau_p.shape[1]) * sensor.df
 
-        
+        # Fourier Transform of Slant Stack
+        fp = np.fft.fft(tau_p)
 
+        # Trim frequencies and downsample (if required by zero padding)
+        fmin_ids = np.argmin(np.abs(frqs-fmin))
+        fmax_ids = np.argmin(np.abs(frqs-fmax))
+        freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
+        frqs = frqs[freq_ids]
+        fp = fp[:, freq_ids]
 
+        # Normalize power and find peaks
+        pnorm = np.empty(fp.shape)
+        vpeaks = np.empty_like(frqs)
+        for k, _fp in enumerate(fp.T):
+            normed_fp = np.abs(_fp/np.max(_fp))
+            pnorm[:, k] = normed_fp
+            vpeaks[k] = velocities[np.argmax(normed_fp)]
+
+        return (frqs, "velocity", velocities, pnorm, vpeaks)
 
     # TODO (jpv): Generate a default settings file on the fly.
     @staticmethod

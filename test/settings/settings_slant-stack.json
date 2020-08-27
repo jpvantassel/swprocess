@@ -1,0 +1,25 @@
+{
+    "method": "slant-stack",
+    "trim": false,
+    "start_time": 0,
+    "end_time": 0.75,
+    "zero_pad": true,
+    "df": 1,
+    "fmin": 5,
+    "fmax": 100,
+    "vmin": 100,
+    "vmax": 400,
+    "fk-specific": {
+        "nwavenumbers":512
+    },
+    "phaseshift-specific": {
+        "nvelocities": 200
+    },
+    "slantstack-specific": {
+        "nvelocities": 200
+    },
+    "fdbf-specific": {
+        "weighting": "none",
+        "steering_vector": "plane"
+    }
+}
