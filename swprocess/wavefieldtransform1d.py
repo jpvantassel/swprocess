@@ -78,7 +78,30 @@ class WavefieldTransform1D():
 
     @staticmethod
     def _fk_transform(array, nwave, fmin, fmax):
-        """Perform fk transform on the provided array."""
+        """Perform Frequency-Wavenumber (fk) transform.
+        
+        The FK approach utilizes a 2D Fourier Transform to transform
+        data from the time-space domain to the frequency-wavenumber
+        domain. The FK approach was adapted by Gabriels et al. (1987)
+        for linear arrays from the FK approach developed by Nolet and
+        Panza (1976) for 2D arrays.
+
+        Parameters
+        ----------
+        array : Array1d
+            One-dimensional array object.
+        nwave : int
+            Number of wavenumbers to consider.
+        fmin, fmax : float
+            Minimum and maximum frequency of interest in the
+            transformation.
+
+        Returns
+        -------
+        Tuple
+            Of the form `(frqs, domain, ks, pnorm, kpeaks)`.
+        
+        """
         # Frequency vector
         sensor = array.sensors[0]
         frqs = np.arange(0, sensor.fnyq+sensor.df, sensor.df)
@@ -115,6 +138,27 @@ class WavefieldTransform1D():
 
     @staticmethod
     def _phase_shift_transform(array, fmin, fmax, vmin, vmax, nvel):
+        """Perform the Phase-Shift transform.
+
+        Parameters
+        ----------
+        array : Array1d
+            One-dimensional array object.
+        fmin, fmax : float
+            Minimum and maximum frequency of interest in the
+            transformation.
+        vmin, vmax : float
+            Minimum and maximum velocity of interest in the
+            transformation.
+        nvel : int
+            Number of trial velocities to attempt between vmin and vmax.
+
+        Returns
+        -------
+        Tuple
+            Of the form `(frqs, domain, vels, pnorm, vpeaks)`.
+
+        """
         # Frequency vector
         sensor = array.sensors[0]
         frqs = np.arange(0, sensor.fnyq+sensor.df, sensor.df)
@@ -156,6 +200,66 @@ class WavefieldTransform1D():
             vpeaks[k] = vels[np.argmax(_power)]
 
         return (frqs, "velocity", vels, pnorm.T, vpeaks)
+
+    @staticmethod
+    def _slant_stack(array, velocities):
+        """Perform a Slant-Stack on wavefield data.
+        
+        Parameters
+        ----------
+        array : Array1d
+            One-dimensional array object.
+
+        Returns
+        -------
+        ndarray
+            With slant-stacked waveform
+                
+        """
+        if array._flip_required:
+            tmatrix = np.flipud(array.timeseriesmatrix)
+        else:
+            tmatrix = array.timeseriesmatrix
+
+        position = np.array(array.position)
+        position -= np.min(position)
+        diff = position[1:] - position[:-1]
+        dt = array.sensors[0].dt
+        npts = tmatrix.shape[1]
+        ntaus = npts - int(np.max(position)*np.max(1/velocities)/dt)
+        slant_stack = np.empty((len(velocities), ntaus))
+        for i, velocity in enumerate(velocities):
+            float_indices = position/(dt*velocity)
+            lower_indices = np.floor(float_indices, dtype=int)
+            delta = float_indices - lower_indices
+            upper_indices = np.ceil(float_indices, dtype=int)
+            for j in range(ntaus):
+                amplitudes = tmatrix[:, lower_indices+j]*(1-delta) + tmatrix[:, upper_indices+j]*delta
+                slant_stack[i, j] = np.sum(0.5*diff*(amplitudes[1:] + amplitudes[:-1]))
+
+        return slant_stack
+
+    @staticmethod
+    def _slant_stack_transform(array, velocities):
+        """Perform the Slant-Stack transform.
+
+        Parameters
+        ----------
+        array : Array1d
+            One-dimensional array object.
+
+
+        Returns
+        -------
+
+        """
+        slant_stack = WavefieldTransform1D._slant_stack(array, velocities)
+
+        tau_p = np.fft.fft(slant_stack)
+
+        
+
+
 
     # TODO (jpv): Generate a default settings file on the fly.
     @staticmethod
