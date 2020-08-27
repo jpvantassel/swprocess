@@ -9,4 +9,5 @@ build
 dist
 test/htmlcov
 test/.coverage
+test/.tmp_profiler_run
 examples/active.json
