@@ -210,7 +210,7 @@ class WavefieldTransform1D():
 
     @staticmethod
     def _slant_stack(array, velocities):
-        """Perform a Slant-Stack on wavefield data.
+        """Perform a slant-stack on the given wavefield data.
 
         Parameters
         ----------
@@ -219,8 +219,10 @@ class WavefieldTransform1D():
 
         Returns
         -------
-        ndarray
-            With slant-stacked waveform
+        tuple
+            Of the form `(tau, slant_stack)` where `tau` is an ndarray
+            of the attempted intercept times and `slant_stack` are the
+            slant-stacked waveforms.
 
         """
         if array._flip_required:
@@ -230,22 +232,42 @@ class WavefieldTransform1D():
 
         position = np.array(array.position)
         position -= np.min(position)
+        nchannels = array.nchannels
         diff = position[1:] - position[:-1]
+        diff = diff.reshape((len(diff),1))
         dt = array.sensors[0].dt
         npts = tmatrix.shape[1]
         ntaus = npts - int(np.max(position)*np.max(1/velocities)/dt) - 1
         slant_stack = np.empty((len(velocities), ntaus))
-        rows = np.arange(len(position))
-        for i, velocity in enumerate(velocities):
-            float_indices = position/(dt*velocity)
-            lower_indices = np.array(np.floor(float_indices), dtype=int)
-            delta = float_indices - lower_indices
+        rows = np.tile(np.arange(nchannels).reshape(nchannels,1), (1, ntaus))
+        # print(rows)
+        # print(rows.shape)
+        cols = np.tile(np.arange(ntaus).reshape(1, ntaus), (nchannels, 1))
+        # print(cols)
+        # print(cols.shape)
 
-            for j in range(ntaus):
-                amplitudes = tmatrix[rows, lower_indices+j]*(1-delta) + tmatrix[rows, lower_indices+j+1]*delta
-                slant_stack[i, j] = np.sum(0.5*diff*(amplitudes[1:] + amplitudes[:-1]))
-        
-        return slant_stack
+        pre_float_indices = position.reshape(nchannels, 1)/dt
+        previous_lower_indices = np.zeros((nchannels,1), dtype=int)
+        for i, velocity in enumerate(velocities):
+            float_indices = pre_float_indices/velocity
+            lower_indices = np.array(float_indices, dtype=int)
+            delta = float_indices - lower_indices
+            # print(lower_indices.shape)
+            # print(previous_lower_indices.shape)
+            cols += lower_indices - previous_lower_indices
+            # print(rows)
+            # print(cols)
+            amplitudes = tmatrix[rows, cols]*(1-delta) + tmatrix[rows, cols+1]*delta
+            # print(amplitudes.shape)
+            integral = 0.5*diff*(amplitudes[1:, :] + amplitudes[:-1, :])
+            # print(f"integral.shape = {integral.shape}")
+            summation = np.sum(integral, axis=0)
+            # print(summation.shape)
+            slant_stack[i, :] = summation
+
+            previous_lower_indices[:] = lower_indices
+        taus = np.arange(ntaus)*dt
+        return (taus, slant_stack)
 
     @staticmethod
     def _slant_stack_transform(array, fmin, fmax, velocities):
@@ -261,7 +283,7 @@ class WavefieldTransform1D():
         -------
 
         """
-        tau_p = WavefieldTransform1D._slant_stack(array, velocities)
+        _, tau_p = WavefieldTransform1D._slant_stack(array, velocities)
 
         # Frequency vector
         sensor = array.sensors[0]

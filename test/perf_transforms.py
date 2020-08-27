@@ -42,4 +42,5 @@ stat.print_stats(0.01)
 # slant-stack
 # YEAR - MO - DY : TIME UNIT
 # -------------------------
-# 2020 - 08 - 27 : 0.759 s -> Baseline
+# 2020 - 08 - 27 : 7.238 s -> Baseline
+# 2020 - 08 - 27 : 0.318 s -> Change indexing implementation
