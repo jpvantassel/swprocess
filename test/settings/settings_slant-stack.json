@@ -12,7 +12,7 @@
     "fk-specific": {},
     "phaseshift-specific": {},
     "slantstack-specific": {
-        "nvelocities": 200
+        "nvelocities": 300
     },
     "fdbf-specific": {}
 }

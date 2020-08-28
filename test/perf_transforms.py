@@ -46,3 +46,4 @@ stat.print_stats(0.01)
 # 2020 - 08 - 27 : 0.318 s -> Complex indexing implementation
 # 2020 - 08 - 27 : 8.063 s -> Functional implementation sans jit
 # 2020 - 08 - 27 : 9.096 s -> Functional implementation with jit
+# 2020 - 08 - 28 : 0.325 s -> Revert to earlier slant-stack implementation

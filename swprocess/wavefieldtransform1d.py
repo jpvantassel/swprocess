@@ -234,43 +234,42 @@ class WavefieldTransform1D():
         position = np.array(array.position)
         position -= np.min(position)
         nchannels = array.nchannels
-        # diff = position[1:] - position[:-1]
-        # diff = diff.reshape((len(diff),1))
+        diff = position[1:] - position[:-1]
+        diff = diff.reshape((len(diff),1))
         dt = array.sensors[0].dt
         npts = tmatrix.shape[1]
         ntaus = npts - int(np.max(position)*np.max(1/velocities)/dt) - 1
+        slant_stack = np.empty((len(velocities), ntaus))
         rows = np.tile(np.arange(nchannels).reshape(nchannels,1), (1, ntaus))
         cols = np.tile(np.arange(ntaus).reshape(1, ntaus), (nchannels, 1))
 
-        @njit()
-        def fast_slant_stack(tmatrix, dt, position, velocities, ntaus):
-            spacings = position[1:] - position[:-1]        
-            nchannels = len(position)
-            slant_stack = np.empty((len(velocities), ntaus), dtype=np.float32)
-            previous_lower_indices = np.zeros((nchannels, 1), dtype=np.int32)
-            rows = np.arange(nchannels)
-            for i, velocity in enumerate(velocities):
-                float_indices = position/(velocity*dt)            
-                lower_indices = float_indices.astype(np.int32)
-                deltas = float_indices - lower_indices
-                for j in range(ntaus):
-                    cols = lower_indices+j
-                    
-                    integral = 0
-                    previous_spacing = 0
-                    for row, col, delta, spacing in zip(rows, cols, deltas, spacings):
-                        amp = tmatrix[row, col]*(1-delta) + tmatrix[row, col]*delta
-                        integral += 0.5*amp*(previous_spacing + spacing)
-                        previous_spacing = spacing
-                    integral += 0.5*amp*spacing
+        pre_float_indices = position.reshape(nchannels, 1)/dt
+        previous_lower_indices = np.zeros((nchannels,1), dtype=int)
+        for i, velocity in enumerate(velocities):
+            float_indices = pre_float_indices/velocity
+            lower_indices = np.array(float_indices, dtype=int)
+            delta = float_indices - lower_indices
+            cols += lower_indices - previous_lower_indices
+            amplitudes = WavefieldTransform1D.calc_amp(tmatrix, rows, cols, delta)
+            integral = WavefieldTransform1D.integral(diff, amplitudes)
+            summation = WavefieldTransform1D.summer(integral)
+            slant_stack[i, :] = summation
 
-                    slant_stack[i, j] = integral
-            return slant_stack
-
-        slant_stack = fast_slant_stack(tmatrix, dt, position, velocities, ntaus)
-            
+            previous_lower_indices[:] = lower_indices
         taus = np.arange(ntaus)*dt
         return (taus, slant_stack)
+    
+    @staticmethod
+    def summer(integral):
+        return np.sum(integral, axis=0)
+
+    @staticmethod
+    def calc_amp(tmatrix, rows, cols, delta):
+        return tmatrix[rows, cols]*(1-delta) + tmatrix[rows, cols+1]*delta
+
+    @staticmethod
+    def integral(diff, amplitudes):
+        return 0.5*diff*(amplitudes[1:, :] + amplitudes[:-1, :])
 
     @staticmethod
     def _slant_stack_transform(array, fmin, fmax, velocities):
@@ -291,7 +290,12 @@ class WavefieldTransform1D():
         # Frequency vector
         sensor = array.sensors[0]
         ntaus = tau_p.shape[1]
-        frqs = np.arange(ntaus) * 1/(ntaus*sensor.dt)
+        df = 1/(ntaus*sensor.dt)
+        # print(df)
+        frqs = np.arange(ntaus) * df
+
+        # TODO (jpv): Adjust zero padding for the slant-stack. Need to
+        # be padding in the tau-p domain rather than in the x-t domain.
 
         # Fourier Transform of Slant Stack
         fp = np.fft.fft(tau_p)
