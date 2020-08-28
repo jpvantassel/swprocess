@@ -43,4 +43,6 @@ stat.print_stats(0.01)
 # YEAR - MO - DY : TIME UNIT
 # -------------------------
 # 2020 - 08 - 27 : 7.238 s -> Baseline
-# 2020 - 08 - 27 : 0.318 s -> Change indexing implementation
+# 2020 - 08 - 27 : 0.318 s -> Complex indexing implementation
+# 2020 - 08 - 27 : 8.063 s -> Functional implementation sans jit
+# 2020 - 08 - 27 : 9.096 s -> Functional implementation with jit

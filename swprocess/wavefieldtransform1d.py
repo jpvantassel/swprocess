@@ -5,6 +5,7 @@ import logging
 
 import numpy as np
 import matplotlib.pyplot as plt
+from numba import njit, int64
 
 logger = logging.getLogger(__name__)
 
@@ -233,39 +234,41 @@ class WavefieldTransform1D():
         position = np.array(array.position)
         position -= np.min(position)
         nchannels = array.nchannels
-        diff = position[1:] - position[:-1]
-        diff = diff.reshape((len(diff),1))
+        # diff = position[1:] - position[:-1]
+        # diff = diff.reshape((len(diff),1))
         dt = array.sensors[0].dt
         npts = tmatrix.shape[1]
         ntaus = npts - int(np.max(position)*np.max(1/velocities)/dt) - 1
-        slant_stack = np.empty((len(velocities), ntaus))
         rows = np.tile(np.arange(nchannels).reshape(nchannels,1), (1, ntaus))
-        # print(rows)
-        # print(rows.shape)
         cols = np.tile(np.arange(ntaus).reshape(1, ntaus), (nchannels, 1))
-        # print(cols)
-        # print(cols.shape)
 
-        pre_float_indices = position.reshape(nchannels, 1)/dt
-        previous_lower_indices = np.zeros((nchannels,1), dtype=int)
-        for i, velocity in enumerate(velocities):
-            float_indices = pre_float_indices/velocity
-            lower_indices = np.array(float_indices, dtype=int)
-            delta = float_indices - lower_indices
-            # print(lower_indices.shape)
-            # print(previous_lower_indices.shape)
-            cols += lower_indices - previous_lower_indices
-            # print(rows)
-            # print(cols)
-            amplitudes = tmatrix[rows, cols]*(1-delta) + tmatrix[rows, cols+1]*delta
-            # print(amplitudes.shape)
-            integral = 0.5*diff*(amplitudes[1:, :] + amplitudes[:-1, :])
-            # print(f"integral.shape = {integral.shape}")
-            summation = np.sum(integral, axis=0)
-            # print(summation.shape)
-            slant_stack[i, :] = summation
+        @njit()
+        def fast_slant_stack(tmatrix, dt, position, velocities, ntaus):
+            spacings = position[1:] - position[:-1]        
+            nchannels = len(position)
+            slant_stack = np.empty((len(velocities), ntaus), dtype=np.float32)
+            previous_lower_indices = np.zeros((nchannels, 1), dtype=np.int32)
+            rows = np.arange(nchannels)
+            for i, velocity in enumerate(velocities):
+                float_indices = position/(velocity*dt)            
+                lower_indices = float_indices.astype(np.int32)
+                deltas = float_indices - lower_indices
+                for j in range(ntaus):
+                    cols = lower_indices+j
+                    
+                    integral = 0
+                    previous_spacing = 0
+                    for row, col, delta, spacing in zip(rows, cols, deltas, spacings):
+                        amp = tmatrix[row, col]*(1-delta) + tmatrix[row, col]*delta
+                        integral += 0.5*amp*(previous_spacing + spacing)
+                        previous_spacing = spacing
+                    integral += 0.5*amp*spacing
 
-            previous_lower_indices[:] = lower_indices
+                    slant_stack[i, j] = integral
+            return slant_stack
+
+        slant_stack = fast_slant_stack(tmatrix, dt, position, velocities, ntaus)
+            
         taus = np.arange(ntaus)*dt
         return (taus, slant_stack)
 
