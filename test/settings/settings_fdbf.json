@@ -1,0 +1,18 @@
+{
+    "method": "fdbf",
+    "trim": false,
+    "start_time": 0,
+    "end_time": 0.75,
+    "zero_pad": true,
+    "df": 0.5,
+    "fmin": 5,
+    "fmax": 100,
+    "vmin": 100,
+    "vmax": 400,
+    "fk-specific": {},
+    "phaseshift-specific": {},
+    "slantstack-specific": {},
+    "fdbf-specific": {
+        "nvelocities" : 200
+    }
+}

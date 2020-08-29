@@ -79,6 +79,14 @@ class WavefieldTransform1D():
                                                   fmax=self.settings["fmax"],
                                                   velocities=vels
                                                   )
+        elif self.settings["method"] == "fdbf":
+            vels = np.linspace(self.settings["vmin"], self.settings["vmax"],
+                               self.settings["fdbf-specific"]["nvelocities"])
+            results = self._slant_stack_transform(array=array,
+                                                  fmin=self.settings["fmin"],
+                                                  fmax=self.settings["fmax"],
+                                                  velocities=vels
+                                                  )
         else:
             raise NotImplementedError
 
@@ -318,6 +326,56 @@ class WavefieldTransform1D():
             vpeaks[k] = velocities[np.argmax(normed_fp)]
 
         return (frqs, "velocity", velocities, pnorm, vpeaks)
+
+    @staticmethod
+    def _spatiospectral_correlation_matrix(array, weight=None):
+        if array._flip_required:
+            tmatrix = np.flipud(array.timeseriesmatrix)
+        else:
+            tmatrix = array.timeseriesmatrix
+
+        transform = np.fft.fft(tmatrix)
+        nchannels, nsamples = transform.shape
+        spatiospectral = np.empty((nchannels, nchannels, nsamples), dtype=complex)
+        spatiospectral_h = spatiospectral.H
+
+        for i in range(nchannels):
+            for j in range(i, nchannels):
+                scm = transform[i]*transform_h[j]
+                spatiospectral[i, j, :] = scm
+                spatiospectral[j, i, :] = scm
+        
+        return spatiospectral
+
+# p130
+# p334 - Spatiospectral Correlaton Matrix
+
+    @staticmethod
+    def _frequency_domain_beamformer(array, fmin, fmax, velocities, weight=None):
+        spatiospectral = WavefieldTransform1D._spatiospectral_correlation_matrix(array, weight=weight)
+        offsets = np.array(array.offsets)
+
+        # Frequency vector
+        sensor = array.sensors[0]
+        frqs = np.arange(sensor.nsamples) * sensor.df
+
+        # Trim frequencies and downsample (if required by zero padding)
+        fmin_ids = np.argmin(np.abs(frqs-fmin))
+        fmax_ids = np.argmin(np.abs(frqs-fmax))
+        freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
+        frqs = frqs[freq_ids]
+        # trans = trans[:, freq_ids]
+
+
+        for v in velocities:
+            for f in frequencies:
+                steering = np.exp(-1j*2*pi*f/v*offsets)
+
+        pnorm = None
+        vpeaks = None
+
+        return (frqs, "velocity", velocities, pnorm, vpeaks)
+
 
     # TODO (jpv): Generate a default settings file on the fly.
     @staticmethod
