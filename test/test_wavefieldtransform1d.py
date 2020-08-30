@@ -13,7 +13,6 @@ class Test_WaveTransform1d(TestCase):
         cls.full_path = get_full_path(__file__)
         cls.vuws_path = cls.full_path + "../examples/sample_data/wghs/"
 
-
     def test_init(self):
         # array = swprocess.Array1D.from_files(fnames=self.vuws_path+"22.dat")
         # fk = swprocess.WavefieldTransform1D(array=array,
@@ -32,8 +31,8 @@ class Test_WaveTransform1d(TestCase):
 
         array = swprocess.Array1D.from_files(fnames=self.vuws_path+"22.dat")
         fdbf = swprocess.WavefieldTransform1D(array=array,
-                                                     settings=self.full_path+"settings/settings_fdbf.json")
-        # fdbf.plot_spectra(stype="fv")
+                                              settings=self.full_path+"settings/settings_fdbf.json")
+        fdbf.plot_spectra(stype="fv")
         plt.show()
 
 

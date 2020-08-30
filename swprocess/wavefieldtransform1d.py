@@ -5,7 +5,7 @@ import logging
 
 import numpy as np
 import matplotlib.pyplot as plt
-from numba import njit, int64
+from scipy import special
 
 logger = logging.getLogger(__name__)
 
@@ -82,11 +82,11 @@ class WavefieldTransform1D():
         elif self.settings["method"] == "fdbf":
             vels = np.linspace(self.settings["vmin"], self.settings["vmax"],
                                self.settings["fdbf-specific"]["nvelocities"])
-            results = self._slant_stack_transform(array=array,
-                                                  fmin=self.settings["fmin"],
-                                                  fmax=self.settings["fmax"],
-                                                  velocities=vels
-                                                  )
+            results = self._frequency_domain_beamformer(array=array,
+                                                        fmin=self.settings["fmin"],
+                                                        fmax=self.settings["fmax"],
+                                                        velocities=vels
+                                                        )
         else:
             raise NotImplementedError
 
@@ -204,7 +204,8 @@ class WavefieldTransform1D():
             for v_index, vel in enumerate(vels):
                 shift = np.exp(1j * 2*np.pi*frq/vel * offsets)
                 inner = shift*trans[:, f_index]/np.abs(trans[:, f_index])
-                power[f_index, v_index] = np.abs(np.sum(0.5*dx*(inner[:-1] + inner[1:])))
+                power[f_index, v_index] = np.abs(
+                    np.sum(0.5*dx*(inner[:-1] + inner[1:])))
 
         # Normalize power and find peaks
         pnorm = np.empty_like(power)
@@ -243,22 +244,23 @@ class WavefieldTransform1D():
         position -= np.min(position)
         nchannels = array.nchannels
         diff = position[1:] - position[:-1]
-        diff = diff.reshape((len(diff),1))
+        diff = diff.reshape((len(diff), 1))
         dt = array.sensors[0].dt
         npts = tmatrix.shape[1]
         ntaus = npts - int(np.max(position)*np.max(1/velocities)/dt) - 1
         slant_stack = np.empty((len(velocities), ntaus))
-        rows = np.tile(np.arange(nchannels).reshape(nchannels,1), (1, ntaus))
+        rows = np.tile(np.arange(nchannels).reshape(nchannels, 1), (1, ntaus))
         cols = np.tile(np.arange(ntaus).reshape(1, ntaus), (nchannels, 1))
 
         pre_float_indices = position.reshape(nchannels, 1)/dt
-        previous_lower_indices = np.zeros((nchannels,1), dtype=int)
+        previous_lower_indices = np.zeros((nchannels, 1), dtype=int)
         for i, velocity in enumerate(velocities):
             float_indices = pre_float_indices/velocity
             lower_indices = np.array(float_indices, dtype=int)
             delta = float_indices - lower_indices
             cols += lower_indices - previous_lower_indices
-            amplitudes = WavefieldTransform1D.calc_amp(tmatrix, rows, cols, delta)
+            amplitudes = WavefieldTransform1D.calc_amp(
+                tmatrix, rows, cols, delta)
             integral = WavefieldTransform1D.integral(diff, amplitudes)
             summation = WavefieldTransform1D.summer(integral)
             slant_stack[i, :] = summation
@@ -266,7 +268,7 @@ class WavefieldTransform1D():
             previous_lower_indices[:] = lower_indices
         taus = np.arange(ntaus)*dt
         return (taus, slant_stack)
-    
+
     @staticmethod
     def summer(integral):
         return np.sum(integral, axis=0)
@@ -299,7 +301,6 @@ class WavefieldTransform1D():
         sensor = array.sensors[0]
         ntaus = tau_p.shape[1]
         df = 1/(ntaus*sensor.dt)
-        # print(df)
         frqs = np.arange(ntaus) * df
 
         # TODO (jpv): Adjust zero padding for the slant-stack. Need to
@@ -328,54 +329,102 @@ class WavefieldTransform1D():
         return (frqs, "velocity", velocities, pnorm, vpeaks)
 
     @staticmethod
-    def _spatiospectral_correlation_matrix(array, weight=None):
-        if array._flip_required:
-            tmatrix = np.flipud(array.timeseriesmatrix)
-        else:
-            tmatrix = array.timeseriesmatrix
+    def _spatiospectral_correlation_matrix(tmatrix, dt, fmin, fmax, multiple):
+        """Compute the spatiospectral correlation matrix.
 
+        Parameters
+        ----------
+        tmatrix : ndarray
+            Three dimensional matrix of shape `(samples_per_block,
+            nblocks, nchannels)`. 
+        fmin, fmax : float, optional
+            Minimum and maximum frequency of interest.
+
+        Returns
+        -------
+        ndarray
+            Of size `(nchannels, nchannels, nfrqs)` containing the
+            spatiospectral correlation matrix.
+
+        """
+        nchannels, samples_per_block, nblocks = tmatrix.shape
+        print(f"tmatrix.shape = {tmatrix.shape}")
+
+        # Perform FFT
         transform = np.fft.fft(tmatrix)
-        nchannels, nsamples = transform.shape
-        spatiospectral = np.empty((nchannels, nchannels, nsamples), dtype=complex)
-        spatiospectral_h = spatiospectral.H
+        print(f"transform.shape = {transform.shape}")
 
-        for i in range(nchannels):
-            for j in range(i, nchannels):
-                scm = transform[i]*transform_h[j]
-                spatiospectral[i, j, :] = scm
-                spatiospectral[j, i, :] = scm
-        
-        return spatiospectral
+        # Frequency vector
+        frqs = np.arange(samples_per_block) * 1/(samples_per_block*dt)
+        fmin_ids = np.argmin(np.abs(frqs-fmin))
+        fmax_ids = np.argmin(np.abs(frqs-fmax))
+        freq_ids = range(fmin_ids, (fmax_ids+1), multiple)
+        frqs = frqs[freq_ids]
+        transform = transform[:, freq_ids, :]
+
+        print(f"transform.shape = {transform.shape}")
+
+        spatiospectral = np.empty((nchannels, nchannels, len(frqs)), dtype=complex)
+        for i in range(len(frqs)):
+            scm = np.zeros((nchannels, nchannels), dtype=complex)
+            for block in range(nblocks):
+                tslice = transform[:, i, block].reshape(nchannels, 1)
+                _scm = np.dot(tslice, np.transpose(np.conjugate(tslice)))
+                # print(f"_scm.shape = {_scm.shape}")
+                scm += _scm
+            scm /= nblocks
+            spatiospectral[:, :, i] = scm
+
+        return (frqs, spatiospectral)
 
 # p130
 # p334 - Spatiospectral Correlaton Matrix
 
     @staticmethod
     def _frequency_domain_beamformer(array, fmin, fmax, velocities, weight=None):
-        spatiospectral = WavefieldTransform1D._spatiospectral_correlation_matrix(array, weight=weight)
-        offsets = np.array(array.offsets)
+        if array._flip_required:
+            tmatrix = np.flipud(array.timeseriesmatrix)
+        else:
+            tmatrix = array.timeseriesmatrix
 
-        # Frequency vector
         sensor = array.sensors[0]
-        frqs = np.arange(sensor.nsamples) * sensor.df
+        # print(f"sensor.dt = {sensor.dt}")
+        # print(f"sensor.nsamples = {sensor.nsamples}")
+        # print(f"sensor.df = {sensor.df}")
+        # print(f"tmatrix.shape = {tmatrix.shape}")
 
-        # Trim frequencies and downsample (if required by zero padding)
-        fmin_ids = np.argmin(np.abs(frqs-fmin))
-        fmax_ids = np.argmin(np.abs(frqs-fmax))
-        freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
-        frqs = frqs[freq_ids]
-        # trans = trans[:, freq_ids]
+        # plt.plot(tmatrix[0, :])
+        tmatrix = tmatrix.reshape(array.nchannels, sensor.nsamples, 1)
+        # print(f"tmatrix.shape = {tmatrix.shape}")
+        # plt.plot(tmatrix[0, :, 0], linestyle="--")
 
+        frqs, spatiospectral = WavefieldTransform1D._spatiospectral_correlation_matrix(tmatrix, sensor.dt, fmin, fmax, sensor.multiple)
 
-        for v in velocities:
-            for f in frequencies:
-                steering = np.exp(-1j*2*pi*f/v*offsets)
+        # Weighting
+        offsets = np.array(array.offsets).reshape(array.nchannels, 1)
+        offsets_h = np.transpose(np.conjugate(offsets))
+        w = np.dot(offsets, offsets.T)
+        print(f"w.shape = {w.shape}")
 
-        pnorm = None
-        vpeaks = None
+        steering = np.empty((1, array.nchannels), dtype=complex)
+        power = np.empty((len(velocities), len(frqs)), dtype=complex)
+        for i, f in enumerate(frqs):
+            weighted_spatiospectral = spatiospectral[:, :, i]*w
+            for j, v in enumerate(velocities):
+                kx = 2*np.pi*f/v * offsets_h
+                steering[:] = np.exp(1j*np.angle(special.j0(kx) + 1j*special.y0(kx)))
+                # print(f"steering.shape = {steering.shape}")
+                power[j, i] = np.dot(np.dot(steering, weighted_spatiospectral), np.transpose(np.conjugate(steering)))
+
+        # Normalize power and find peaks
+        pnorm = np.empty(power.shape)
+        vpeaks = np.empty_like(frqs)
+        for k, _fp in enumerate(power.T):
+            normed_p = np.abs(_fp)/np.max(np.abs(_fp))
+            pnorm[:, k] = normed_p
+            vpeaks[k] = velocities[np.argmax(normed_p)]
 
         return (frqs, "velocity", velocities, pnorm, vpeaks)
-
 
     # TODO (jpv): Generate a default settings file on the fly.
     @staticmethod
