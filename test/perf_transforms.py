@@ -12,7 +12,7 @@ from testtools import get_full_path
 full_path = get_full_path(__file__)
 
 def main():
-    method = "slant-stack"
+    method = "fdbf"
     settings=full_path+"settings/settings_performance.json"
     with open(settings, "r") as f:
         data = json.load(f)
@@ -47,3 +47,8 @@ stat.print_stats(0.01)
 # 2020 - 08 - 27 : 8.063 s -> Functional implementation sans jit
 # 2020 - 08 - 27 : 9.096 s -> Functional implementation with jit
 # 2020 - 08 - 28 : 0.325 s -> Revert to earlier slant-stack implementation
+
+# fdbf
+# YEAR - MO - DY : TIME UNIT
+# -------------------------
+# 2020 - 08 - 30 : 0.816 s -> Baseline
