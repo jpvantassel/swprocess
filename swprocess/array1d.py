@@ -304,11 +304,10 @@ class Array1D():
             `ax=None`.
 
         """
+        ax_was_none = False
         if ax is None:
             ax_was_none = True
             fig, ax = plt.subplots(figsize=(6, 2))
-        else:
-            ax_was_none = False
 
         for n_rec, sensor in enumerate(self.sensors):
             label = "Sensor" if n_rec == 1 else None

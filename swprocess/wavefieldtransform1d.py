@@ -348,7 +348,7 @@ class WavefieldTransform1D():
 
         """
         nchannels, samples_per_block, nblocks = tmatrix.shape
-        print(f"tmatrix.shape = {tmatrix.shape}")
+        # print(f"tmatrix.shape = {tmatrix.shape}")
 
         # Perform FFT
         transform = np.fft.fft(tmatrix, axis=1)
@@ -367,7 +367,7 @@ class WavefieldTransform1D():
         frqs = frqs[freq_ids]
         transform = transform[:, freq_ids, :]
 
-        print(f"transform.shape = {transform.shape}")
+        # print(f"transform.shape = {transform.shape}")
 
         spatiospectral = np.empty((nchannels, nchannels, len(frqs)), dtype=complex)
         for i in range(len(frqs)):
@@ -398,9 +398,9 @@ class WavefieldTransform1D():
         # plt.plot(tmatrix[5, :])
 
         sensor = array.sensors[0]
-        print(f"sensor.dt = {sensor.dt}")
-        print(f"sensor.nsamples = {sensor.nsamples}")
-        print(f"sensor.df = {sensor.df}")
+        # print(f"sensor.dt = {sensor.dt}")
+        # print(f"sensor.nsamples = {sensor.nsamples}")
+        # print(f"sensor.df = {sensor.df}")
         # print(f"tmatrix.shape = {tmatrix.shape}")
 
         # plt.plot(tmatrix[0, :])
