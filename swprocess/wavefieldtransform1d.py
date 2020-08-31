@@ -351,8 +351,13 @@ class WavefieldTransform1D():
         print(f"tmatrix.shape = {tmatrix.shape}")
 
         # Perform FFT
-        transform = np.fft.fft(tmatrix)
-        print(f"transform.shape = {transform.shape}")
+        transform = np.fft.fft(tmatrix, axis=1)
+
+        # print(transform[0, :10, 0])
+        # plt.figure()
+        # plt.plot(tmatrix[0, :, 0])
+        # print(np.fft.fft(tmatrix[0, :, 0])[:10])
+        # print(f"transform.shape = {transform.shape}")
 
         # Frequency vector
         frqs = np.arange(samples_per_block) * 1/(samples_per_block*dt)
@@ -370,10 +375,9 @@ class WavefieldTransform1D():
             for block in range(nblocks):
                 tslice = transform[:, i, block].reshape(nchannels, 1)
                 _scm = np.dot(tslice, np.transpose(np.conjugate(tslice)))
-                # print(f"_scm.shape = {_scm.shape}")
                 scm += _scm
             scm /= nblocks
-            spatiospectral[:, :, i] = scm
+            spatiospectral[:, :, i] = scm[:]
 
         return (frqs, spatiospectral)
 
@@ -383,38 +387,47 @@ class WavefieldTransform1D():
     @staticmethod
     def _frequency_domain_beamformer(array, fmin, fmax, velocities, weight=None):
         if array._flip_required:
+            offsets = array.offsets[::-1]
             tmatrix = np.flipud(array.timeseriesmatrix)
         else:
+            offsets = array.offsets
             tmatrix = array.timeseriesmatrix
 
+        # plt.figure()
+        # plt.plot(tmatrix[0, :])
+        # plt.plot(tmatrix[5, :])
+
         sensor = array.sensors[0]
-        # print(f"sensor.dt = {sensor.dt}")
-        # print(f"sensor.nsamples = {sensor.nsamples}")
-        # print(f"sensor.df = {sensor.df}")
+        print(f"sensor.dt = {sensor.dt}")
+        print(f"sensor.nsamples = {sensor.nsamples}")
+        print(f"sensor.df = {sensor.df}")
         # print(f"tmatrix.shape = {tmatrix.shape}")
 
         # plt.plot(tmatrix[0, :])
         tmatrix = tmatrix.reshape(array.nchannels, sensor.nsamples, 1)
         # print(f"tmatrix.shape = {tmatrix.shape}")
-        # plt.plot(tmatrix[0, :, 0], linestyle="--")
+        # plt.plot(tmatrix[0, :, 0], linestyle="--")    
 
         frqs, spatiospectral = WavefieldTransform1D._spatiospectral_correlation_matrix(tmatrix, sensor.dt, fmin, fmax, sensor.multiple)
 
         # Weighting
-        offsets = np.array(array.offsets).reshape(array.nchannels, 1)
+        offsets = np.array(offsets).reshape(array.nchannels, 1)
         offsets_h = np.transpose(np.conjugate(offsets))
-        w = np.dot(offsets, offsets.T)
-        print(f"w.shape = {w.shape}")
+        w = np.dot(offsets, offsets_h)
+        # w = np.ones((array.nchannels, array.nchannels) )
 
-        steering = np.empty((1, array.nchannels), dtype=complex)
+        # steering = np.empty((1, array.nchannels), dtype=complex)
         power = np.empty((len(velocities), len(frqs)), dtype=complex)
         for i, f in enumerate(frqs):
             weighted_spatiospectral = spatiospectral[:, :, i]*w
             for j, v in enumerate(velocities):
-                kx = 2*np.pi*f/v * offsets_h
-                steering[:] = np.exp(1j*np.angle(special.j0(kx) + 1j*special.y0(kx)))
+                kx = 2*np.pi*f/v * offsets
+                steering = np.exp(-1j*np.angle(special.j0(kx) + 1j*special.y0(kx)))
                 # print(f"steering.shape = {steering.shape}")
-                power[j, i] = np.dot(np.dot(steering, weighted_spatiospectral), np.transpose(np.conjugate(steering)))
+                _power = np.dot(np.dot(np.transpose(np.conjugate(steering)), weighted_spatiospectral), steering)
+                power[j, i] = _power
+                # print(f"_power.shape = {_power.shape}")
+                # raise ValueError
 
         # Normalize power and find peaks
         pnorm = np.empty(power.shape)
