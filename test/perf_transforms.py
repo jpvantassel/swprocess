@@ -48,7 +48,9 @@ stat.print_stats(0.01)
 # 2020 - 08 - 27 : 9.096 s -> Functional implementation with jit
 # 2020 - 08 - 28 : 0.325 s -> Revert to earlier slant-stack implementation
 
-# fdbf
+# fdbf w/ weight=sqrt and steer=cylindrical
 # YEAR - MO - DY : TIME UNIT
 # -------------------------
 # 2020 - 08 - 30 : 0.816 s -> Baseline
+# 2020 - 09 - 01 : 0.733 s -> Remove excessive transposes in scm
+# 2020 - 09 - 01 : 0.883 s -> Change problem to sqrt and cylindrical
