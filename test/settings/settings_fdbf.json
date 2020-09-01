@@ -13,6 +13,8 @@
     "phaseshift-specific": {},
     "slantstack-specific": {},
     "fdbf-specific": {
-        "nvelocities" : 200
+        "nvelocities" : 200,
+        "weighting" : "invamp",
+        "steering" : "plane"
     }
 }
