@@ -86,13 +86,13 @@ class Test_Array1D(TestCase):
         array = swprocess.Array1D(sensors, source)
         self.assertFalse(array._source_inside)
 
-        # _safe_spacing
-        sensors = [self.sensor_0, self.sensor_1, self.sensor_6]
+        # # _safe_spacing
+        # sensors = [self.sensor_0, self.sensor_1, self.sensor_6]
 
-        # _safe_spacing -> 1
-        source = swprocess.Source(x=3, y=0, z=0)
-        array = swprocess.Array1D(sensors, source)
-        self.assertEqual(1, array._safe_spacing)
+        # # _safe_spacing -> 1
+        # source = swprocess.Source(x=3, y=0, z=0)
+        # array = swprocess.Array1D(sensors, source)
+        # self.assertEqual(1, array._safe_spacing)
 
         # _flip_required
         sensors = [self.sensor_0, self.sensor_1]
@@ -255,8 +255,9 @@ class Test_Array1D(TestCase):
         #  map_y=lambda y:y/1000)
 
         array.waterfall()
-        array.mute(pre_mute=((0, 0.0), (46, 0.2)), post_mute=((0, 0.2), (46, 0.7)),
-                   shape="tukey")
+        array.interactive_mute()
+        # array.mute(pre_mute=((0, 0.0), (46, 0.2)), post_mute=((0, 0.2), (46, 0.7)),
+        #            shape="tukey")
         array.waterfall()
         plt.show()
         # distance, time = array.manual_pick_first_arrivals()

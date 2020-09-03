@@ -61,11 +61,11 @@ class Array1D():
         return matrix
 
     def __init__(self, sensors, source, normalize_positions=False):
-        """Initialize from an iterable of `Receiver`s and a `Source`.
+        """Initialize from an iterable of `Sensor1C`s and a `Source`.
 
         Parameters
         ----------
-        sensors : iterable
+        sensors : iterable of Sensor1c
             Iterable of initialized `Sensor1C` objects.
         source : Source
             Initialized `Source` object.
@@ -79,7 +79,7 @@ class Array1D():
             Initialized `Array1D` object.
 
         """
-        logger.info("Howdy from Array1D!")
+        logger.info("Initializing Array1D")
         sensors, source = self._check_array(sensors, source)
         self.sensors = sensors
         self.source = source
@@ -141,14 +141,14 @@ class Array1D():
         position = self.position
         return ((sx > position[0]) and (sx < position[-1]))
 
-    @property
-    def _safe_spacing(self):
-        try:
-            spacing = self.spacing
-        except ValueError:
-            logger.warning("Array1D does not have equal spacing.")
-            spacing = self.position[1] - self.position[0]
-        return spacing
+    # @property
+    # def _safe_spacing(self):
+    #     try:
+    #         spacing = self.spacing
+    #     except ValueError:
+    #         logger.warning("Array1D does not have equal spacing.")
+    #         spacing = self.position[1] - self.position[0]
+    #     return spacing
 
     def trim(self, start_time, end_time):
         """Trim time series belonging to each Sensor1C.
@@ -188,10 +188,7 @@ class Array1D():
 
     @property
     def _flip_required(self):
-        if self.source.x > self.position[-1]:
-            return True
-        else:
-            return False
+        return True if self.source.x > self.position[-1] else False
 
     def _norm_traces(self, scale_factor):
         norm_traces = np.empty_like(self.timeseriesmatrix)
@@ -205,24 +202,24 @@ class Array1D():
         return norm_traces
 
     def waterfall(self, ax=None, scale_factor=1.0, time_along="y",
-                  waterfall_kwargs=None):
+                  plot_kwargs=None):
         """Create waterfall plot for this array setup.
 
         Parameters
         ----------
         ax : Axis, optional
-            Axes on which to plot, default is `None` indicating a 
+            Axes on which to plot, default is `None` indicating a
             `Figure` and `Axis` will be generated on-the-fly.
         scale_factor : float, optional
             Denotes the scale of the nomalized timeseries height
             (peak-to-trough), default is 1. Half the receiver spacing is
             generally a good value.
         time_along : {'x', 'y'}, optional
-            Denotes on which axis time should reside, 'x' is the
+            Denotes on which axis time should reside, 'y' is the
             default.
-        waterfall_kwargs : None, dict, optional
-            Plot kwargs for plotting the normalized time histories as
-            a dictionary, default is `None`.
+        plot_kwargs : None, dict, optional
+            Kwargs for `matplotlib.pyplot.plot <https://matplotlib.org/3.3.1/api/_as_gen/matplotlib.pyplot.plot.html>`_
+            to control the style of each trace, default is `None`.
 
         Returns
         -------
@@ -244,13 +241,13 @@ class Array1D():
                 raise ValueError(msg)
             fig, ax = plt.subplots(figsize=size)
 
-        time = self.sensors[0].time
+        time = self[0].time
         norm_traces = self._norm_traces(scale_factor=scale_factor)
 
-        if waterfall_kwargs is None:
-            waterfall_kwargs = {}
+        if plot_kwargs is None:
+            plot_kwargs = {}
         default_kwargs = dict(color="b", linewidth=0.5)
-        kwargs = {**default_kwargs, **waterfall_kwargs}
+        kwargs = {**default_kwargs, **plot_kwargs}
         if time_along == "x":
             for trace in norm_traces:
                 ax.plot(time, trace, **kwargs)
@@ -263,11 +260,13 @@ class Array1D():
         time_ax = time_along
         dist_ax = "x" if time_ax == "y" else "y"
 
-        time_tuple = (min(time), max(time)) if time_ax == "x" else (
-            max(time), min(time))
+        if time_ax == "x":
+            time_tuple = (min(time), max(time))
+        else:
+            time_tuple = (max(time), min(time))
         getattr(ax, f"set_{time_ax}lim")(time_tuple)
 
-        spacing = self._safe_spacing
+        spacing = self.position[1] - self.position[0]
         getattr(ax, f"set_{dist_ax}lim")(self.position[0]-spacing,
                                          self.position[-1]+spacing)
         getattr(ax, "grid")(axis=time_ax, linestyle=":")
@@ -281,19 +280,22 @@ class Array1D():
             fig.tight_layout()
             return (fig, ax)
 
-    def plot(self, ax=None):
+    def plot(self, ax=None, sensor_kwargs=None, source_kwargs=None):
         """Plot a schematic of the `Array1D` object.
 
-        The schematic shows the relative position of the receivers and
-        the source and lists the total number of receivers. The figure
-        and axes are returned to the user for use in further editing if
-        desired.
+        The schematic shows the position of the receivers and source
+        and lists the total number of receivers and their spacing.
 
         Parameters
         ----------
         ax : Axis, optional
-            Axes on which to plot, default is `None` indicating a 
+            Axes on which to plot, default is `None` indicating a
             `Figure` and `Axis` will be generated on-the-fly.
+        sensor_kwargs, source_kwargs : None, dict, optional
+            Kwargs for `matplotlib.pyplot.plot <https://matplotlib.org/3.3.1/api/_as_gen/matplotlib.pyplot.plot.html>`_
+            to control the plotting of the sensors and source,
+            respectively. Default is `None`, indicating the predefined
+            default values will be used.
 
         Returns
         -------
@@ -303,32 +305,46 @@ class Array1D():
             `ax=None`.
 
         """
+        # Create axis on the fly.
         ax_was_none = False
         if ax is None:
             ax_was_none = True
             fig, ax = plt.subplots(figsize=(6, 2))
 
-        for n_rec, sensor in enumerate(self.sensors):
-            label = "Sensor" if n_rec == 1 else None
-            ax.plot(sensor.x, sensor.y, marker="^", color="k", linestyle="",
-                    label=label)
+        # Plot sensors.
+        xs = [sensor.x for sensor in self.sensors]
+        ys = [sensor.y for sensor in self.sensors]
+        default_sensor_kwargs = dict(marker="^", color="k", linestyle="",
+                                     label="Sensor")
+        if sensor_kwargs is None:
+            sensor_kwargs = {}
+        sensor_kwargs = {**default_sensor_kwargs, **sensor_kwargs}
+        ax.plot(xs, ys, **sensor_kwargs)
 
+        # List number of sensors and their spacing.
+        number_txt = f"Number of sensors: {self.nchannels}"
         try:
-            spacing_txt = f"Receiver spacing is {self.spacing}m."
+            spacing_txt = f"Sensor spacing is {self.spacing}m."
         except ValueError:
-            spacing_txt = f"Receiver spacings are not equal."
-
-        ax.text(0.03, 0.95,
-                f"Number of Receivers: {self.nchannels}\n{spacing_txt}",
+            spacing_txt = "Sensor spacing is not constant."
+        ax.text(0.03, 0.95, f"{number_txt}\n{spacing_txt}",
                 transform=ax.transAxes, va="top", ha="left")
 
-        ax.plot(self.source.x, self.source.y, marker="D", color="b",
-                linestyle="", label=f"Source at {self.source.x}m")
+        # Plot source.
+        default_source_kwargs = dict(marker="D", color="b", linestyle="",
+                                     label=f"Source")
+        if source_kwargs is None:
+            source_kwargs = {}
+        source_kwargs = {**default_source_kwargs, **source_kwargs}
+        ax.plot(self.source.x, self.source.y, **source_kwargs)
 
+        # General figure settings.
+        ymin, ymax = ax.get_ylim()
+        ax.set_ylim([min(ymin, -2), max(ymax, 5)])
+        ax.set_xlabel("Distance (m)")
         ax.legend()
-        ax.set_ylim([-2, 5])
-        ax.set_xlabel("Distance Along Array (m)")
 
+        # Return figure and axes objects if generated on the fly.
         if ax_was_none:
             return (fig, ax)
 
@@ -359,127 +375,6 @@ class Array1D():
 
         return (self.position, times)
 
-    def interactive_mute(self, waterfall_kwargs=None):
-        """Interatively  """
-
-        if waterfall_kwargs is None:
-            waterfall_kwargs = {}
-
-        fig, ax = self.waterfall(**waterfall_kwargs)
-
-        pairs = self._ginput_session(ax)
-
-        if waterfall_kwargs.get("plot_ax") is None:
-            waterfall_kwargs["plot_ax"] = "x"
-
-        if waterfall_kwargs["plot_ax"] == "x":
-            distance, time = vals
-        else:
-            time, distance = vals
-
-        return (distance, time)
-
-    def mute(self, pre_mute=None, post_mute=None, shape="rectangular",
-             shape_kwargs=None):
-        """Mute traces outside of a narrow singal box.
-
-        Parameters
-        ----------
-        pre_mute, post_mute : iterable of floats, optional
-            Two points to define muted region boundary of the form
-            `((pt1_dist, pt1_time), (pt2_dist, pt2_time))`, default is
-            `None` so no mute is applied.
-        shape : {'rectangular', 'tukey', 'hann'}, optional
-            Controls the shape of the masking box.
-        shape_kwargs : dict, optional
-            Provide keyword arguements 
-
-        Returns
-        -------
-        None
-            Modifies the internal attributes.
-
-        """
-        # xs = np.array(distances)
-        # ys = np.array(times)
-        # mean_x = np.mean(xs)
-        # mean_y = np.mean(ys)
-        # angle = np.arctan((xs-mean_x)/(y-mean_y))
-        # ids = np.argsort(angle)
-        # xs[:] = xs[sort_ids]
-        # ys[:] = ys[sort_ids]
-        position = np.array(self.position)
-        dt = self[0].dt
-        delay = self[0].delay
-        ndelay = abs(delay/dt)
-        nsamples  = self[0].nsamples
-
-        if pre_mute is not None:
-            ((x1, t1), (x2, t2)) = pre_mute
-            slope = (t2 - t1) / (x2 - x1)
-            times = t1 + slope*(position - x1)
-            start_indices = np.array((times / dt) + ndelay, dtype=int)
-        else:
-            start_indices = np.zeros_like(position, dtype=int)
-
-        if post_mute is not None:
-            ((x1, t1), (x2, t2)) = post_mute
-            slope = (t2 - t1) / (x2 - x1)
-            times = t1 + slope*(position - x1)
-            stop_indices = np.array((times / dt) + ndelay, dtype=int)
-        else:
-            stop_indices = np.ones_like(position, dtype=int) * (nsamples-1)
-
-        if shape == "rectangular":
-            window_kwargs = dict(alpha = 0.)
-        elif shape == "tukey":
-            window_kwargs = dict(alpha = 0.1)
-        elif shape == "hann":
-            window_kwargs = dict(alpha = 1.)
-        else:
-            raise NotImplementedError
-
-        window = np.zeros(nsamples)
-        for i, (start, stop) in enumerate(zip(start_indices, stop_indices)):
-            window[start:stop] = signal.windows.tukey(stop-start, **window_kwargs)
-            self.sensors[i].amp *= window
-            window *= 0
-
-    @staticmethod
-    def _ginput_session(ax):
-        xs, ys = [], []
-
-        cursor = Cursor(ax, useblit=True, color='k', linewidth=1)
-
-        print("Make adjustments: (Press spacebar when ready)")
-        zoom_ok = False
-        while not zoom_ok:
-            zoom_ok = plt.waitforbuttonpress(timeout=-1)
-
-        while True:
-            print(
-                "Pick arrival: (Left Click to Add, Right Click to Remove, Enter to Finish")
-            vals = plt.ginput(n=-1, timeout=0)
-
-            x, y = vals[-1]
-            ax.plot(x, y, "r", marker="+", linestyle="")
-            xs.append(x)
-            ys.append(y)
-
-            print(
-                "Continue? (Make adjustments then press spacebar once to contine, twice to exit)")
-            zoom_ok = False
-            while not zoom_ok:
-                zoom_ok = plt.waitforbuttonpress(timeout=-1)
-
-            if plt.waitforbuttonpress(timeout=0.5):
-                print("Exiting ... ")
-                break
-            print("Continuing ... ")
-        print("Close figure when ready.")
-
-        return (xs, ys)
-
     def manual_pick_first_arrivals(self, waterfall_kwargs=None):  # pragma: no cover
         """Allow for interactive picking of first arrivals.
 
@@ -503,15 +398,204 @@ class Array1D():
 
         pairs = self._ginput_session(ax)
 
-        if waterfall_kwargs.get("plot_ax") is None:
-            waterfall_kwargs["plot_ax"] = "x"
-
-        if waterfall_kwargs["plot_ax"] == "x":
+        if ax.get_xlabel() == "Distance (m)":
             distance, time = pairs
         else:
             time, distance = pairs
 
         return (distance, time)
+
+    def interactive_mute(self, mute_location="both", window_kwargs=None,
+                         waterfall_kwargs=None):
+        """Interactively select source window boundary.
+
+        Parameters
+        ----------
+        mute_location : {"before", "after", "both"}, optional
+            Select which part of the record to mute, default is `"both"`
+            indicating two lines defining the source window boundary
+            will be required.
+        window_kwargs : dict, optional
+            Dictionary of keyword arguments defining the signal window,
+            see `scipy.singal.windows.tukey <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.windows.tukey.html>`_
+            for available options.
+        waterfall_kwargs : dict, optional
+            Dictionary of keyword arguments defining how the waterfall
+            should be created, see `:meth Array1D.waterfall` for
+            the available options.
+
+        Returns
+        -------
+        tuple
+            Of the form `(signal_start, signal_end)`.
+
+        """
+        # Create waterfall plot.
+        if waterfall_kwargs is None:
+            waterfall_kwargs = dict(time_along="y")
+        fig, ax = self.waterfall(**waterfall_kwargs)
+
+        # Parse x, y to distance, time
+        def parse(xs, ys, time_along=waterfall_kwargs["time_along"]):
+            if time_along == "y":
+                return ((xs[0], ys[0]), (xs[1], ys[1]))
+            else:
+                return ((ys[0], xs[0]), (ys[1], xs[1]))
+
+        # Define the start of the signal.
+        if mute_location == "before" or mute_location == "both":
+            xs, ys = self._ginput_session(ax, npts=2,
+                                          initial_adjustment=False,
+                                          ask_to_continue=False)
+            plt.plot(xs, ys, color="r", linewidth=0.5)
+            signal_start = parse(xs, ys)
+        else:
+            signal_start = None
+
+        # Define the end of the signal.
+        if mute_location == "after" or mute_location == "both":
+            xs, ys = self._ginput_session(ax, npts=2,
+                                          initial_adjustment=False,
+                                          ask_to_continue=False)
+            plt.plot(xs, ys, color="r", linewidth=0.5)
+            signal_end = parse(xs, ys)
+        else:
+            signal_end = None
+
+        # Perform mute.
+        self.mute(signal_start=signal_start,
+                  signal_end=signal_end,
+                  window_kwargs=window_kwargs)
+
+        return (signal_start, signal_end)
+
+    def mute(self, signal_start=None, signal_end=None, window_kwargs=None):
+        """Mute traces outside of a narrow signal window.
+
+        Parameters
+        ----------
+        signal_start, signal_end : iterable of floats, optional
+            Two points to define start and stop of the narrow signal
+            window of the form
+            `((pt1_dist, pt1_time), (pt2_dist, pt2_time))`, default is
+            `None` .
+        window_kwargs : dict, optional
+            Dictionary of keyword arguments defining the signal window,
+            see `scipy.singal.windows.tukey <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.windows.tukey.html>`_
+            for available options.
+
+        Returns
+        -------
+        None
+            Modifies the object internal state.
+
+        """
+        # General variables common to intercept calculations.
+        position = np.array(self.position)
+        dt = self[0].dt
+        delay = self[0].delay
+        ndelay = abs(delay/dt)
+        nsamples = self[0].nsamples
+
+        # Define starting index for each trace.
+        if signal_start is not None:
+            ((x1, t1), (x2, t2)) = signal_start
+            slope = (t2 - t1) / (x2 - x1)
+            times = t1 + slope*(position - x1)
+            start_indices = np.array((times / dt) + ndelay, dtype=int)
+        else:
+            start_indices = np.zeros_like(position, dtype=int)
+
+        # Define stopping index for each trace.
+        if signal_end is not None:
+            ((x1, t1), (x2, t2)) = signal_end
+            slope = (t2 - t1) / (x2 - x1)
+            times = t1 + slope*(position - x1)
+            stop_indices = np.array((times / dt) + ndelay, dtype=int)
+        else:
+            stop_indices = np.ones_like(position, dtype=int) * (nsamples-1)
+
+        # Define default windowing to be Tukey w/ 20% taper (10% on each side).
+        if window_kwargs is None:
+            window_kwargs = dict(alpha=0.2)
+
+        # TODO (jpv): Windowing can be pushed down into Sensor object.
+        # Perform windowing.
+        window = np.zeros(nsamples)
+        for i, (start, stop) in enumerate(zip(start_indices, stop_indices)):
+            window[start:stop] = signal.windows.tukey(stop-start,
+                                                      **window_kwargs)
+            self.sensors[i].amp *= window
+            window *= 0
+
+    # TODO (jpv): This can be factored out of Array1D.
+    # TODO (jpv): Replace hard-coded messaged with user-defined inputs. Generator?
+    @staticmethod
+    def _ginput_session(ax, initial_adjustment=True, ask_to_continue=True,
+                        npts=None):
+        """Start ginput session using the provided axes object.
+
+        Parameters
+        ----------
+        ax : Axes
+            Axes on which points are to be selected.
+        initial_adjustment : bool, optional
+            Allow user to pan and zoom prior to the selection of the
+            first point, default is `True`.
+        ask_to_continue : bool, optional
+            Pause the selection process after each point. This allows
+            the user to pan and zoom the figure as well as select when
+            to continue, default is `True`.
+        npts : int, optional
+            Predefine the number of points the user is allowed to
+            select, the default is `None` which allows the selection of
+            an infinite number of points.
+
+        Returns
+        -------
+        tuple
+            Of the form `(xs, ys)` where `xs` is a `list` of x
+            coordinates and `ys` is a `list` of y coordinates in the
+            order in which they were picked.
+
+        """
+        # Set npts to infinity if npts is None
+        if npts is None:
+            npts = np.inf
+
+        # Enable cursor to make precise selection easier.
+        cursor = Cursor(ax, useblit=True, color='k', linewidth=1)
+
+        # Permit initial adjustment with blocking call to figure.
+        if initial_adjustment:
+            print("Adjust view, spacebar when ready.")
+            while True:
+                if plt.waitforbuttonpress(timeout=-1):
+                    break
+
+        # Begin selection of npts.
+        npt, xs, ys = 0, [], []
+        while npt < npts:
+            print("Left click to add, right click to remove, enter to accept.")
+            vals = plt.ginput(n=-1, timeout=0)
+            x, y = vals[-1]
+            ax.plot(x, y, "r", marker="+", linestyle="")
+            xs.append(x)
+            ys.append(y)
+            npt += 1
+
+            if ask_to_continue:
+                print("Press spacebar once to contine, twice to exit)")
+                while True:
+                    if plt.waitforbuttonpress(timeout=-1):
+                        break
+
+            if plt.waitforbuttonpress(timeout=0.5):
+                print("Exiting ... ")
+                break
+        print("Close figure when ready.")
+
+        return (xs, ys)
 
     @classmethod
     def from_files(cls, fnames, map_x=lambda x: x, map_y=lambda y: y):
@@ -525,7 +609,7 @@ class Array1D():
         Parameters
         ----------
         fnames : str or iterable
-            File name or iterable of file names. If multiple files 
+            File name or iterable of file names. If multiple files
             are provided the traces are stacked.
         map_x, map_y : function, optional
             Convert x and y coordinates using some function, default
