@@ -1,8 +1,9 @@
 """Class definitions for various wavefield transforms."""
 
 from register import WavefieldTransformRegistry
+from abstract_transform import AbstractTransform
 
-@WavefieldTransformRegistry.register('fk')
+# @WavefieldTransformRegistry.register('fk')
 class FK(AbstractTransform):
     
     def __init__(self):
@@ -70,7 +71,6 @@ class FK(AbstractTransform):
 @WavefieldTransformRegistry.register('slantstack')
 class SlantStack(AbstractTransform):
 
-    @staticmethod
     def _slant_stack(array, velocities):
         """Perform a slant-stack on the given wavefield data.
 
@@ -351,7 +351,3 @@ class FDBF(AbstractTransform):
         vpeaks[k] = velocities[np.argmax(normed_p)]
 
     return (frqs, "velocity", velocities, pnorm, vpeaks)
-
-if __name__ == "__main__":
-    fdbf = WavefieldTransformRegistry.create_instance('fdbf')
-    print(type(fdbf))

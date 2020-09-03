@@ -1,18 +1,41 @@
 {
-    "workflow": {
-        "type": "time-domain",
-        "time-domain muting": {
+    "workflow": "single",
+    "pre-processing":{
+        "muting": {
             "apply": true,
             "type": "interactive",
-            "muting window kwargs": {
-                "alpha": 0.1
-            }
+            "window kwargs": {}
         },
-        "processing-method": "fk",
-        "signal-to-noise": false
+        "trim": {
+            "apply" : false,
+            "start_time": 0,
+            "end_time": 0.75
+        },
+        "pad": {
+            "apply" : false,
+            "df": 0.5
+        }    
     },
-    "processing": {},
+    "processing": {
+        "type": "slantstack",
+        "fmin": 5,
+        "fmax": 100,
+        "vmin": 100,
+        "vmax": 400,
+        "nvelocities" : 200,
+        "fdbf-specific": {
+            "weighting" : null,
+            "steering" : "plane"
+        }
+    },
     "plotting": {
-        "waterfall kwargs": {}
+        "signal-to-noise": {
+            "perform":true,
+            "kwargs":{}
+        },
+        "waterfall": {
+            "perform":true,
+            "kwargs":{}
+        }
     }
 }
