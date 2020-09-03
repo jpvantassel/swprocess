@@ -47,7 +47,7 @@ class Array1D():
 
     def _normalize_positions(self):
         """Shift array so that the left-most sensor is at x=0."""
-        self.absolute_minus_relative = min(self.position)
+        self.absolute_minus_relative = float(min(self.position))
         self._regen_position = True
         for sensor in self.sensors:
             sensor._x -= self.absolute_minus_relative
@@ -89,7 +89,7 @@ class Array1D():
         if normalize_positions:
             self._normalize_positions()
         else:
-            self.absolute_minus_relative = 0
+            self.absolute_minus_relative = 0.
 
     @property
     def timeseriesmatrix(self):
@@ -198,8 +198,7 @@ class Array1D():
         position = self.position
         for k, current_trace in enumerate(self.timeseriesmatrix):
             current_trace = signal.detrend(current_trace)
-            current_trace /= np.abs(current_trace[np.abs(
-                current_trace) == np.max(np.abs(current_trace))])
+            current_trace /= np.max(np.abs(current_trace))
             current_trace *= scale_factor
             current_trace += position[k]
             norm_traces[k, :] = current_trace
@@ -360,27 +359,94 @@ class Array1D():
 
         return (self.position, times)
 
-    def manual_pick_first_arrivals(self, waterfall_kwargs=None):  # pragma: no cover
-        """Allow for interactive picking of first arrivals.
+    def interactive_mute(self, waterfall_kwargs=None):
+        """Interatively  """
 
-        Parameters
-        ----------
-        waterfall_kwargs : dict, optional
-            Dictionary of keyword arguments for
-            meth: `<plot_waterfall>`, default is `None` indicating
-            default keyword arguments.
-
-        Returns
-        -------
-        Tuple
-            Of the form (distance, picked_time)
-
-        """
         if waterfall_kwargs is None:
             waterfall_kwargs = {}
 
         fig, ax = self.waterfall(**waterfall_kwargs)
 
+        pairs = self._ginput_session(ax)
+
+        if waterfall_kwargs.get("plot_ax") is None:
+            waterfall_kwargs["plot_ax"] = "x"
+
+        if waterfall_kwargs["plot_ax"] == "x":
+            distance, time = vals
+        else:
+            time, distance = vals
+
+        return (distance, time)
+
+    def mute(self, pre_mute=None, post_mute=None, shape="rectangular",
+             shape_kwargs=None):
+        """Mute traces outside of a narrow singal box.
+
+        Parameters
+        ----------
+        pre_mute, post_mute : iterable of floats, optional
+            Two points to define muted region boundary of the form
+            `((pt1_dist, pt1_time), (pt2_dist, pt2_time))`, default is
+            `None` so no mute is applied.
+        shape : {'rectangular', 'tukey', 'hann'}, optional
+            Controls the shape of the masking box.
+        shape_kwargs : dict, optional
+            Provide keyword arguements 
+
+        Returns
+        -------
+        None
+            Modifies the internal attributes.
+
+        """
+        # xs = np.array(distances)
+        # ys = np.array(times)
+        # mean_x = np.mean(xs)
+        # mean_y = np.mean(ys)
+        # angle = np.arctan((xs-mean_x)/(y-mean_y))
+        # ids = np.argsort(angle)
+        # xs[:] = xs[sort_ids]
+        # ys[:] = ys[sort_ids]
+        position = np.array(self.position)
+        dt = self[0].dt
+        delay = self[0].delay
+        ndelay = abs(delay/dt)
+        nsamples  = self[0].nsamples
+
+        if pre_mute is not None:
+            ((x1, t1), (x2, t2)) = pre_mute
+            slope = (t2 - t1) / (x2 - x1)
+            times = t1 + slope*(position - x1)
+            start_indices = np.array((times / dt) + ndelay, dtype=int)
+        else:
+            start_indices = np.zeros_like(position, dtype=int)
+
+        if post_mute is not None:
+            ((x1, t1), (x2, t2)) = post_mute
+            slope = (t2 - t1) / (x2 - x1)
+            times = t1 + slope*(position - x1)
+            stop_indices = np.array((times / dt) + ndelay, dtype=int)
+        else:
+            stop_indices = np.ones_like(position, dtype=int) * (nsamples-1)
+
+        if shape == "rectangular":
+            window_kwargs = dict(alpha = 0.)
+        elif shape == "tukey":
+            window_kwargs = dict(alpha = 0.1)
+        elif shape == "hann":
+            window_kwargs = dict(alpha = 1.)
+        else:
+            raise NotImplementedError
+
+        window = np.zeros(nsamples)
+        for i, (start, stop) in enumerate(zip(start_indices, stop_indices)):
+            window[start:stop] = signal.windows.tukey(stop-start, **window_kwargs)
+            self.sensors[i].amp *= window
+            window *= 0
+
+    @staticmethod
+    def _ginput_session(ax):
         xs, ys = [], []
 
         cursor = Cursor(ax, useblit=True, color='k', linewidth=1)
@@ -409,18 +475,41 @@ class Array1D():
             if plt.waitforbuttonpress(timeout=0.5):
                 print("Exiting ... ")
                 break
-
             print("Continuing ... ")
-
         print("Close figure when ready.")
+
+        return (xs, ys)
+
+    def manual_pick_first_arrivals(self, waterfall_kwargs=None):  # pragma: no cover
+        """Allow for interactive picking of first arrivals.
+
+        Parameters
+        ----------
+        waterfall_kwargs : dict, optional
+            Dictionary of keyword arguments for
+            meth: `<plot_waterfall>`, default is `None` indicating
+            default keyword arguments.
+
+        Returns
+        -------
+        Tuple
+            Of the form (distance, picked_time)
+
+        """
+        if waterfall_kwargs is None:
+            waterfall_kwargs = {}
+
+        fig, ax = self.waterfall(**waterfall_kwargs)
+
+        pairs = self._ginput_session(ax)
 
         if waterfall_kwargs.get("plot_ax") is None:
             waterfall_kwargs["plot_ax"] = "x"
 
         if waterfall_kwargs["plot_ax"] == "x":
-            distance, time = vals
+            distance, time = pairs
         else:
-            time, distance = vals
+            time, distance = pairs
 
         return (distance, time)
 
@@ -480,7 +569,6 @@ class Array1D():
                 y = map_y(float(stats.su.trace_header["source_coordinate_y"]))
                 return Source(x=x, y=y, z=0)
         else:
-            # Here for "belt and suspenders".s
             raise NotImplementedError(f"_format={_format} not recognized.")
         source = parse_source(trace.stats)
         obj = cls(sensors, source)
@@ -491,8 +579,9 @@ class Array1D():
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     stream = obspy.read(fname)
-                if source != parse_source(stream[0].stats):
-                    msg = f"fname = {fname} has incompatable source."
+                nsource = parse_source(stream[0].stats)
+                if nsource != source:
+                    msg = f"fname = {fname} has an incompatable source."
                     raise ValueError(msg)
                 for sensor, trace in zip(obj.sensors, stream.traces):
                     new_sensor = Sensor1C.from_trace(trace)
@@ -503,20 +592,23 @@ class Array1D():
     @classmethod
     def from_array1d(cls, array1d):
         obj = cls(array1d.sensors, array1d.source)
-
-        if array1d.absolute_minus_relative != 0:
-            obj.absolute_minus_relative = float(
-                array1d.absolute_minus_relative)
-
+        obj.absolute_minus_relative = float(array1d.absolute_minus_relative)
         return obj
 
-    def __eq__(self, other):
-        if not isinstance(other, Array1D):
+    def is_similar(self, other):
+        """See if `other` is similar to `self`, though not strictly equal."""
+        if not isinstance(other, (Array1D,)):
             return False
 
         for attr in ["nchannels", "source", "absolute_minus_relative"]:
             if getattr(self, attr) != getattr(other, attr):
                 return False
+
+        return True
+
+    def __eq__(self, other):
+        if not self.is_similar(other):
+            return False
 
         for my, ur in zip(self.sensors, other.sensors):
             if my != ur:

@@ -246,9 +246,21 @@ class Test_Array1D(TestCase):
         self.assertRaises(NotImplementedError, array.auto_pick_first_arrivals,
                           algorithm="bad")
 
-    # def test_manual_pick_first_arrivals(self):
-    #     array = swprocess.Array1D.from_files(self.full_path + "data/denise/v1.2_y.su.shot1")
-    #     array.manual_pick_first_arrivals()
+    def test_manual_pick_first_arrivals(self):
+        # fnames = self.full_path + "data/denise/v1.2_y.su.shot1"
+        fnames = self.full_path + "../examples/sample_data/vuws/10.dat"
+
+        array = swprocess.Array1D.from_files(fnames=fnames)
+        #  map_x=lambda x:x/1000,
+        #  map_y=lambda y:y/1000)
+
+        array.waterfall()
+        array.mute(pre_mute=((0, 0.0), (46, 0.2)), post_mute=((0, 0.2), (46, 0.7)),
+                   shape="tukey")
+        array.waterfall()
+        plt.show()
+        # distance, time = array.manual_pick_first_arrivals()
+        # print(distance, time)
 
     def test_from_array1d(self):
         source = swprocess.Source(1, 0, 0)
