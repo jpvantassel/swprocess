@@ -3,8 +3,7 @@
 from abc import ABCMeta
 import logging
 
-from wavefieldtransforms import FK, SlantStack, PhaseShift, FDBF
-
+logger = logging.getLogger(__name__)
 
 class AbstractRegistry(ABCMeta):
 
@@ -30,4 +29,10 @@ class WavefieldTransformRegistry(AbstractRegistry):
 
     def __init__(self, name):
         super.__init__(name)
-    
+
+class MaswWorkflowRegistry(AbstractRegistry):
+
+    _register = {}
+
+    def __init__(self, name):
+        super.__init__(name)

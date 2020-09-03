@@ -1,0 +1,18 @@
+{
+    "workflow": {
+        "type": "time-domain",
+        "time-domain muting": {
+            "apply": true,
+            "type": "interactive",
+            "muting window kwargs": {
+                "alpha": 0.1
+            }
+        },
+        "processing-method": "fk",
+        "signal-to-noise": false
+    },
+    "processing": {},
+    "plotting": {
+        "waterfall kwargs": {}
+    }
+}
