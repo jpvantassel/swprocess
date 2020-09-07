@@ -17,7 +17,7 @@
         }    
     },
     "processing": {
-        "type": "slantstack",
+        "type": "phaseshift",
         "fmin": 5,
         "fmax": 100,
         "vmin": 100,
@@ -25,7 +25,7 @@
         "nvel" : 200,
         "vspace": "linear",
         "fdbf-specific": {
-            "weighting" : null,
+            "weighting" : "invamp",
             "steering" : "plane"
         }
     },
