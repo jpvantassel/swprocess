@@ -1,5 +1,5 @@
 {
-    "workflow": "time-domain",
+    "workflow": "frequency-domain",
     "pre-processing":{
         "trim": {
             "apply" : false,
@@ -7,7 +7,7 @@
             "end_time": 0.75
         },
         "mute": {
-            "apply": true,
+            "apply": false,
             "type": "interactive",
             "window kwargs": {}
         },
@@ -23,10 +23,10 @@
         "vmin": 100,
         "vmax": 400,
         "nvel" : 200,
-        "vspace": "linear",
+        "vspace": "log",
         "fdbf-specific": {
-            "weighting" : "sqrt",
-            "steering" : "cylindrical"
+            "weighting" : null,
+            "steering" : "plane"
         }
     },
     "plotting": {

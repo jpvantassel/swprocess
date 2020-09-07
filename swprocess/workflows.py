@@ -14,14 +14,14 @@ class AbstractMaswWorkflow(ABC):
     def __init__(self, fnames=None, settings=None, map_x=None, map_y=None):
         """Perform initialization common to all `MaswWorkflow`s."""
         # Set objects state
+        self.fnames = fnames
         self.settings = settings
+        self.map_x = map_x
+        self.map_y = map_y
 
         # Pre-define optional state variables to None for ease of reading
         self.signal_start = None
         self.signal_end = None
-
-        # Perform transform
-        self.run(fnames=fnames, map_x=map_x, map_y=map_y)
 
     def check(self):
         """Check array is acceptable for WavefieldTransform."""
@@ -31,17 +31,13 @@ class AbstractMaswWorkflow(ABC):
     def trim(self):
         """Trim record in the time domain."""
         trim = self.settings["pre-processing"]["trim"]
-        if not trim["apply"]:
-            return
-        else:
+        if trim["apply"]:
             self.array.trim(trim["start_time"], trim["end_time"])
 
     def mute(self):
         """Mute record in the time domain."""
         mute = self.settings["pre-processing"]["mute"]
-        if not mute["apply"]:
-            return
-        else:
+        if mute["apply"]:
             if self.signal_start is None and self.signal_end is None:
                 if mute["type"] == "interactive":
                     self.signal_start, self.signal_end = self.array.interactive_mute()
@@ -60,9 +56,7 @@ class AbstractMaswWorkflow(ABC):
     def pad(self):
         """Pad record in the time domain."""
         pad = self.settings["pre-processing"]["pad"]
-        if not pad["apply"]:
-            return
-        else:
+        if pad["apply"]:
             self.array.zero_pad(pad["df"])
 
     @abstractmethod
@@ -74,24 +68,27 @@ class AbstractMaswWorkflow(ABC):
         """Human-readable representaton of the workflow."""
         pass
 
+
 class TimeDomainWorkflow(AbstractMaswWorkflow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def run(self, fnames=None, map_x=None, map_y=None):
-        self.array = Array1D.from_files(fnames, map_x=map_x, map_y=map_y)
+    def run(self):
+        self.array = Array1D.from_files(self.fnames, map_x=self.map_x,
+                                        map_y=self.map_y)
         self.check()
         self.trim()
         self.mute()
         self.pad()
-        transform = WavefieldTransformRegistry.create_instance(self.settings["processing"]["type"],
-                                                               array=self.array,
-                                                               settings=self.settings["processing"])
-        self.transform = transform.transform()
+        Transform = WavefieldTransformRegistry.create_class(
+            self.settings["processing"]["type"])
+        return Transform.from_array(array=self.array,
+                                    settings=self.settings["processing"])
 
     def __str__(self):
         pass
+
 
 @MaswWorkflowRegistry.register("single")
 class SingleMaswWorkflow(TimeDomainWorkflow):
@@ -100,12 +97,12 @@ class SingleMaswWorkflow(TimeDomainWorkflow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def run(self, fnames=None, map_x=None, map_y=None):
-        if not isinstance(fnames, (str,)) and len(fnames) != 1:
-            fnames = fnames[0]
+    def run(self):
+        if not isinstance(self.fnames, (str,)) and len(self.fnames) != 1:
+            self.fnames = self.fnames[0]
             msg = "fnames may only include a single file for the selected workflow, only processing the first."
-            raise warnings.warn(msg)
-        super().transform(fnames=fnames, map_x=map_x, map_y=map_y)
+            warnings.warn(msg)
+        return super().run()
 
     def __str__(self):
         msg = "\n"
@@ -118,8 +115,9 @@ class SingleMaswWorkflow(TimeDomainWorkflow):
         msg += "  - Perform transform."
         return msg
 
+
 @MaswWorkflowRegistry.register("time-domain")
-class FrequencyDomainMaswWorkflow(TimeDomainWorkflow):
+class TimeDomainMaswWorkflow(TimeDomainWorkflow):
     """Stack in the frequency-domain."""
 
     def __init__(self, *args, **kwargs):
@@ -136,6 +134,7 @@ class FrequencyDomainMaswWorkflow(TimeDomainWorkflow):
         msg += "  - Perform transform."
         return msg
 
+
 @MaswWorkflowRegistry.register("frequency-domain")
 class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
     """Stack in the frequency-domain."""
@@ -143,20 +142,23 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def run(self, fnames=None, map_x=None, map_y=None):
-
-        ex_array = Array1D.from_files(fnames[0], map_x=map_x, map_y=map_y)
+    def run(self):
+        ex_array = Array1D.from_files(self.fnames[0], map_x=self.map_x,
+                                      map_y=self.map_y)
         preprocess = self.settings["pre-processing"]
         if preprocess["trim"]["apply"]:
-            ex_array.trim(preprocess["trim"]["start_time"], preprocess["trim"]["end_time"])
+            ex_array.trim(preprocess["trim"]["start_time"],
+                          preprocess["trim"]["end_time"])
         if preprocess["pad"]["apply"]:
             ex_array.zero_pad(preprocess["pad"]["df"])
-        
-        running_stack = WavefieldTransformRegistry.create_instance("empty",
-                                                                   array=ex_array,
-                                                                   settings=self.settings["processing"])
-        for fname in fnames:
-            self.array = Array1D.from_files(fname, map_x=map_x, map_y=map_y)
+
+        Transform = WavefieldTransformRegistry.create_class("empty")
+        processing = self.settings["processing"]
+        running_stack = Transform.from_array(array=ex_array,
+                                             settings=processing)
+        Transform = WavefieldTransformRegistry.create_class(processing["type"])
+        for fname in self.fnames:
+            self.array = Array1D.from_files(fname, map_x=self.map_x, map_y=self.map_y)
             if not self.array.is_similar(ex_array):
                 msg = f"Can only stack arrays which are similar, first dissimilar file is {fname}."
                 raise ValueError(msg)
@@ -164,13 +166,11 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
             self.trim()
             self.mute()
             self.pad()
-            transform = WavefieldTransformRegistry.create_instance(self.settings["processing"]["type"],
-                                                                   array=self.array,
-                                                                   settings=self.settings["processing"])
-            trans = transform.transform()
-            running_stack.stack(trans)
+            transform = Transform.from_array(array=self.array,
+                                             settings=processing)
+            running_stack.stack(transform)
 
-        self.transform = running_stack
+        return running_stack
 
     def __str__(self):
         msg = "\n"

@@ -2,7 +2,7 @@
 
 import json
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC, abstractclassmethod
 
 from numpy import linspace, geomspace
 import numpy as np
@@ -22,52 +22,74 @@ class AbstractTransform(ABC):
 
     """
 
-    def __init__(self, array, settings):
-        # Set transform state
-        self.array = array
-        self.settings = settings
+    def __init__(self, frequencies, velocities, power):
+        """ """
+        self.frequencies = frequencies
+        self.velocities = velocities
+        self.power = power
 
-        # Set velocity sampling
+    @staticmethod
+    def _create_velocities(settings):
         samplers = {"linear": linspace, "lin": linspace,
                     "log": geomspace, "logarithmic": geomspace}
         sampler = samplers[settings["vspace"]]
-        self._vels = sampler(settings["vmin"], settings["vmax"],
-                             settings["nvel"])
+        return sampler(settings["vmin"], settings["vmax"], settings["nvel"])
 
-        # Pre-define state variables to None for ease of reading
-        self._frqs = None
-        self._powr = None
+    @staticmethod
+    def _flip_if_required(array):
+        """Flip array and offsets if required by source location."""
+        if array._flip_required:
+            offsets = array.offsets[::-1]
+            tmatrix = np.flipud(array.timeseriesmatrix)
+        else:
+            offsets = array.offsets
+            tmatrix = array.timeseriesmatrix
+        offsets = np.array(offsets)
+        return (tmatrix, offsets)
 
-    @property
-    def frequencies(self):
-        return self._frqs
+    @classmethod
+    def from_array(cls, array, settings):
+        # Create velocity vector.
+        vels = cls._create_velocities(settings)
 
-    @property
-    def velocities(self):
-        return self._vels
+        # Perform transform.
+        frqs, powr = cls.transform(array, vels, settings)
 
-    @property
-    def power(self):
-        return self._powr
+        # Create WavefieldTransform object.
+        return cls(frqs, vels, powr)
 
-    @abstractmethod
-    def transform():
+    @classmethod
+    @abstractclassmethod
+    def transform(cls, array, velocities, settings):
         pass
 
-    def _frequency_keep_ids(self, frequencies):
-        sensor = self.array[0]
-        fmin_ids = np.argmin(np.abs(frequencies-self.settings["fmin"]))
-        fmax_ids = np.argmin(np.abs(frequencies-self.settings["fmax"]))
-        keep_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
+    @staticmethod
+    def _frequency_keep_ids(frequencies, fmin, fmax, multiple):
+        fmin_ids = np.argmin(np.abs(frequencies-fmin))
+        fmax_ids = np.argmin(np.abs(frequencies-fmax))
+        keep_ids = range(fmin_ids, (fmax_ids+1), multiple)
         return keep_ids
 
-    # TODO (jpv): Implement frequency-dependent and overall power normalization.
-    def normalize_power(self, type=None):
-        """Control how power is normalized.
+    def normalize_power(self, by="frequency-maximum"):
+        """Perform power normalization.
 
+        Parameters
+        ----------
+        by : {"none", "absolute-maximum", "frequency-maximum"}, optional
+            Determines how the surface wave dispersion power is
+            normalized, default is 'frequency-maximum'.
+
+        Returns
+        -------
+        None
+            Update the internal state of power.
 
         """
-        pass
+        register = {"none": lambda x: x,
+                    "absolute-maximum": lambda x: x/np.max(x),
+                    "frequency-maximum": lambda x: x/np.max(x, axis=1),
+                    }
+        self.power = register[by](self.power)
 
         # # Normalize power and find peaks
         # pnorm = np.empty(fp.shape)
@@ -383,29 +405,43 @@ class AbstractTransform(ABC):
 @WavefieldTransformRegistry.register('empty')
 class EmptyWavefieldTransform(AbstractTransform):
 
-    def __init__(self, array, settings):
-        super().__init__(array, settings)
-        frqs = np.arange(self.array[0].nsamples)*self.array[0].df
-        keep_ids = self._frequency_keep_ids(frqs)
-        self._frqs = frqs[keep_ids]
-        self._powr = np.empty((len(self._vels), len(self._frqs)))
+    def __init__(self, frequencies, velocities, power):
         self.n = 0
+        super().__init__(frequencies, velocities, power)
+
+    @classmethod
+    def from_array(cls, array, settings):
+        sensor = array[0]
+        frqs = np.arange(sensor.nsamples)*sensor.df
+        keep_ids = cls._frequency_keep_ids(frqs,
+                                           settings["fmin"],
+                                           settings["fmax"],
+                                           sensor.multiple)
+        nvel, nfrq = settings["nvel"], len(keep_ids)
+        frequencies = frqs[keep_ids]
+        velocities = cls._create_velocities(settings)
+        power = np.empty((nvel, nfrq), dtype=complex)
+        return cls(frequencies, velocities, power)
 
     def stack(self, other):
-        if not isinstance(other, AbstractTransform):
+        try:
+            self.power = (self.power*self.n + other.power*1)/(self.n+1)
+        except AttributeError as e:
             msg = "Can only append objects if decendent of AbstractTransform"
-            raise TypeError(msg)
-        
-        self._powr = (self._powr*self.n + other.power*1)/(self.n+1)
+            raise AttributeError(msg) from e
+
         self.n += 1
 
-    def transform(self):
+    @classmethod
+    def transform(cls, array, velocities, settings):
         pass
 
 # @WavefieldTransformRegistry.register('fk')
+
+
 class FK(AbstractTransform):
 
-    def __init__(self):
+    def __init__(self, frequencies, velocities, power):
         """Perform Frequency-Wavenumber (fk) transform.
 
         The FK approach utilizes a 2D Fourier Transform to transform
@@ -471,11 +507,8 @@ class FK(AbstractTransform):
 @WavefieldTransformRegistry.register('slantstack')
 class SlantStack(AbstractTransform):
 
-    def __init__(self, array, settings):
-        super().__init__(array, settings)
-
-    @staticmethod
-    def slant_stack(array, velocities):
+    @classmethod
+    def slant_stack(cls, array, velocities):
         """Perform a slant-stack on the given wavefield data.
 
         Parameters
@@ -493,12 +526,7 @@ class SlantStack(AbstractTransform):
             slant-stacked waveforms.
 
         """
-        if array._flip_required:
-            tmatrix = np.flipud(array.timeseriesmatrix)
-            position = array.position[::-1]
-        else:
-            tmatrix = array.timeseriesmatrix
-            position = array.position
+        tmatrix, position = cls._flip_if_required(array)
 
         position = np.array(position)
         position -= np.min(position)
@@ -530,125 +558,151 @@ class SlantStack(AbstractTransform):
         # return (taus, slant_stack)
         return slant_stack
 
-    def transform(self):
+    @classmethod
+    def transform(cls, array, velocities, settings):
         """Perform the Slant-Stack transform.
+
+        Parameters
+        ----------
+        array : Array1D
+            Instance of `Array1D`.
+        velocities : ndarray
+            Vector of trial velocities.
+        settings : dict
+            `dict` with processing settings.
 
         Returns
         -------
-        self
+        tuple
+            Of the form `(frequencies, power)`.
 
         """
         # Perform slant-stack
-        nsamples = self.array[0].nsamples
-        slant_stack = self.slant_stack(self.array, self.velocities)
+        nsamples = array[0].nsamples
+        slant_stack = cls.slant_stack(array, velocities)
 
         # Frequency vector
-        sensor = self.array[0]
+        sensor = array[0]
         df = sensor.df
-        frqs = np.arange(nsamples) * df
+        frequencies = np.arange(nsamples) * df
 
         # Fourier Transform of the slant-stack
-        fp = np.fft.fft(slant_stack, n=nsamples)
+        power = np.fft.fft(slant_stack, n=nsamples)
 
         # Trim and downsample frequencies.
-        keep_ids = self._frequency_keep_ids(frqs)
-        self._frqs = frqs[keep_ids]
-        self._powr = fp[:, keep_ids]
-
-        return self
+        keep_ids = cls._frequency_keep_ids(frequencies,
+                                           settings["fmin"],
+                                           settings["fmax"],
+                                           sensor.multiple)
+        return (frequencies[keep_ids], power[:, keep_ids])
 
 
 @WavefieldTransformRegistry.register('phaseshift')
 class PhaseShift(AbstractTransform):
 
-    def __init__(self, array, settings):
-        super().__init__(array, settings)
+    @classmethod
+    def transform(cls, array, velocities, settings):
+        """Perform the Phase-Shift Transform.
 
-    def transform(self):
-        """Perform the Phase-Shift transform.
+        Parameters
+        ----------
+        array : Array1D
+            Instance of `Array1D`.
+        velocities : ndarray
+            Vector of trial velocities.
+        settings : dict
+            `dict` with processing settings.
 
         Returns
         -------
-        self
+        tuple
+            Of the form `(frequencies, power)`.
 
         """
-        # u(x,t) -> FFT -> U(x,f)
-        if self.array._flip_required:
-            offsets = self.array.offsets[::-1]
-            tmatrix = np.flipud(self.array.timeseriesmatrix)
-        else:
-            offsets = self.array.offsets
-            tmatrix = self.array.timeseriesmatrix
-        offsets = np.array(offsets)
+        # Flip reference frame (if required).
+        tmatrix, offsets = cls._flip_if_required(array)
+
+        # u(x,t) -> FFT -> U(x,f).
         fft = np.fft.fft(tmatrix)
 
-        # Frequency vector
-        sensor = self.array.sensors[0]
+        # Frequency vector.
+        sensor = array.sensors[0]
         frqs = np.arange(sensor.nsamples) * sensor.df
 
         # Trim and downsample frequencies.
-        keep_ids = self._frequency_keep_ids(frqs)
-        self._frqs = frqs[keep_ids]
+        keep_ids = cls._frequency_keep_ids(frqs,
+                                           settings["fmin"],
+                                           settings["fmax"],
+                                           sensor.multiple)
+        frequencies = frqs[keep_ids]
 
-        # Integrate across the array offsets
-        self._powr = np.empty((len(self._vels), len(self._frqs)))
+        # Integrate across the array offsets.
+        power = np.empty((len(velocities), len(frequencies)))
         dx = offsets[1:] - offsets[:-1]
-        for row, vel in enumerate(self._vels):
+        for row, vel in enumerate(velocities):
             exponent = 1j * 2*np.pi/vel * offsets
-            for col, (f_index, frq) in enumerate(zip(keep_ids, self._frqs)):
+            for col, (f_index, frq) in enumerate(zip(keep_ids, frequencies)):
                 shift = np.exp(exponent*frq)
                 inner = shift*fft[:, f_index]/np.abs(fft[:, f_index])
                 integral = np.abs(np.sum(0.5*dx*(inner[:-1] + inner[1:])))
-                self._powr[row, col] = integral
+                power[row, col] = integral
 
-        return self
+        return (frequencies, power)
 
 
 @WavefieldTransformRegistry.register('fdbf')
 class FDBF(AbstractTransform):
 
-    def __init__(self, array, settings):
-        super().__init__(array, settings)
+    @classmethod
+    def transform(cls, array, velocities, settings):
+        """Perform Frequency-Domain Beamforming.
 
-    def transform(self):
-        """Apply the Frequency-Domain Beamformer.
+        Parameters
+        ----------
+        array : Array1D
+            Instance of `Array1D`.
+        velocities : ndarray
+            Vector of trial velocities.
+        settings : dict
+            `dict` with processing settings.
 
         Returns
         -------
-        self
+        tuple
+            Of the form `(frequencies, power)`.
 
         """
-        if self.array._flip_required:
-            offsets = self.array.offsets[::-1]
-            tmatrix = np.flipud(self.array.timeseriesmatrix)
-        else:
-            offsets = self.array.offsets
-            tmatrix = self.array.timeseriesmatrix
-        offsets = np.array(offsets)
-        sensor = self.array.sensors[0]
-        tmatrix = tmatrix.reshape(self.array.nchannels, sensor.nsamples, 1)
+        # Flip reference frame (if required).
+        tmatrix, offsets = cls._flip_if_required(array)
+
+        # Reshape to 3D array, for calculating sscm.
+        sensor = array.sensors[0]
+        tmatrix = tmatrix.reshape(array.nchannels, sensor.nsamples, 1)
 
         # Frequency vector
         frqs = np.arange(sensor.nsamples)*sensor.df
-        keep_ids = self._frequency_keep_ids(frqs)
-        self._frqs = frqs[keep_ids]
+
+        # Trim and downsample frequencies.
+        keep_ids = cls._frequency_keep_ids(frqs,
+                                           settings["fmin"],
+                                           settings["fmax"],
+                                           sensor.multiple)
+        frequencies = frqs[keep_ids]
 
         # Calculate the spatiospectral correlation matrix
-        fdbf_specific = self.settings.get("fdbf-specific", {})
+        fdbf_specific = settings.get("fdbf-specific", {})
         weighting = fdbf_specific.get("weighting")
-        sscm = self._spatiospectral_correlation_matrix(tmatrix,
+        sscm = cls._spatiospectral_correlation_matrix(tmatrix,
                                                        frq_ids=keep_ids,
                                                        weighting=weighting)
 
         # Weighting
         if weighting == "sqrt":
-            offsets_n = offsets.reshape(self.array.nchannels, 1)
+            offsets_n = offsets.reshape(array.nchannels, 1)
             offsets_h = np.transpose(np.conjugate(offsets_n))
             w = np.dot(offsets_n, offsets_h)
-        elif weighting == "invamp":
-            w = np.ones((self.array.nchannels, self.array.nchannels))
         else:
-            w = np.ones((self.array.nchannels, self.array.nchannels))
+            w = np.ones((array.nchannels, array.nchannels))
 
         # Steering
         steering = fdbf_specific.get("steering")
@@ -659,18 +713,19 @@ class FDBF(AbstractTransform):
             def create_steering(kx):
                 return np.exp(-1j * kx)
 
-        steer = np.empty((self.array.nchannels, 1), dtype=complex)
-        self._powr = np.empty((len(self._vels), len(self._frqs)), dtype=complex)
+        steer = np.empty((array.nchannels, 1), dtype=complex)
+        power = np.empty((len(velocities), len(frequencies)), dtype=complex)
         kx = np.empty_like(offsets)
-        for i, f in enumerate(self._frqs):
+        for i, f in enumerate(frequencies):
             weighted_sscm = sscm[:, :, i]*w
-            for j, v in enumerate(self._vels):
+            for j, v in enumerate(velocities):
                 kx[:] = 2*np.pi*f/v * offsets[:]
                 steer[:, 0] = create_steering(kx)[:]
-                _power = np.dot(np.dot(np.transpose(np.conjugate(steer)), weighted_sscm), steer)
-                self._powr[j, i] = _power
+                _power = np.dot(np.dot(np.transpose(np.conjugate(steer)),
+                                       weighted_sscm), steer)
+                power[j, i] = _power
 
-        return self
+        return (frequencies, power)
 
     @staticmethod
     def _spatiospectral_correlation_matrix(tmatrix, frq_ids=None, weighting=None):

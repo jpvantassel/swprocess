@@ -55,12 +55,10 @@ class Masw():
         with open(settings, "r") as f:
             settings = json.load(f)
 
-        transform = MaswWorkflowRegistry.create_instance(settings["workflow"],
-                                                         fnames=fnames,
-                                                         settings=settings,
-                                                         map_x=map_x,
-                                                         map_y=map_y)
-        return transform.transform
+        Workflow = MaswWorkflowRegistry.create_class(settings["workflow"])
+        workflow = Workflow(fnames=fnames, settings=settings, map_x=map_x,
+                            map_y=map_y)
+        return workflow.run()
 
     # TODO (jpv): Generate an example settings file on the fly.
     @classmethod
