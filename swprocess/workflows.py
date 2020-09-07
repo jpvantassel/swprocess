@@ -74,9 +74,27 @@ class AbstractMaswWorkflow(ABC):
         """Human-readable representaton of the workflow."""
         pass
 
+class TimeDomainWorkflow(AbstractMaswWorkflow):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def run(self, fnames=None, map_x=None, map_y=None):
+        self.array = Array1D.from_files(fnames, map_x=map_x, map_y=map_y)
+        self.check()
+        self.trim()
+        self.mute()
+        self.pad()
+        transform = WavefieldTransformRegistry.create_instance(self.settings["processing"]["type"],
+                                                               array=self.array,
+                                                               settings=self.settings["processing"])
+        self.transform = transform.transform()
+
+    def __str__(self):
+        pass
 
 @MaswWorkflowRegistry.register("single")
-class SingleMaswWorkflow(AbstractMaswWorkflow):
+class SingleMaswWorkflow(TimeDomainWorkflow):
     """Perform transform on a single time-domain record."""
 
     def __init__(self, *args, **kwargs):
@@ -87,16 +105,7 @@ class SingleMaswWorkflow(AbstractMaswWorkflow):
             fnames = fnames[0]
             msg = "fnames may only include a single file for the selected workflow, only processing the first."
             raise warnings.warn(msg)
-
-        self.array = Array1D.from_files(fnames, map_x=map_x, map_y=map_y)
-        self.check()
-        self.trim()
-        self.mute()
-        self.pad()
-        transform = WavefieldTransformRegistry.create_instance(self.settings["processing"]["type"],
-                                                               array=self.array,
-                                                               settings=self.settings["processing"])
-        self.transform = transform.transform()
+        super().transform(fnames=fnames, map_x=map_x, map_y=map_y)
 
     def __str__(self):
         msg = "\n"
@@ -109,6 +118,23 @@ class SingleMaswWorkflow(AbstractMaswWorkflow):
         msg += "  - Perform transform."
         return msg
 
+@MaswWorkflowRegistry.register("time-domain")
+class FrequencyDomainMaswWorkflow(TimeDomainWorkflow):
+    """Stack in the frequency-domain."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __str__(self):
+        msg = "\n"
+        msg += "MaswWorkflow: time-domain\n"
+        msg += "  - Create Array1D from files.\n"
+        msg += "  - Check array is acceptable.\n"
+        msg += "  - Perform trim (if desired).\n"
+        msg += "  - Perform mute (if desired).\n"
+        msg += "  - Perform pad  (if desired).\n"
+        msg += "  - Perform transform."
+        return msg
 
 @MaswWorkflowRegistry.register("frequency-domain")
 class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
@@ -147,5 +173,13 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
         self.transform = running_stack
 
     def __str__(self):
-        msg = ""
+        msg = "\n"
+        msg += "MaswWorkflow: frequency-domain\n"
+        msg += "  - Create Array1D from file.\n"
+        msg += "  - Check array is acceptable.\n"
+        msg += "  - Perform trim (if desired).\n"
+        msg += "  - Perform mute (if desired).\n"
+        msg += "  - Perform pad  (if desired).\n"
+        msg += "  - Perform transform.\n"
+        msg += "  - Repeat steps for remaining files, stacking in frequency-domain.\n"
         return msg

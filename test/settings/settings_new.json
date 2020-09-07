@@ -1,8 +1,8 @@
 {
-    "workflow": "frequency-domain",
+    "workflow": "time-domain",
     "pre-processing":{
         "trim": {
-            "apply" : true,
+            "apply" : false,
             "start_time": 0,
             "end_time": 0.75
         },
