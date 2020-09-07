@@ -5,6 +5,8 @@ from .source import Source
 
 from .array1d import Array1D
 
+from .masw import Masw
+
 # from .wavefieldtransform1d import WavefieldTransform1D
 
 from .peaks import Peaks

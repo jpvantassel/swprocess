@@ -3,8 +3,7 @@
 import logging
 import json
 
-from register import MaswWorkflowRegistry
-from array1d import Array1D
+from .workflows import MaswWorkflowRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +15,10 @@ class Masw():
     and extensible MASW processing workflows.
 
     """
-    def __init__(cls, fnames, settings, map_x=lambda x: x, map_y=lambda y: y):
-        """Initialize an `MaswWorkflow` from SU or SEGY files.
+
+    @staticmethod
+    def run(fnames, settings, map_x=lambda x: x, map_y=lambda y: y):
+        """Run an MASW workflow from SU or SEGY files.
 
         Create an instance of an `Masw` object for a specific
         `Masw` workflow. Note that each file should contain
@@ -32,8 +33,8 @@ class Masw():
             File name or iterable of file names.
         settings : str
             JSON settings file detailing how MASW should be performed.
-            For an example file see
-            `meth: MaswOffset.example_settings_file()`.
+            See `meth: Masw.example_settings_file()` for more
+            information.
         map_x, map_y : function, optional
             Functions to convert the x and y coordinates of source and
             receiver information, default is no transformation. Useful
@@ -41,8 +42,8 @@ class Masw():
 
         Returns
         -------
-        MaswOffset
-            Initialized `MaswOffset` object.
+        AbstractTransform-like
+            Initialized subclass (i.e., child) of `AbstractTransform`.
 
         Raises
         ------
@@ -55,33 +56,13 @@ class Masw():
             settings = json.load(f)
 
         transform = MaswWorkflowRegistry.create_instance(settings["workflow"],
-                                                         fnames, settings)
-        
-        def run(self):
-            return self.transform.run()
+                                                         fnames=fnames,
+                                                         settings=settings,
+                                                         map_x=map_x,
+                                                         map_y=map_y)
+        return transform.transform
 
-    # TODO (jpv): Generate a default settings file on the fly.
-    # @classmethod
-    # def default_settings_file(fname):
-    #     pass
-
-
-
-        # if array._source_inside:
-        #     raise ValueError("Source must be located outside of the array.")
-
-        # with open(settings, "r") as f:
-        #     logger.info("loading settings ... ")
-        #     self.settings = json.load(f)
-
-        # if self.settings["trim"]:
-        #     logger.info("trimming ... ")
-        #     array.trim(start_time=self.settings["start_time"],
-        #                end_time=self.settings["end_time"])
-
-        # if self.settings["zero_pad"]:
-        #     logger.info("padding ... ")
-        #     array.zero_pad(df=self.settings["df"])
-
-        # self.kres = array.kres
-        # self.transform = WavefieldTransformRegistry.create_instance()
+    # TODO (jpv): Generate an example settings file on the fly.
+    @classmethod
+    def example_settings_file(cls, fname):
+        pass

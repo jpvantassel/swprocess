@@ -1,15 +1,15 @@
 {
     "workflow": "single",
     "pre-processing":{
-        "muting": {
-            "apply": true,
-            "type": "interactive",
-            "window kwargs": {}
-        },
         "trim": {
             "apply" : false,
             "start_time": 0,
             "end_time": 0.75
+        },
+        "mute": {
+            "apply": false,
+            "type": "interactive",
+            "window kwargs": {}
         },
         "pad": {
             "apply" : false,
@@ -22,7 +22,8 @@
         "fmax": 100,
         "vmin": 100,
         "vmax": 400,
-        "nvelocities" : 200,
+        "nvel" : 200,
+        "vspace": "linear",
         "fdbf-specific": {
             "weighting" : null,
             "steering" : "plane"
