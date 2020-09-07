@@ -15,6 +15,7 @@ class Test_Masw(TestCase):
         cls.vuws_path = cls.full_path + "../examples/sample_data/vuws/"
         cls.wghs_path = cls.full_path + "../examples/sample_data/wghs/"
 
+    @unittest.skip
     def test_single(self):
         fname = self.vuws_path+"10.dat"
         settings = self.full_path+"settings/settings_new.json"
@@ -36,6 +37,13 @@ class Test_Masw(TestCase):
         # #                                       settings=self.full_path+"settings/settings_fdbf.json")
         # # fdbf.plot_spectra(stype="fv")
         
+        plt.show()
+
+    def test_frequency_domain(self):
+        fnames = [self.vuws_path+str(x)+".dat" for x in range(11,15)]
+        settings = self.full_path+"settings/settings_new.json"
+        fk = swprocess.Masw.run(fnames=fnames, settings=settings)
+        fk.plot_spectra()
         plt.show()
 
 

@@ -1,23 +1,23 @@
 {
-    "workflow": "single",
+    "workflow": "frequency-domain",
     "pre-processing":{
         "trim": {
-            "apply" : false,
+            "apply" : true,
             "start_time": 0,
             "end_time": 0.75
         },
         "mute": {
-            "apply": false,
+            "apply": true,
             "type": "interactive",
             "window kwargs": {}
         },
         "pad": {
-            "apply" : false,
+            "apply" : true,
             "df": 0.5
         }    
     },
     "processing": {
-        "type": "phaseshift",
+        "type": "fdbf",
         "fmin": 5,
         "fmax": 100,
         "vmin": 100,
@@ -25,8 +25,8 @@
         "nvel" : 200,
         "vspace": "linear",
         "fdbf-specific": {
-            "weighting" : "invamp",
-            "steering" : "plane"
+            "weighting" : "sqrt",
+            "steering" : "cylindrical"
         }
     },
     "plotting": {

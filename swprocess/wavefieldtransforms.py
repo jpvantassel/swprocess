@@ -380,6 +380,28 @@ class AbstractTransform(ABC):
         #                     fontsize=9, fontname="arial")
 
 
+@WavefieldTransformRegistry.register('empty')
+class EmptyWavefieldTransform(AbstractTransform):
+
+    def __init__(self, array, settings):
+        super().__init__(array, settings)
+        frqs = np.arange(self.array[0].nsamples)*self.array[0].df
+        keep_ids = self._frequency_keep_ids(frqs)
+        self._frqs = frqs[keep_ids]
+        self._powr = np.empty((len(self._vels), len(self._frqs)))
+        self.n = 0
+
+    def stack(self, other):
+        if not isinstance(other, AbstractTransform):
+            msg = "Can only append objects if decendent of AbstractTransform"
+            raise TypeError(msg)
+        
+        self._powr = (self._powr*self.n + other.power*1)/(self.n+1)
+        self.n += 1
+
+    def transform(self):
+        pass
+
 # @WavefieldTransformRegistry.register('fk')
 class FK(AbstractTransform):
 
