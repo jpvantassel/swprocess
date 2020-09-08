@@ -1,6 +1,7 @@
 """Tests for class Masw."""
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 import unittest
 import swprocess
@@ -43,10 +44,11 @@ class Test_Masw(TestCase):
         fnames = [self.vuws_path+str(x)+".dat" for x in range(11,15)]
         settings = self.full_path+"settings/settings_new.json"
         fk = swprocess.Masw.run(fnames=fnames, settings=settings)
-        fk.plot()
-        fk.plot_snr()
-        fk.plot_array()
-        fk.plot_waterfall()
+        fk.plot(normalization="absolute-maximum")
+        # fk.plot_snr()
+        # fk.plot_array()
+        # fk.plot_waterfall()
+        fk.plot_slices(np.arange(5, 50, 5))
         plt.show()
 
 

@@ -3,6 +3,7 @@
 from abc import ABC, abstractclassmethod
 import json
 import logging
+from math import ceil
 import warnings
 
 from numpy import linspace, geomspace
@@ -225,7 +226,6 @@ class AbstractWavefieldTransform(ABC):
             fig.tight_layout()
             return (fig, ax)
 
-
     def plot(self, ax=None, normalization="frequency-maximum",
              peaks="frequency-maximum", cmap="jet", peak_kwargs=None):
         """Plot the `WavefieldTransform`'s dispersion image.
@@ -251,7 +251,7 @@ class AbstractWavefieldTransform(ABC):
         tuple or None
             `tuple` of the form `(fig, ax)` if `ax=None`, `None`
             otherwise.
-        
+
         """
         # Construct fig and ax (if necessary).
         ax_was_none = False
@@ -271,132 +271,84 @@ class AbstractWavefieldTransform(ABC):
                               self.power,
                               np.linspace(0, np.max(self.power), 20),
                               cmap=plt.cm.get_cmap(cmap))
-        fig.colorbar(contour, ax=ax, ticks=np.round(np.linspace(0, np.max(self.power), 11), 1))
+        fig.colorbar(contour, ax=ax, ticks=np.round(
+            np.linspace(0, np.max(self.power), 11), 1))
 
         # Plot peaks (if necessary).
         if peaks != ["none"]:
             default_kwargs = dict(marker="o", markersize=1, markeredgecolor="w",
-                               markerfacecolor='none', linestyle="none")
+                                  markerfacecolor='none', linestyle="none")
             peak_kwargs = {} if peak_kwargs is None else peak_kwargs
             peak_kwargs = {**default_kwargs, **peak_kwargs}
             ax.plot(self.frequencies, self.peaks, **peak_kwargs)
 
         ax.set_xlabel("Frequency (Hz)")
         ax.set_ylabel("Phase Velocity (m/s)")
-        
+
         # Return fig and ax (if necessary).
         if ax_was_none:
             fig.tight_layout()
             return (fig, ax)
 
-    def plot_slices(self, axs=None, freqPlotValues=np.arange(6, 22, 1)):
+    def plot_slices(self, frequencies, axs=None, plot_kwargs=None):
+        """Plot frequency-velocity slices of the `WavefieldTransform`.
 
-        pass
-        # # Determine appropriate number of panels and their arrangement
-        # n_slices = len(freqPlotValues)
-        # xFigDim = int(math.ceil(math.sqrt(n_slices)))
-        # if (math.ceil(math.sqrt(n_slices))*math.floor(math.sqrt(n_slices)) < n_slices):
-        #     yFigDim = int(math.ceil(math.sqrt(n_slices)))
-        # else:
-        #     yFigDim = int(math.floor(math.sqrt(n_slices)))
+        Parameters
+        ----------
+        frequencies : iterable of floats
+            Select frequencies at which the slices are to be plotted.
+            Note the plotted frequencies may not match these exactly
+            depending upon the frequency discretization used during
+            processing. To ensure the two match exactly first reprocess
+            the data using frequency domain padding to ensure a known
+            `df` then select only slice frequencies which are multiples
+            of `df`.
+        axs : ndarray of Axes, optional
+            `ndarray` of `Axes` objects on which to plot the
+            frequency-velocity slices, default is `None` indicating
+            the appropriate `Axes` will be generated on-the-fly.
+        plot_kwargs : dict, optional
+            Keyword arguments to the plot command, default is `None`
+            so the default settings will be used.
 
-        # # Create an array containing the row and column for each panel
-        # panel = 0
-        # panel_ids = np.zeros((n_slices, 2))
-        # for r in range(yFigDim):
-        #     for c in range(xFigDim):
-        #         if (panel+1) <= n_slices:
-        #             panel_ids[panel, 0] = r+1
-        #             panel_ids[panel, 1] = c+1
-        #             panel += 1
 
-        # fig = plt.figure(figsize=(mwdth, mhght))
+        Returns
+        -------
+        tuple or None
+            `tuple` of the form `(fig, axs)` if `axs=None`, and `None`
+            otherwise.
 
-        # # Loop through freqPlotValues
-        # for k in range(n_slices-1, -1, -1):
+        """
+        # Construct fig and axs (if necessary).
+        axs_was_none = False
+        if axs is None:
+            axs_was_none = True
+            npanels = len(frequencies)
+            cols = 4
+            rows = ceil(npanels/cols)
+            blanks = cols*rows - npanels
+            fig, axs = plt.subplots(nrows=rows, ncols=cols,
+                                    figsize=(1.5*cols, 1.5*rows), dpi=150)
+            axs[-1, -blanks:] = None
 
-        #     # Find frequency closest to freqPlotValues(k)
-        #     c_id = np.argmin(np.absolute(self.freq-freqPlotValues[k]))
-        #     cfreq = self.freq[c_id]
+        # Allow user to customize the slice's appearance.
+        plot_kwarags = {} if plot_kwargs is None else plot_kwargs
+        default_kwargs = dict(linewidth=0.75, color="#000000")
+        plot_kwargs = {**default_kwargs, **plot_kwarags}
 
-        #     # Plotting parameters
-        #     if str.lower(self.val_type) == "wavenumber":
-        #         k_vals = self.trial_vals
-        #         k_peak = self.peak_vals
-        #         v_vals = 2*np.pi*cfreq / k_vals
-        #         v_peak = 2*np.pi*cfreq / k_peak
-        #     elif str.lower(self.val_type) == "velocity":
-        #         v_vals = self.trial_vals
-        #         v_peak = self.peak_vals
-        #         k_vals = 2*np.pi*cfreq / v_vals
-        #         k_peak = 2*np.pi*cfreq / v_peak
-        #     else:
-        #         raise ValueError(
-        #             "Invalid value type, should be \"wavenumber\" or \"velocity\"")
+        # Plot the slices.
+        for ax, requested in zip(axs.flatten(), frequencies):
+            fid = np.argmin(np.abs(self.frequencies - requested))
+            ax.plot(self.velocities, self.power[:, fid], **plot_kwargs)
+            ax.text(0.95, 0.95, f"@{np.round(self.frequencies[fid])}Hz",
+                    ha="right", va="top", transform=ax.transAxes)
+            # ax.set_xlabel("Velocity (m/s)")
+            # ax.set_ylabel("Power")
 
-        #     # Compute maximum power
-        #     maxY = np.nanmax(np.abs(self.pnorm[:, c_id]))
-
-        #     # Determine x-axis and corresponding limits based on chosen graph type
-        #     if str.lower(plotType) == "fk":
-        #         x = k_vals
-        #         xp = k_peak[c_id]
-        #         xLabText = "Wavenumber (rad/m)"
-        #         if not xlims:
-        #             xlims = (0, self.kres)
-        #         xscale = "linear"
-        #         text_xloc = 0.66*(xlims[1] - xlims[0]) + xlims[0]
-        #     elif str.lower(plotType) == "fw":
-        #         x = 2*np.pi / k_vals
-        #         xp = 2*np.pi / k_peak[c_id]
-        #         xLabText = 'Wavelength (m)'
-        #         if not xlims:
-        #             xlims = (1, 200)
-        #         xscale = "log"
-        #         text_xloc = math.pow(
-        #             10, (0.66*(math.log10(xlims[1]) - math.log10(xlims[0])) + math.log10(xlims[0])))
-        #     elif str.lower(plotType) == "fv":
-        #         x = v_vals
-        #         xp = v_peak[c_id]
-        #         xLabText = "Velocity (m/s)"
-        #         if not xlims:
-        #             xlims = (0, 1000)
-        #         xscale = "linear"
-        #         text_xloc = 0.66*(xlims[1] - xlims[0]) + xlims[0]
-        #     elif str.lower(plotType) == "fp":
-        #         x = 1.0 / v_vals
-        #         xp = 1.0 / v_peak[c_id]
-        #         xLabText = "Slowness (s/m)"
-        #         if (k+1) == n_slices:
-        #             minX = 1.0 / np.max(v_vals)
-        #         if not xlims:
-        #             xlims = (minX, 1.0/100)
-        #         xscale = "linear"
-        #         text_xloc = 0.33*(xlims[1] - xlims[0]) + xlims[0]
-        #     else:
-        #         raise ValueError(
-        #             "Invalid plot type, should be \"fk\", \"fw\", \"fv\" or \"fp\"")
-
-        #     # Plot power at current frequency
-        #     ax = fig.add_subplot(yFigDim, xFigDim, k+1)
-        #     ax.set_xlim(xlims)
-        #     ax.set_ylim((0, maxY))
-        #     ax.set_xscale(xscale)
-        #     ax.plot(x, np.abs(self.pnorm[:, c_id]))
-        #     ax.plot(xp, np.max(
-        #         np.abs(self.pnorm[:, c_id])), marker="*", color="r", markersize=10)
-        #     ax.set_xticklabels(ax.get_xticks(), fontsize=9, fontname='arial')
-        #     ax.set_yticklabels(ax.get_yticks(), fontsize=9, fontname='arial')
-        #     ax.xaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
-        #     ax.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%d'))
-        #     prfreq = '%.2f' % cfreq
-        #     plt.text(text_xloc, 0.75*maxY, prfreq +
-        #             " Hz", fontsize=9, fontname="arial")
-        #     if panel_ids[k, 0] == yFigDim:
-        #         ax.set_xlabel(xLabText, fontsize=9, fontname="arial")
-        #     if panel_ids[k, 1] == 1:
-        #         ax.set_ylabel("Normalized Amplitude",
-        #                     fontsize=9, fontname="arial")
+        # Return fig and ax (if necessary).
+        if axs_was_none:
+            fig.tight_layout()
+            return (fig, axs)
 
 
 @WavefieldTransformRegistry.register('empty')
@@ -432,6 +384,7 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
     @classmethod
     def transform(cls, array, velocities, settings):
         pass
+
 
 class FK(AbstractWavefieldTransform):
 

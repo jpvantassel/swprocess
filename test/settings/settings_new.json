@@ -4,7 +4,7 @@
         "trim": {
             "apply": true,
             "start_time": 0,
-            "end_time": 0.75
+            "end_time": 0.9
         },
         "mute": {
             "apply": false,
@@ -30,7 +30,7 @@
         }
     },
     "signal-to-noise": {
-        "perform": true,
+        "perform": false,
         "noise": {
             "start": -0.5,
             "end": 0.0
