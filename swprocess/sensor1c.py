@@ -34,9 +34,14 @@ class Sensor1C(ActiveTimeSeries):
 
     @classmethod
     def from_sensor1c(cls, sensor1c):
-        attrs = ["amplitude", "dt", "x", "y", "z"]
-        args = [getattr(sensor1c, attr) for attr in attrs]
-        kwargs = {key: getattr(sensor1c, key) for key in ["nstacks", "delay"]}
+        """Create deep copy of an existing `Sensor1C` object."""
+        arg_map = {"amplitude": lambda x: x, "dt": lambda x: x,
+                   "x": float, "y": float, "z": float}
+        args = [opr(getattr(sensor1c, arg)) for arg, opr in arg_map.items()]
+
+        kwarg_map = {"nstacks": int, "delay": float}
+        kwargs = {key: opr(getattr(sensor1c, key))
+                  for key, opr in kwarg_map.items()}
         return cls(*args, **kwargs)
 
     @classmethod
@@ -47,7 +52,7 @@ class Sensor1C(ActiveTimeSeries):
 
     @classmethod
     def from_trace(cls, trace,
-                   read_header=True, map_x=lambda x:x, map_y=lambda y:y,
+                   read_header=True, map_x=lambda x: x, map_y=lambda y: y,
                    nstacks=1, delay=0, x=0, y=0, z=0):
         """Create a `Sensor1C` object from a `Trace` object.
 
@@ -102,7 +107,7 @@ class Sensor1C(ActiveTimeSeries):
                        x=x, y=y, z=z, nstacks=nstacks, delay=delay)
 
     @classmethod
-    def _from_trace_seg2(cls, trace, map_x=lambda x:x, map_y=lambda y:y):
+    def _from_trace_seg2(cls, trace, map_x=lambda x: x, map_y=lambda y: y):
         """Create a `Sensor1C` object form a SEG2-style `Trace` object.
 
         Parameters
@@ -130,7 +135,7 @@ class Sensor1C(ActiveTimeSeries):
                               z=0)
 
     @classmethod
-    def _from_trace_su(cls, trace, map_x=lambda x:x, map_y=lambda y:y):
+    def _from_trace_su(cls, trace, map_x=lambda x: x, map_y=lambda y: y):
         """Create a `Sensor1C` object form a SU-style `Trace` object.
 
         Parameters

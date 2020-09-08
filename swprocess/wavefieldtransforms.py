@@ -1,8 +1,9 @@
 """Wavefield transform class definitions."""
 
+from abc import ABC, abstractclassmethod
 import json
 import logging
-from abc import ABC, abstractclassmethod
+import warnings
 
 from numpy import linspace, geomspace
 import numpy as np
@@ -27,6 +28,11 @@ class AbstractWavefieldTransform(ABC):
         self.frequencies = frequencies
         self.velocities = velocities
         self.power = power
+
+        # Pre-define optional attributes
+        self.snr = None
+        self.snr_frequencies = None
+        self.array = None
 
     @staticmethod
     def _create_velocities(settings):
@@ -174,6 +180,52 @@ class AbstractWavefieldTransform(ABC):
 
     # def plot_spectra(self, stype="fv", plot_peak=True, plot_limit=None):  # pragma: no cover
 
+    def plot_waterfall(self, *args, **kwargs):
+        # Only proceed if array is not None:
+        if self.array is None:
+            warnings.warn("array is not defined, therefore cannot be plotted.")
+            return
+
+        return self.array.waterfall(*args, **kwargs)
+
+    def plot_array(self, *args, **kwargs):
+        # Only proceed if array is not None:
+        if self.array is None:
+            warnings.warn("array is not defined, therefore cannot be plotted.")
+            return
+
+        return self.array.plot(*args, **kwargs)
+
+    def plot_snr(self, ax=None, plot_kwargs=None):
+
+        # Only proceed if snr is not None:
+        if self.snr is None:
+            warnings.warn("snr is not defined, therefore cannot be plotted.")
+            return
+
+        # Construct fig and ax (if necessary).
+        ax_was_none = False
+        if ax is None:
+            ax_was_none = True
+            fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
+
+        # Allow for user customization of plot.
+        if plot_kwargs is None:
+            plot_kwargs = {}
+
+        # Plot signal-to-noise ratio.
+        ax.plot(self.snr_frequencies, self.snr, **plot_kwargs)
+
+        # Labels
+        ax.set_xlabel("Frequency (Hz)")
+        ax.set_ylabel("Signal-to-Noise Ratio")
+
+        # Return fig and ax (if necessary).
+        if ax_was_none:
+            fig.tight_layout()
+            return (fig, ax)
+
+
     def plot(self, ax=None, normalization="frequency-maximum",
              peaks="frequency-maximum", cmap="jet", peak_kwargs=None):
         """Plot the `WavefieldTransform`'s dispersion image.
@@ -223,7 +275,7 @@ class AbstractWavefieldTransform(ABC):
 
         # Plot peaks (if necessary).
         if peaks != ["none"]:
-            default_kwargs = dict(marker="o", markersize=5, markeredgecolor="w",
+            default_kwargs = dict(marker="o", markersize=1, markeredgecolor="w",
                                markerfacecolor='none', linestyle="none")
             peak_kwargs = {} if peak_kwargs is None else peak_kwargs
             peak_kwargs = {**default_kwargs, **peak_kwargs}
@@ -237,119 +289,8 @@ class AbstractWavefieldTransform(ABC):
             fig.tight_layout()
             return (fig, ax)
 
+    def plot_slices(self, axs=None, freqPlotValues=np.arange(6, 22, 1)):
 
-        # if self.domain == "wavenumber":
-        #     fgrid, kgrid = np.meshgrid(self.frqs, self.vals)
-        #     vgrid = 2*np.pi*fgrid / kgrid
-        #     wgrid = 2*np.pi/kgrid
-        #     kpeak = self.peaks
-        #     wpeak = 2*np.pi / kpeak
-        #     vpeak = wpeak*self.frqs
-        # elif self.domain == "velocity":
-        #     fgrid, vgrid = np.meshgrid(self.frqs, self.vals)
-        #     wgrid = vgrid / fgrid
-        #     wgrid = 2*np.pi / wgrid
-        #     vpeak = self.peaks
-        #     kpeak = 2*np.pi*self.frqs / vpeak
-        #     wpeak = 2*np.pi / kpeak
-        # else:
-        #     raise NotImplementedError()
-
-        # if stype == "fk":
-        #     xgrid = fgrid
-        #     ygrid = kgrid
-        #     xpeak = self.frqs
-        #     ypeak = kpeak
-        #     if plot_limit == None:
-        #         plot_limit = [0, np.max(self.frqs), 0, 2*self.kres]
-        #     xscale = "linear"
-        #     yscale = "linear"
-        #     xLabText = "Frequency (Hz)"
-        #     yLabText = "Wavenumber (rad/m)"
-        # elif stype == "fw":
-        #     xgrid = fgrid
-        #     ygrid = wgrid
-        #     xpeak = self.frqs
-        #     ypeak = wpeak
-        #     if plot_limit == None:
-        #         plot_limit = [0, np.max(self.frqs), 1, 200]
-        #     xscale = "linear"
-        #     yscale = "log"
-        #     xLabText = "Frequency (Hz)"
-        #     yLabText = "Wavelength (m)"
-        # elif stype == "fv":
-        #     xgrid = fgrid
-        #     ygrid = vgrid
-        #     xpeak = self.frqs
-        #     ypeak = vpeak
-        #     if plot_limit == None:
-        #         plot_limit = [0, np.max(self.frqs),
-        #                       self.settings["vmin"], self.settings["vmax"]]
-        #     xscale = "linear"
-        #     yscale = "linear"
-        #     xLabText = "Frequency (Hz)"
-        #     yLabText = "Velocity (m/s)"
-        # elif stype == "fp":
-        #     xgrid = fgrid
-        #     ygrid = 1.0 / vgrid
-        #     xpeak = self.frqs
-        #     ypeak = 1.0 / vpeak
-        #     if plot_limit == None:
-        #         plot_limit = [0, np.max(self.frqs), 1.0/1000, 1.0/100]
-        #     xscale = "linear"
-        #     yscale = "linear"
-        #     xLabText = "Frequency (Hz)"
-        #     yLabText = "Slowness (s/m)"
-        # elif stype == "wv":
-        #     xgrid = wgrid
-        #     ygrid = vgrid
-        #     xpeak = wpeak
-        #     ypeak = vpeak
-        #     if plot_limit == None:
-        #         plot_limit = [1, 200, 0, 1000]
-        #     xscale = "log"
-        #     yscale = "linear"
-        #     xLabText = "Wavelength (m)"
-        #     yLabText = "Velocity (m/s)"
-        # else:
-        #     msg = f"`stype`= {stype} not recognized, use 'fk', 'fw', 'fv', 'fp', or 'wv'."
-        #     raise ValueError(msg)
-
-        # zgrid = self.pnorm
-        # fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
-        # contour = ax.contourf(xgrid,
-        #                       ygrid,
-        #                       zgrid,
-        #                       np.linspace(0, np.max(zgrid), 20),
-        #                       cmap=plt.cm.get_cmap("jet"))
-        # fig.colorbar(contour, ax=ax, ticks=np.arange(0, 1.1, 0.1))
-
-        # # TODO (jpv): Looking into using imshow for speedup!
-        # # plt.imshow(max_z,
-        # #           extent=plot_limit,
-        # #           origin='lower',
-        # #           cmap="jet")
-
-        # if plot_peak:
-        #     ax.plot(xpeak,
-        #             ypeak,
-        #             marker="o",
-        #             markersize=5,
-        #             markeredgecolor="w",
-        #             markerfacecolor='none',
-        #             linestyle="none")
-
-        # # TODO (jpv): Look into making a plotting function to set these defaults
-        # ax.set_xlim(plot_limit[:2])
-        # ax.set_ylim(plot_limit[2:])
-        # ax.set_xlabel(xLabText, fontsize=12, fontname="arial")
-        # ax.set_ylabel(yLabText, fontsize=12, fontname="arial")
-        # ax.set_xscale(xscale)
-        # ax.set_yscale(yscale)
-        # return fig, ax
-
-    # # TODO (jpv) Pythonize this
-    def plotSlices(self, plotType="fv", freqPlotValues=np.arange(6, 22, 1), xlims=[]):
         pass
         # # Determine appropriate number of panels and their arrangement
         # n_slices = len(freqPlotValues)
@@ -491,9 +432,6 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
     @classmethod
     def transform(cls, array, velocities, settings):
         pass
-
-# @WavefieldTransformRegistry.register('fk')
-
 
 class FK(AbstractWavefieldTransform):
 

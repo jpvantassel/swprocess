@@ -39,6 +39,11 @@ class Source():
     def z(self):
         return self._z
 
+    @classmethod
+    def from_source(cls, other):
+        args = [getattr(other, attr) for attr in ["x", "y", "z"]]
+        return cls(*args)
+
     def __repr__(self):
         return f"Source(x={self._x}, y={self._y}, z={self._z})"
 

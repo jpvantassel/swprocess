@@ -44,6 +44,9 @@ class Test_Masw(TestCase):
         settings = self.full_path+"settings/settings_new.json"
         fk = swprocess.Masw.run(fnames=fnames, settings=settings)
         fk.plot()
+        fk.plot_snr()
+        fk.plot_array()
+        fk.plot_waterfall()
         plt.show()
 
 

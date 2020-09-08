@@ -675,7 +675,12 @@ class Array1D():
 
     @classmethod
     def from_array1d(cls, array1d):
-        obj = cls(array1d.sensors, array1d.source)
+        """Create a deep copy of an existing `Array1D` object."""
+        sensors = []
+        for _sensor in array1d.sensors:
+            sensors.append(Sensor1C.from_sensor1c(_sensor))
+        source = Source.from_source(array1d.source)
+        obj = cls(sensors, source)
         obj.absolute_minus_relative = float(array1d.absolute_minus_relative)
         return obj
 

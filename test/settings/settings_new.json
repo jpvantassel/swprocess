@@ -1,42 +1,47 @@
 {
     "workflow": "frequency-domain",
-    "pre-processing":{
+    "pre-processing": {
         "trim": {
-            "apply" : false,
+            "apply": true,
             "start_time": 0,
             "end_time": 0.75
         },
         "mute": {
-            "apply": true,
+            "apply": false,
             "type": "interactive",
             "window kwargs": {}
         },
         "pad": {
-            "apply" : true,
+            "apply": true,
             "df": 1
-        }    
+        }
     },
     "processing": {
-        "type": "fdbf",
+        "type": "phaseshift",
         "fmin": 5,
         "fmax": 100,
         "vmin": 100,
         "vmax": 400,
-        "nvel" : 200,
+        "nvel": 200,
         "vspace": "linear",
         "fdbf-specific": {
-            "weighting" : "sqrt",
-            "steering" : "cylindrical"
+            "weighting": "sqrt",
+            "steering": "cylindrical"
         }
     },
-    "plotting": {
-        "signal-to-noise": {
-            "perform":true,
-            "kwargs":{}
+    "signal-to-noise": {
+        "perform": true,
+        "noise": {
+            "start": -0.5,
+            "end": 0.0
         },
-        "waterfall": {
-            "perform":true,
-            "kwargs":{}
+        "signal": {
+            "start": 0.0,
+            "end": 0.5
+        },
+        "pad": {
+            "apply": true,
+            "df": 1
         }
     }
 }
