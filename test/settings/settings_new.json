@@ -7,13 +7,13 @@
             "end_time": 0.75
         },
         "mute": {
-            "apply": false,
+            "apply": true,
             "type": "interactive",
             "window kwargs": {}
         },
         "pad": {
             "apply" : true,
-            "df": 0.5
+            "df": 1
         }    
     },
     "processing": {
@@ -23,10 +23,10 @@
         "vmin": 100,
         "vmax": 400,
         "nvel" : 200,
-        "vspace": "log",
+        "vspace": "linear",
         "fdbf-specific": {
-            "weighting" : null,
-            "steering" : "plane"
+            "weighting" : "sqrt",
+            "steering" : "cylindrical"
         }
     },
     "plotting": {

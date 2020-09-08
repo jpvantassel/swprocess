@@ -9,13 +9,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import special
 
+from .peaks import Peaks
 from .register import WavefieldTransformRegistry
 
 logger = logging.getLogger(__name__)
 
 
-class AbstractTransform(ABC):
-    """Wavefield transformation of a `Array1D`.
+class AbstractWavefieldTransform(ABC):
+    """Wavefield transformation of an `Array1D`.
 
     Attributes
     ----------
@@ -23,7 +24,6 @@ class AbstractTransform(ABC):
     """
 
     def __init__(self, frequencies, velocities, power):
-        """ """
         self.frequencies = frequencies
         self.velocities = velocities
         self.power = power
@@ -70,8 +70,8 @@ class AbstractTransform(ABC):
         keep_ids = range(fmin_ids, (fmax_ids+1), multiple)
         return keep_ids
 
-    def normalize_power(self, by="frequency-maximum"):
-        """Perform power normalization.
+    def normalize(self, by="frequency-maximum"):
+        """Normalize `WavefieldTransform` power.
 
         Parameters
         ----------
@@ -85,23 +85,29 @@ class AbstractTransform(ABC):
             Update the internal state of power.
 
         """
-        register = {"none": lambda x: x,
-                    "absolute-maximum": lambda x: x/np.max(x),
-                    "frequency-maximum": lambda x: x/np.max(x, axis=1),
+        register = {"none": lambda x: np.abs(x),
+                    "absolute-maximum": lambda x: np.abs(x)/np.max(np.abs(x)),
+                    "frequency-maximum": lambda x: np.abs(x)/np.max(np.abs(x), axis=0),
                     }
         self.power = register[by](self.power)
 
-        # # Normalize power and find peaks
-        # pnorm = np.empty(fp.shape)
-        # vpeaks = np.empty_like(frqs)
-        # # fp = np.abs(fp/np.max(fp))
-        # abs_fp = np.abs(fp)
-        # for k, _fp in enumerate(abs_fp.T):
-        #     normed_fp = _fp/np.max(_fp)
-        #     pnorm[:, k] = normed_fp
-        #     vpeaks[k] = velocities[np.argmax(normed_fp)]
+    def find_peak_power(self, by="frequency-maximum"):
+        """Pick maximum `WavefieldTransform` power.
 
-        # return (frqs, "velocity", velocities, pnorm, vpeaks)
+        Parameters
+        ----------
+        by : {"frequency-maximum"}, optional
+            Determines how the maximum surface wave dispersion power is
+            selected, default is 'frequency-maximum'.
+
+        Returns
+        -------
+        # Peaks
+        #     An instantiated `Peaks` object.
+        """
+        # TODO(jpv): Decide if this should return a peaks object or update state.
+        self.peaks = self.velocities[np.argmax(self.power, axis=0)]
+        # return Peaks(self.frequencies, self.peaks,)
 
     def write_peaks_to_file(self, fname, identifier, append=False, ftype="json"):
         pass
@@ -168,19 +174,69 @@ class AbstractTransform(ABC):
 
     # def plot_spectra(self, stype="fv", plot_peak=True, plot_limit=None):  # pragma: no cover
 
-    def plot_spectra(self):
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
-        fgrid, vgrid = np.meshgrid(self.frequencies, self.velocities)
-        contour = ax.contourf(fgrid,
-                              vgrid,
-                              np.abs(self.power),
-                              np.linspace(0, np.max(np.abs(self.power)), 20),
-                              cmap=plt.cm.get_cmap("jet"))
-        # fig.colorbar(contour, ax=ax, ticks=np.arange(0, 1.1, 0.1))
-        fig.colorbar(contour, ax=ax)
+    def plot(self, ax=None, normalization="frequency-maximum",
+             peaks="frequency-maximum", cmap="jet", peak_kwargs=None):
+        """Plot the `WavefieldTransform`'s dispersion image.
 
-        # if plot_limit is not None and len(plot_limit) != 4:
-        #     raise ValueError("plot_limit should be a four element list")
+        Parameters
+        ----------
+        ax : Axes, optional
+            Axes object on which to plot the dispersion image, default
+            is `None` so an `Axes` will be created on-the-fly.
+        normalization : {"none", "absolute-maximum", "frequency-maximum"}, optional
+            Determines how the surface wave dispersion power is
+            normalized, default is 'frequency-maximum'.
+        peaks : {"none", "frequency-maximum"}, optional
+            Determines if the spectral peaks are shown and if so how
+            they will be determined, default is 'frequency-maximum'.
+        peak_kwargs : dict, optional
+            Keyword arguments to control the appearance of the spectral
+            peaks, default is `None` so the default settings will be
+            used.
+
+        Returns
+        -------
+        tuple or None
+            `tuple` of the form `(fig, ax)` if `ax=None`, `None`
+            otherwise.
+        
+        """
+        # Construct fig and ax (if necessary).
+        ax_was_none = False
+        if ax is None:
+            ax_was_none = True
+            fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
+
+        # Perform normalization.
+        self.normalize(by=normalization)
+
+        # Select peaks.
+        self.find_peak_power(by=peaks)
+
+        # Plot dispersion image.
+        contour = ax.contourf(self.frequencies,
+                              self.velocities,
+                              self.power,
+                              np.linspace(0, np.max(self.power), 20),
+                              cmap=plt.cm.get_cmap(cmap))
+        fig.colorbar(contour, ax=ax, ticks=np.round(np.linspace(0, np.max(self.power), 11), 1))
+
+        # Plot peaks (if necessary).
+        if peaks != ["none"]:
+            default_kwargs = dict(marker="o", markersize=5, markeredgecolor="w",
+                               markerfacecolor='none', linestyle="none")
+            peak_kwargs = {} if peak_kwargs is None else peak_kwargs
+            peak_kwargs = {**default_kwargs, **peak_kwargs}
+            ax.plot(self.frequencies, self.peaks, **peak_kwargs)
+
+        ax.set_xlabel("Frequency (Hz)")
+        ax.set_ylabel("Phase Velocity (m/s)")
+        
+        # Return fig and ax (if necessary).
+        if ax_was_none:
+            fig.tight_layout()
+            return (fig, ax)
+
 
         # if self.domain == "wavenumber":
         #     fgrid, kgrid = np.meshgrid(self.frqs, self.vals)
@@ -403,7 +459,7 @@ class AbstractTransform(ABC):
 
 
 @WavefieldTransformRegistry.register('empty')
-class EmptyWavefieldTransform(AbstractTransform):
+class EmptyWavefieldTransform(AbstractWavefieldTransform):
 
     def __init__(self, frequencies, velocities, power):
         self.n = 0
@@ -427,7 +483,7 @@ class EmptyWavefieldTransform(AbstractTransform):
         try:
             self.power = (self.power*self.n + other.power*1)/(self.n+1)
         except AttributeError as e:
-            msg = "Can only append objects if decendent of AbstractTransform"
+            msg = "Can only append objects if decendent of AbstractWavefieldTransform"
             raise AttributeError(msg) from e
 
         self.n += 1
@@ -439,7 +495,7 @@ class EmptyWavefieldTransform(AbstractTransform):
 # @WavefieldTransformRegistry.register('fk')
 
 
-class FK(AbstractTransform):
+class FK(AbstractWavefieldTransform):
 
     def __init__(self, frequencies, velocities, power):
         """Perform Frequency-Wavenumber (fk) transform.
@@ -505,7 +561,7 @@ class FK(AbstractTransform):
 
 
 @WavefieldTransformRegistry.register('slantstack')
-class SlantStack(AbstractTransform):
+class SlantStack(AbstractWavefieldTransform):
 
     @classmethod
     def slant_stack(cls, array, velocities):
@@ -598,7 +654,7 @@ class SlantStack(AbstractTransform):
 
 
 @WavefieldTransformRegistry.register('phaseshift')
-class PhaseShift(AbstractTransform):
+class PhaseShift(AbstractWavefieldTransform):
 
     @classmethod
     def transform(cls, array, velocities, settings):
@@ -651,7 +707,7 @@ class PhaseShift(AbstractTransform):
 
 
 @WavefieldTransformRegistry.register('fdbf')
-class FDBF(AbstractTransform):
+class FDBF(AbstractWavefieldTransform):
 
     @classmethod
     def transform(cls, array, velocities, settings):
@@ -693,8 +749,8 @@ class FDBF(AbstractTransform):
         fdbf_specific = settings.get("fdbf-specific", {})
         weighting = fdbf_specific.get("weighting")
         sscm = cls._spatiospectral_correlation_matrix(tmatrix,
-                                                       frq_ids=keep_ids,
-                                                       weighting=weighting)
+                                                      frq_ids=keep_ids,
+                                                      weighting=weighting)
 
         # Weighting
         if weighting == "sqrt":
