@@ -1,15 +1,12 @@
-from .activetimeseries import ActiveTimeSeries
+import logging
 
+from .activetimeseries import ActiveTimeSeries
 from .sensor1c import Sensor1C
 from .source import Source
-
 from .array1d import Array1D
-
 from .masw import Masw
-
-# from .wavefieldtransform1d import WavefieldTransform1D
 
 from .peaks import Peaks
 from .peaks_suite import PeaksSuite
 
-# from .hvsr import *
+logging.getLogger('swprocess').addHandler(logging.NullHandler())

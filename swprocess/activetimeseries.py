@@ -4,10 +4,10 @@ import warnings
 import logging
 
 import numpy as np
-import scipy.signal as signal
+from scipy.signal import correlate
 from sigpropy import TimeSeries
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("swprocess.activetimeseries")
 
 
 class ActiveTimeSeries(TimeSeries):
@@ -54,21 +54,21 @@ class ActiveTimeSeries(TimeSeries):
             associate with (len(amplitude)-1)*dt seconds.
         dt : float
             Time step between samples in seconds.
-        n_stacks : int, optional
+        nstacks : int, optional
             Number of stacks used to produce `amplitude`, default is 1.
         delay : float
             Delay to the start of the record in seconds.
 
         Returns
         -------
-        TimeSeries
-            Intialized `TimeSeries` object.
+        ActiveTimeSeries
+            Intialized `ActiveTimeSeries` object.
 
         """
         super().__init__(amplitude=amplitude, dt=dt)
         self._nstacks, self._delay = self._check_input(nstacks, delay)
         self._multiple = 1
-    
+
     @property
     def n_stacks(self):
         warnings.warn("`n_stacks` is deprecated, use `nstacks` instead",
@@ -84,6 +84,16 @@ class ActiveTimeSeries(TimeSeries):
         return self._delay
 
     @property
+    def _df(self):
+        # Internal (i.e., real) df.
+        return super().df
+
+    @property
+    def df(self):
+        # User facing df.
+        return self._df * self.multiple
+
+    @property
     def multiple(self):
         return self._multiple
 
@@ -93,34 +103,33 @@ class ActiveTimeSeries(TimeSeries):
         return super().time + self._delay
 
     def stack_append(self, timeseries):
-        """Stack (i.e., average) a new time series into the current one.
+        """Stack (i.e., average) a new timeseries onto the current one.
 
         Parameters
         ----------
         timeseries : ActiveTimeSeries
-            Active time series to be stacked only the current object.
+            `ActiveTimeSeries` to be stacked onto the current object.
 
         Returns
         -------
         None
-            Updates the attribute `amp` and `nstacks`.
+            Updates the attributes `amp` and `nstacks`.
 
         Raises
         ------
         ValueError
-            If the provided `timeseries` is not an `ActiveTimeSeries` or
-            it cannot be stacked to the current object (i.e., time
-            series are dissimilar). 
+            If `timeseries` is not an `ActiveTimeSeries` or
+            it cannot be stacked to the current object (i.e., the two
+            are dissimilar). 
 
         """
         if not self._is_similar(timeseries, exclude=["_nstacks"]):
-            msg = f"The provided `timeseries` object is incompatible, and cannot be stacked."
+            msg = "`timeseries` is incompatible and cannot be stacked."
             raise ValueError(msg)
 
-        namp = timeseries.amp
-        nstk = timeseries._nstacks
-        self.amp = (self.amp*self._nstacks + namp*nstk)/(self._nstacks + nstk)
-        self._nstacks += nstk
+        self.amp = (self.amp*self.nstacks + timeseries.amp*timeseries.nstacks)
+        self.amp /= (self.nstacks + timeseries.nstacks)
+        self._nstacks += timeseries.nstacks
 
     @classmethod
     def from_activetimeseries(cls, activetimeseries):
@@ -131,12 +140,12 @@ class ActiveTimeSeries(TimeSeries):
 
     @classmethod
     def from_trace_seg2(cls, trace):
-        """Initialize a `TimeSeries` object from a SEG2 `Trace` object.
+        """Initialize from a SEG2 `Trace` object.
 
-        This method is similar to meth:`from_trace` except that it
-        extracts additional information from the `Trace` header. So only
-        use this method if you have a SEG2 file and the header
-        information is correct.
+        This method is similar to :meth:`ActiveTimeSeries.from_trace`
+        except that it extracts additional information from the `Trace`
+        header. So only use this method if you have a seg2 file and the
+        header information is correct.
 
         Parameters
         ----------
@@ -146,7 +155,8 @@ class ActiveTimeSeries(TimeSeries):
         Returns
         -------
         ActiveTimeSeries
-            Instantiated with seg2 file information.
+            Instantiated with seg2 file.
+
         """
         return cls.from_trace(trace=trace,
                               nstacks=int(trace.stats.seg2.STACK),
@@ -154,9 +164,10 @@ class ActiveTimeSeries(TimeSeries):
 
     @classmethod
     def from_trace(cls, trace, nstacks=1, delay=0):
-        """Initialize an `ActiveTimeSeries` object from a trace object.
+        """Create `ActiveTimeSeries` from a `Trace` object.
 
-        This method is more general method than `from_trace_seg2`, 
+        This method is more general than
+        :meth:`ActiveTimeSeries.from_trace_seg2`, 
         as it does not attempt to extract any metadata from the `Trace` 
         object.
 
@@ -165,17 +176,17 @@ class ActiveTimeSeries(TimeSeries):
         trace : Trace
             Refer to
             `obspy documentation <https://github.com/obspy/obspy/wiki>`_
-            for more information
-        n_stacks : int, optional
+            for more information.
+        nstacks : int, optional
             Number of stacks the time series represents, (default is
             1, signifying a single unstacked time record).
         delay : float {<=0.}, optional
-            Denotes the pre-event delay, (default is zero, 
-            meaning no pre-event noise was recorded).
+            Denotes the pre-event delay, default is zero, meaning no
+            pre-event noise was recorded.
 
         Returns
         -------
-        TimeSeries
+        ActiveTimeSeries
             Initialized with information from `trace`.
 
         """
@@ -183,27 +194,21 @@ class ActiveTimeSeries(TimeSeries):
                    nstacks=nstacks, delay=delay)
 
     def trim(self, start_time, end_time):
-        """Trim `ActiveTimeSeries` in the interval [`start_time`, `end_time`].
+        """Trim in the interval [`start_time`, `end_time`].
+
+        For more information see :meth:`sigpropy.TimeSeries.trim`.
 
         Parameters
         ----------
         start_time : float
-            New time zero in seconds.
+            New time-zero in seconds.
         end_time : float
-            New end time in seconds.
+            New end-time in seconds.
 
         Returns
         -------
         None
             Updates the attributes `nsamples` and `delay`.
-
-        Raises
-        ------
-        IndexError
-            If the `start_time` and `end_time` is illogical.
-            For example, `start_time` is before the start of the
-            `delay` or after `end_time`, or the `end_time` is
-            after the end of the record.
 
         """
         super().trim(start_time, end_time)
@@ -211,6 +216,9 @@ class ActiveTimeSeries(TimeSeries):
 
     def zero_pad(self, df):
         """Append zeros to `amp` to achieve a desired frequency step.
+
+        Note for exact results, `1/(df*dt)` must be an integer,
+        otherwise a `df` close to the desired `df` will be returned.
 
         Parameters
         ----------
@@ -226,74 +234,130 @@ class ActiveTimeSeries(TimeSeries):
         ------
         ValueError
             If `df` < 0 (i.e., non-positive).
+
         """
         df = float(df)
+        logger.info(f"zero_pad(df={df})")
+        self._multiple = 1
         if df <= 0:
             raise ValueError(f"df must be positive, currently {df}.")
 
-        new_nsamples = int(round(1/(df*self.dt)))
-
-        logging.info(f"df={self.df} --> df={df}")
-        logging.debug(f"  new_nsamples = {new_nsamples}")
+        new_nsamples_float = 1/(df*self.dt)
+        new_nsamples = int(round(new_nsamples_float))
+        if new_nsamples_float != new_nsamples:
+            msg = f"  `1/(df*dt)` is not an integer results will be approximate."
+            logger.warning(msg)
 
         # If new_nsamples > nsamples, pad zeros.
         if new_nsamples > self.nsamples:
             padding = new_nsamples - self.nsamples
-            self._multiple = 1
-        # If new_nsamples <= nsamples, pad zeros to achieve a multiple
+        # If new_nsamples < nsamples, pad zeros to achieve a multiple
         # of new_nsamples (i.e.,  a fraction of df). After processing,
         # extract the results at the frequencies of interest.
-        else:
-            for _ in range(10):
-                trial_nsamples = new_nsamples*self.multiple
-                if trial_nsamples >= self.nsamples:
-                    break
-                self._multiple *= 2
+        elif new_nsamples < self.nsamples:
+            # If df_old is already an integer of df_new
+            if self.nsamples % new_nsamples == 0:
+                self._multiple = int(self.nsamples/new_nsamples)
+                return
+            # If df_old is not already an integer of df_new, pad existing series.
             else:
-                msg = f"Could not find an acceptable multiple, after 10 attempts."
-                raise ValueError(msg)
-
-            padding = new_nsamples*self.multiple - self.nsamples
-            logging.debug(f"  trial_nsamples = {trial_nsamples}")
-            logging.debug(f"  multiple = {self.multiple}")
+                padding = new_nsamples - (self.nsamples % new_nsamples)
+                self._multiple = int((self.nsamples + padding) / new_nsamples)
+        # If new_samples == nsamples, do nothing.
+        else:
+            return
 
         self.amp = np.concatenate((self.amp, np.zeros(padding)))
-        logging.info(f"  nsamples = {self.nsamples}")
 
     @staticmethod
-    def crosscorr(timeseries_a, timeseries_b):
-        """Return cross correlation of two timeseries objects."""
-        if not timeseries_a._is_similar(timeseries_b, exclude=["nsamples"]):
-            msg = "`timeseries_a` and `timeseries_b` must be similar."
-            raise ValueError(msg)
-        return signal.correlate(timeseries_a.amp, timeseries_b.amp)
+    def crosscorr(a, b, correlate_kwargs=None):
+        """Cross correlation of two `ActiveTimeSeries` objects.
+
+        Parameters
+        ----------
+        a : ActiveTimeSeries
+            Base `ActiveTimeSeries` to which `b` is correlated.
+        b: ActiveTimeSeries
+            `ActiveTimeSeries` correlated to `a`.
+        correlate_kwargs : dict, optional
+            `dict` of keyword argument for the correlate function, see
+            `scipy.signal.correlate <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate.html>`_
+            for details.
+
+        Returns
+        -------
+        ndarray
+            Containing the cross correlation.
+
+        """
+        if not a._is_similar(b, exclude=["nsamples"]):
+            raise ValueError("`a` and `b` must be similar.")
+
+        if correlate_kwargs is None:
+            correlate_kwargs = {}
+
+        return correlate(a.amp, b.amp, **correlate_kwargs)
 
     @staticmethod
-    def crosscorr_shift(timeseries_a, timeseries_b):
-        """Return shifted timeseries_b so that it is maximally
-        corrlated with timeseries_a."""
-        corr = ActiveTimeSeries.crosscorr(timeseries_a, timeseries_b)
-        maxcorr_location = np.where(corr == max(corr))[0][0]
-        shifts = (maxcorr_location+1)-timeseries_b.nsamples
+    def crosscorr_shift(a, b):
+        """Shift `b` so that it is maximally corrlated with `a`.
+
+        Parameters
+        ----------
+        a : ActiveTimeSeries
+            `ActiveTimeSeries` to which `b` will be correlated. `a`
+            should be similar to `b`.
+        b : ActiveTimeSeries
+            `ActiveTimeSeries` which will be shifted so that it is
+            maximally correlated with `a`. `b` should be similar to `a`.
+
+        Returns
+        -------
+        ndarray
+            Which represents the stack of the correlated and padded `b`
+            onto `a`.
+
+        """
+        corr = ActiveTimeSeries.crosscorr(a, b)
+        maxcorr_location = np.argmax(corr)
+        shifts = (maxcorr_location+1)-b.nsamples
         if shifts > 0:
-            return np.concatenate((np.zeros(shifts), timeseries_b.amp[:-shifts]))
+            return np.concatenate((np.zeros(shifts), b.amp[:-shifts]))
         elif shifts < 0:
-            return np.concatenate((timeseries_b.amp[abs(shifts):], np.zeros(abs(shifts))))
+            return np.concatenate((b.amp[abs(shifts):], np.zeros(abs(shifts))))
         else:
-            return timeseries_b.amp
+            return np.array(b.amp)
 
     @classmethod
-    def from_cross_stack(cls, timeseries_a, timeseries_b):
-        """Return a single trace that is the result of stacking two 
-        time series, which are aligned using cross-correlation."""
-        obj = cls(timeseries_a.amp, timeseries_a.dt)
-        shifted_amp = cls.crosscorr_shift(timeseries_a, timeseries_b)
-        timeseries_b.amp = shifted_amp
-        obj.stack_append(timeseries_b)
+    def from_cross_stack(cls, a, b):
+        """Create `ActiveTimeSeries` from cross-correlation.
+
+        Parameters
+        ----------
+        a : ActiveTimeSeries
+            `ActiveTimeSeries` to which `b` will be correlated and
+            stacked. `a` should be similar to `b` with the same or
+            greater `nsamples`.
+        b : ActiveTimeSeries
+            `ActiveTimeSeries` which will be correlated with and stacked
+            on `a`. `b` should be shorter than `a`.
+
+        Return
+        ------
+        ActiveTimeSeries
+            Which represents the correlated and potentially zero-padded
+            `b` stacked onto `a`.
+
+        """
+        obj = cls.from_activetimeseries(a)
+        b.amp = cls.crosscorr_shift(a, b)
+        obj.stack_append(b)
         return obj
 
-    def _is_similar(self, other, exclude=[]):
-        """Check if `other` is similar to `self` though not equal."""
+    def _is_similar(self, other, exclude=None):
+        """Check if `other` is similar to `self`."""
+        if exclude is None:
+            exclude = []
 
         if not isinstance(other, ActiveTimeSeries):
             return False
@@ -318,9 +382,9 @@ class ActiveTimeSeries(TimeSeries):
         return True
 
     def __repr__(self):
-        """Unambiguous representation of an `ActiveTimeSeries` object."""
+        """Unambiguous representation of the object."""
         return f"ActiveTimeSeries(dt={self.dt}, amplitude={self.amp}, nstacks={self._nstacks}, delay={self._delay})"
 
     def __str__(self):
-        """Human-readable representation of an `ActiveTimeSeries` object."""
+        """Human-readable representation of the object."""
         return f"ActiveTimeSeries with:\n\tdt={self.dt}\n\tnsamples={self.nsamples}\n\tnstacks={self._nstacks}\n\tdelay={self._delay}"

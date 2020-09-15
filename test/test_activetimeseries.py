@@ -10,7 +10,8 @@ import numpy as np
 import swprocess
 from testtools import unittest, TestCase, get_full_path
 
-logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger("swprocess")
+logger.setLevel(level=logging.CRITICAL)
 
 
 class Test_ActiveTimeSeries(TestCase):
@@ -116,42 +117,61 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertRaises(ValueError, tseries.stack_append, nseries)
 
     def test_zero_pad(self):
-        thist = swprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.01),
-                                           dt=0.01)
+        dt = 0.01
+        thist = swprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, dt),
+                                           dt=dt)
         self.assertEqual(0.5, thist.df)
         self.assertEqual(200, thist.nsamples)
 
         # Request df = 1*df
         thist.zero_pad(df=thist.df)
+        self.assertEqual(0.5, thist._df)
         self.assertEqual(0.5, thist.df)
         self.assertEqual(200, thist.nsamples)
         self.assertEqual(1, thist.multiple)
 
         # Request df = 2*df
         thist.zero_pad(df=1)
+        self.assertEqual(0.5, thist._df)
         self.assertEqual(1, thist.df)
         self.assertEqual(200, thist.nsamples)
         self.assertEqual(2, thist.multiple)
 
         # Request df = 0.5*df
         thist.zero_pad(df=0.5)
+        self.assertEqual(0.5, thist._df)
         self.assertEqual(0.5, thist.df)
         self.assertEqual(200, thist.nsamples)
         self.assertEqual(1, thist.multiple)
 
         # Request df = 0.1*df
         thist.zero_pad(df=0.05)
+        self.assertEqual(0.05, thist._df)
         self.assertEqual(0.05, thist.df)
         self.assertEqual(2000, thist.nsamples)
         self.assertEqual(1, thist.multiple)
 
         # Request df = 20*df
         thist.zero_pad(df=1)
+        self.assertEqual(0.05, thist._df)
         self.assertEqual(1, thist.df)
-        self.assertEqual(3200, thist.nsamples)
-        self.assertEqual(32, thist.multiple)
+        self.assertEqual(2000, thist.nsamples)
+        self.assertEqual(20, thist.multiple)
 
-        # Bad df
+        # Request df = 1.5 -> Approximate solution
+        desired_df = 1.5
+        thist.zero_pad(df=desired_df)
+        approx_n = int(round(1/(desired_df*dt)))
+        approx_df = 1/(approx_n*dt)
+        pad = approx_n - (2000 % approx_n)
+        multiple = (2000 + pad) / approx_n
+
+        self.assertAlmostEqual(1/((2000+pad) * dt), thist._df)
+        self.assertAlmostEqual(approx_df, thist.df)
+        self.assertEqual(2000 + pad, thist.nsamples)
+        self.assertEqual(multiple, thist.multiple)
+
+        # Invalid df
         self.assertRaises(ValueError, thist.zero_pad, df=0)
 
     def test_trim(self):
@@ -199,7 +219,7 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertAlmostEqual(max(thist.time), 0.25, delta=dt)
 
         # Bad: Trim before trigger
-        self.assertRaises(IndexError, thist.trim, -1,0.1)
+        self.assertRaises(IndexError, thist.trim, -1, 0.1)
 
     def test_eq(self):
         thist_a = swprocess.ActiveTimeSeries([0, 1, 0, -1, 0], dt=1)
