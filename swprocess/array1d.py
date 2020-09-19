@@ -1,4 +1,4 @@
-"""Array1d class definition."""
+"""Array1D class definition."""
 
 import logging
 import warnings
@@ -11,7 +11,7 @@ from matplotlib.widgets import Cursor
 
 from swprocess import ActiveTimeSeries, Source, Sensor1C
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("swprocess.array1d")
 
 
 class Array1D():
@@ -60,7 +60,7 @@ class Array1D():
             matrix[i, :] = sensor.amp
         return matrix
 
-    def __init__(self, sensors, source, normalize_positions=False):
+    def __init__(self, sensors, source):
         """Initialize from an iterable of `Sensor1C`s and a `Source`.
 
         Parameters
@@ -69,9 +69,6 @@ class Array1D():
             Iterable of initialized `Sensor1C` objects.
         source : Source
             Initialized `Source` object.
-        normalize_positions : bool, optional
-            Normalize the relative locations of the sensors and source
-            such that the smallest postion sensor is located at (0,0).
 
         Returns
         -------
@@ -80,32 +77,40 @@ class Array1D():
 
         """
         logger.info("Initializing Array1D")
-        sensors, source = self._check_array(sensors, source)
-        self.sensors = sensors
-        self.source = source
-        self._regen_matrix = True
-        self._regen_position = True
+        self.sensors, self.source = self._check_array(sensors, source)
+        self._regen_timeseriesmatrix = True
 
-        if normalize_positions:
-            self._normalize_positions()
-        else:
-            self.absolute_minus_relative = 0.
+        # Predefine optional state variables for readability.
+        self._matrix = None
 
     @property
     def timeseriesmatrix(self):
         """Sensor amplitudes as 2D `ndarray`."""
-        if self._regen_matrix:
-            self._regen_matrix = True
+        if self._regen_timeseriesmatrix:
+            self._regen_timeseriesmatrix = False
             self._matrix = self._make_timeseries_matrix()
         return self._matrix
 
-    @property
-    def position(self):
-        """Relative sensor positions as `list`."""
-        if self._regen_position:
-            self._regen_position = False
-            self._position = [sensor.x for sensor in self.sensors]
-        return self._position
+    # @property
+    # def position(self):
+    #     """Sensor positions as `list`."""
+    #     if self._regen_position:
+    #         self._regen_position = False
+    #         self._position = [sensor.x for sensor in self.sensors]
+    #     return self._position
+
+    def position(self, normalize=False):
+        """Array sensor positions as `list`.
+
+        Parameters
+        ----------
+        normalize : bool, optional
+            Determines whether the array positions are shifted such
+            that the first sensor is located at x=0.
+        """
+        #TODO (jpv): Reorganize position.
+        pass
+
 
     @property
     def offsets(self):
