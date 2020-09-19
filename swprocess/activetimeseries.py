@@ -270,7 +270,7 @@ class ActiveTimeSeries(TimeSeries):
         self.amp = np.concatenate((self.amp, np.zeros(padding)))
 
     @staticmethod
-    def crosscorr(a, b, correlate_kwargs=None):
+    def crosscorr(a, b, correlate_kwargs=None, exclude=("nsamples")):
         """Cross correlation of two `ActiveTimeSeries` objects.
 
         Parameters
@@ -283,6 +283,9 @@ class ActiveTimeSeries(TimeSeries):
             `dict` of keyword argument for the correlate function, see
             `scipy.signal.correlate <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate.html>`_
             for details.
+        exclude : tuple, optional
+            `tuple` of attributes to exclude in an is_similar
+            comparison, default is `('nsamples')`.
 
         Returns
         -------
@@ -290,7 +293,7 @@ class ActiveTimeSeries(TimeSeries):
             Containing the cross correlation.
 
         """
-        if not a._is_similar(b, exclude=["nsamples"]):
+        if not a._is_similar(b, exclude=exclude):
             raise ValueError("`a` and `b` must be similar.")
 
         if correlate_kwargs is None:
@@ -299,7 +302,7 @@ class ActiveTimeSeries(TimeSeries):
         return correlate(a.amp, b.amp, **correlate_kwargs)
 
     @staticmethod
-    def crosscorr_shift(a, b):
+    def crosscorr_shift(a, b, exclude=None):
         """Shift `b` so that it is maximally corrlated with `a`.
 
         Parameters
@@ -310,6 +313,9 @@ class ActiveTimeSeries(TimeSeries):
         b : ActiveTimeSeries
             `ActiveTimeSeries` which will be shifted so that it is
             maximally correlated with `a`. `b` should be similar to `a`.
+        exclude : tuple, optional
+            `tuple` of attributes to exclude in an is_similar
+            comparison, default is `('nsamples')`.
 
         Returns
         -------
@@ -318,7 +324,7 @@ class ActiveTimeSeries(TimeSeries):
             onto `a`.
 
         """
-        corr = ActiveTimeSeries.crosscorr(a, b)
+        corr = ActiveTimeSeries.crosscorr(a, b, exclude=exclude)
         maxcorr_location = np.argmax(corr)
         shifts = (maxcorr_location+1)-b.nsamples
         if shifts > 0:
@@ -332,15 +338,18 @@ class ActiveTimeSeries(TimeSeries):
     def from_cross_stack(cls, a, b):
         """Create `ActiveTimeSeries` from cross-correlation.
 
+        Cross-correlate `b` to `a` and shift `b` such that it is
+        maximally correlated with `a`. Then stack the shifted version
+        of `b` onto `a`.
+
         Parameters
         ----------
         a : ActiveTimeSeries
             `ActiveTimeSeries` to which `b` will be correlated and
-            stacked. `a` should be similar to `b` with the same or
-            greater `nsamples`.
+            stacked. `a` should be similar to `b`.
         b : ActiveTimeSeries
             `ActiveTimeSeries` which will be correlated with and stacked
-            on `a`. `b` should be shorter than `a`.
+            onto `a`. `b` should be similar to `a`.
 
         Return
         ------
@@ -370,7 +379,7 @@ class ActiveTimeSeries(TimeSeries):
         return True
 
     def __eq__(self, other):
-        """Check if `other` is equal to the `ActiveTimeSeries`."""
+        """Check if `other` is equal to `self`."""
 
         if not self._is_similar(other):
             return False
