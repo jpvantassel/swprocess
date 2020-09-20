@@ -45,14 +45,6 @@ class Array1D():
 
         return (sensors, source)
 
-    # def _normalize_positions(self):
-    #     """Shift array so that the left-most sensor is at x=0."""
-    #     self.absolute_minus_relative = float(min(self.position))
-    #     self._regen_position = True
-    #     for sensor in self.sensors:
-    #         sensor._x -= self.absolute_minus_relative
-    #     self.source._x -= self.absolute_minus_relative
-
     def __init__(self, sensors, source):
         """Initialize from an iterable of `Sensor1C`s and a `Source`.
 
@@ -71,10 +63,6 @@ class Array1D():
         """
         logger.info("Initializing Array1D")
         self.sensors, self.source = self._check_array(sensors, source)
-        self._regen_timeseriesmatrix = True
-
-        # Predefine optional state variables for readability.
-        # self._matrix = None
 
     def timeseriesmatrix(self, detrend=False, normalize="none"):
         """Sensor amplitudes as 2D `ndarray`.
@@ -103,7 +91,7 @@ class Array1D():
             amp = signal.detrend(_amp) if detrend else _amp
             amp = amp/np.max(np.abs(amp)) if normalize == "each" else amp
             matrix[i, :] = amp
-        
+
         if normalize == "all":
             matrix /= np.max(np.abs(matrix))
 
@@ -111,7 +99,7 @@ class Array1D():
         # TODO(jpv): Write tests!
 
     def position(self, normalize=False):
-        """Array sensor positions as `list`.
+        """Array's sensor positions as `list`.
 
         Parameters
         ----------
@@ -147,8 +135,9 @@ class Array1D():
 
     @property
     def spacing(self):
-        min_spacing = min(np.diff(self.position))
-        max_spacing = max(np.diff(self.position))
+        position = self.position()
+        min_spacing = min(np.diff(position))
+        max_spacing = max(np.diff(position))
         if min_spacing == max_spacing:
             return min_spacing
         else:
@@ -175,7 +164,6 @@ class Array1D():
             Updates internal attributes.
 
         """
-        self._regen_matrix = True
         for sensor in self.sensors:
             sensor.trim(start_time, end_time)
 
@@ -200,19 +188,9 @@ class Array1D():
     def _flip_required(self):
         return True if self.source.x > self.position(normalize=False)[-1] else False
 
-    # def _norm_traces(self, scale_factor):
-    #     norm_traces = np.empty_like(self.timeseriesmatrix)
-    #     position = self.position
-    #     for k, current_trace in enumerate(self.timeseriesmatrix):
-    #         current_trace = signal.detrend(current_trace)
-    #         current_trace /= np.max(np.abs(current_trace))
-    #         current_trace *= scale_factor
-    #         current_trace += position[k]
-    #         norm_traces[k, :] = current_trace
-    #     return norm_traces
-
-    def waterfall(self, ax=None, time_ax="y", scale=None,
-                  normalize=False, plot_kwargs=None):
+    def waterfall(self, ax=None, time_ax="y", amplitude_detrend=True,
+                  amplitude_normalization="each",
+                  position_normalization=False, plot_kwargs=None):
         """Create waterfall plot for this array setup.
 
         Parameters
@@ -221,15 +199,21 @@ class Array1D():
             Axes on which to plot, default is `None` indicating a
             `Figure` and `Axis` will be generated on-the-fly.
         time_ax : {'x', 'y'}, optional
-            Denotes on which axis time should reside, 'y' is the
-            default.
+            Denotes the time axis, 'y' is the default.
         scale : float, optional
             Denotes the scale of the nomalized timeseries height
             (peak-to-trough), default is `None` so half the receiver
             spacing is used.
-        normalize : bool, optional
-            Show relative rather than absolute sensor positions,
-            default is `False`, so absolute positions will be shown.
+        amplitude_detrend : bool, optional
+            Boolean to control whether a linear detrending operation is
+            performed, default is `False` so no detrending is performed.
+        position_normalization : bool, optional
+            Determines whether the array positions are shifted such
+            that the first sensor is located at x=0.
+        amplitude_normalization : {"none", "each", "all"}, optional
+            Enable different normalizations to be performed. `"each"`
+            normalizes each traces by its maximum. `"all"` normalizes
+            all traces by the same maximum. Default is `"each"`.
         plot_kwargs : None, dict, optional
             Kwargs for `matplotlib.pyplot.plot <https://matplotlib.org/3.3.1/api/_as_gen/matplotlib.pyplot.plot.html>`_
             to control the style of each trace, default is `None`.
@@ -255,9 +239,13 @@ class Array1D():
                 raise ValueError(msg)
             fig, ax = plt.subplots(figsize=size)
 
+        # Prepare waterfall data.
         time = self[0].time
-        scale = abs(self[1].x - self[0].x) if scale is None else scale
-        norm_traces = self._norm_traces(scale_factor=scale)
+        traces = self.timeseriesmatrix(detrend=amplitude_detrend,
+                                       normalize=amplitude_normalization)
+        positions = self.position(normalize=position_normalization)
+        for i, position in enumerate(positions):
+            traces[i, :] += position
 
         # Allow custom plotting kwargs.
         if plot_kwargs is None:
@@ -267,11 +255,11 @@ class Array1D():
 
         # Plot waveforms.
         if time_ax == "x":
-            for trace in norm_traces:
+            for trace in traces:
                 ax.plot(time, trace, **kwargs)
                 kwargs["label"] = None
         else:
-            for trace in norm_traces:
+            for trace in traces:
                 ax.plot(trace, time, **kwargs)
                 kwargs["label"] = None
 
@@ -282,10 +270,9 @@ class Array1D():
             time_tuple = (max(time), min(time))
         getattr(ax, f"set_{time_ax}lim")(time_tuple)
 
-        position = self.position(normalize=normalize)
-        spacing = position[1] - position[0]
-        getattr(ax, f"set_{dist_ax}lim")(position[0]-spacing,
-                                         position[-1]+spacing)
+        spacing = positions[1] - positions[0]
+        getattr(ax, f"set_{dist_ax}lim")(positions[0]-spacing,
+                                         positions[-1]+spacing)
         getattr(ax, "grid")(axis=time_ax, linestyle=":")
         getattr(ax, f"set_{time_ax}label")("Time (s)")
         getattr(ax, f"set_{dist_ax}label")("Distance (m)")
@@ -366,9 +353,10 @@ class Array1D():
         if ax_was_none:
             return (fig, ax)
 
-    def auto_pick_first_arrivals(self, algorithm='threshold', **kwargs):
+    def auto_pick_first_arrivals(self, algorithm="threshold",
+                                 **algorithm_kwargs):
         if algorithm == "threshold":
-            picks = self._pick_on_threshold(**kwargs)
+            picks = self._pick_on_threshold(**algorithm_kwargs)
         else:
             raise NotImplementedError
         return picks
@@ -379,19 +367,19 @@ class Array1D():
         Parameters
         ----------
         threshold : {0.-1.}, optional
-            Picking threashold as a percent.
+            Picking threshold as a percent.
 
         """
-        norm_traces = self._norm_traces(scale_factor=1)
-        _time = self.sensors[0].time
+        traces = self.timeseriesmatrix(detrend=True, normalize="each")
+        time = self.sensors[0].time
 
         times = []
-        for trace in norm_traces:
+        for trace in traces:
             pindices = np.argwhere(abs(trace-np.mean(trace[:10])) > threshold)
             index = int(pindices[0])
-            times.append(_time[index])
+            times.append(time[index])
 
-        return (self.position, times)
+        return (self.position(), times)
 
     def manual_pick_first_arrivals(self, waterfall_kwargs=None):  # pragma: no cover
         """Allow for interactive picking of first arrivals.
@@ -400,7 +388,7 @@ class Array1D():
         ----------
         waterfall_kwargs : dict, optional
             Dictionary of keyword arguments for
-            meth: `<plot_waterfall>`, default is `None` indicating
+            meth: `<Array1D.waterfall>`, default is `None` indicating
             default keyword arguments.
 
         Returns

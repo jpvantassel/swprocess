@@ -1,5 +1,6 @@
 """Tests for Array1D class."""
 
+import time
 import warnings
 import logging
 
@@ -75,7 +76,7 @@ class Test_Array1D(TestCase):
         sensors = [self.sensor_0, self.sensor_1]
         array = swprocess.Array1D(sensors=sensors, source=source)
         expected = np.array([[1., 2., 3.], [1., 2., 3.]])
-        returned = array.timeseriesmatrix
+        returned = array.timeseriesmatrix()
         self.assertArrayEqual(expected, returned)
 
     def test_source_inside(self):
@@ -113,7 +114,7 @@ class Test_Array1D(TestCase):
             known = obspy.read(fname)
         test = swprocess.Array1D.from_files(fname)
         self.assertArrayEqual(known.traces[0].data,
-                              test.timeseriesmatrix[0, :])
+                              test.timeseriesmatrix()[0, :])
 
         # Single File : SU
         fname = self.full_path + "data/denise/v1.2_y.su.shot2"
@@ -122,7 +123,7 @@ class Test_Array1D(TestCase):
             known = obspy.read(fname)
         test = swprocess.Array1D.from_files(fname)
         self.assertArrayEqual(known.traces[0].data,
-                              test.timeseriesmatrix[0, :])
+                              test.timeseriesmatrix()[0, :])
 
         # Multiple Files
         fnames = [f"{self.vuws_path}{x}.dat" for x in range(1, 5)]
@@ -166,83 +167,84 @@ class Test_Array1D(TestCase):
         fnames = [f"{self.vuws_path}{x}.dat" for x in range(16, 20)]
         array4 = swprocess.Array1D.from_files(fnames)
         array4.waterfall()
-        array4.waterfall(time_along="x")
+        array4.waterfall(time_ax="x")
 
         # Bad : time_along
-        self.assertRaises(ValueError, array4.waterfall, time_along="z")
+        self.assertRaises(ValueError, array4.waterfall, time_ax="z")
 
-        # plt.close('all')
-        plt.show()
+        plt.show(block=False)
+        # plt.show()
 
-    # def test_plot_array(self):
-    #     # Basic case (near-side, 2m spacing)
-    #     fname = self.vuws_path+"1.dat"
-    #     swprocess.Array1D.from_files(fname).plot()
+    def test_plot_array(self):
+        # Basic case (near-side, 2m spacing)
+        fname = self.vuws_path+"1.dat"
+        swprocess.Array1D.from_files(fname).plot()
 
-    #     # Non-linear spacing
-    #     sensors = [swprocess.Sensor1C(
-    #         [1, 2, 3], dt=1, x=x, y=0, z=0,) for x in [0, 1, 3]]
-    #     source = swprocess.Source(x=-5, y=0, z=0)
-    #     array = swprocess.Array1D(sensors=sensors, source=source)
-    #     array.plot()
+        # Non-linear spacing
+        sensors = [swprocess.Sensor1C(
+            [1, 2, 3], dt=1, x=x, y=0, z=0,) for x in [0, 1, 3]]
+        source = swprocess.Source(x=-5, y=0, z=0)
+        array = swprocess.Array1D(sensors=sensors, source=source)
+        array.plot()
 
-    #     # Basic case (far-side, 2m spacing)
-    #     fname = self.vuws_path+"20.dat"
-    #     swprocess.Array1D.from_files(fname).plot()
-    #     plt.close("all")
-    #     # plt.show()
+        # Basic case (far-side, 2m spacing)
+        fname = self.vuws_path+"20.dat"
+        swprocess.Array1D.from_files(fname).plot()
 
-    # def test_trim_timeseries(self):
-    #     # Standard case (1s delay, 1s record -> 0.5s record)
-    #     array = self.dummy_array(amp=np.sin(2*np.pi*1*np.arange(-1, 1, 0.01)),
-    #                              dt=0.01, nstacks=1, delay=-1, nsensors=2,
-    #                              spacing=2, source_x=-5)
-    #     self.assertEqual(-1, array.sensors[0].delay)
-    #     self.assertEqual(200, array.sensors[0].nsamples)
-    #     array.trim(0, 0.5)
-    #     self.assertEqual(0, array.sensors[0].delay)
-    #     self.assertEqual(51, array.sensors[0].nsamples)
+        plt.show(block=False)
+        # plt.show()
 
-    #     # Long record (-1s delay, 2s record -> 1s record)
-    #     array = self.dummy_array(amp=np.sin(2*np.pi*1*np.arange(-1, 2, 0.01)),
-    #                              dt=0.01, nstacks=1, delay=-1, nsensors=2,
-    #                              spacing=2, source_x=-5)
-    #     self.assertEqual(-1, array.sensors[0].delay)
-    #     self.assertEqual(300, array.sensors[0].nsamples)
-    #     array.trim(0, 1)
-    #     self.assertEqual(0, array.sensors[0].delay)
-    #     self.assertEqual(101, array.sensors[0].nsamples)
+    def test_trim_timeseries(self):
+        # Standard case (1s delay, 1s record -> 0.5s record)
+        array = self.dummy_array(amp=np.sin(2*np.pi*1*np.arange(-1, 1, 0.01)),
+                                 dt=0.01, nstacks=1, delay=-1, nsensors=2,
+                                 spacing=2, source_x=-5)
+        self.assertEqual(-1, array.sensors[0].delay)
+        self.assertEqual(200, array.sensors[0].nsamples)
+        array.trim(0, 0.5)
+        self.assertEqual(0, array.sensors[0].delay)
+        self.assertEqual(51, array.sensors[0].nsamples)
 
-    #     # Bad trigger (-0.5s delay, 0.5s record -> 0.2s record)
-    #     array = self.dummy_array(amp=np.sin(2*np.pi*1*np.arange(-0.5, 0.5, 0.01)),
-    #                              dt=0.01, nstacks=1, delay=-0.5, nsensors=2,
-    #                              spacing=2, source_x=-5)
-    #     self.assertEqual(-0.5, array.sensors[0].delay)
-    #     self.assertEqual(100, array.sensors[0].nsamples)
-    #     array.trim(-0.1, 0.1)
-    #     self.assertEqual(-0.1, array.sensors[0].delay)
-    #     self.assertEqual(21, array.sensors[0].nsamples)
+        # Long record (-1s delay, 2s record -> 1s record)
+        array = self.dummy_array(amp=np.sin(2*np.pi*1*np.arange(-1, 2, 0.01)),
+                                 dt=0.01, nstacks=1, delay=-1, nsensors=2,
+                                 spacing=2, source_x=-5)
+        self.assertEqual(-1, array.sensors[0].delay)
+        self.assertEqual(300, array.sensors[0].nsamples)
+        array.trim(0, 1)
+        self.assertEqual(0, array.sensors[0].delay)
+        self.assertEqual(101, array.sensors[0].nsamples)
 
-    # def test_auto_pick_first_arrivals(self):
-    #     s1 = swprocess.Sensor1C(np.concatenate((np.zeros(100),
-    #                                             np.array([0.1, 0, 0]),
-    #                                             np.zeros(100))),
-    #                             dt=1, x=1, y=0, z=0)
-    #     s2 = swprocess.Sensor1C(np.concatenate((np.zeros(100),
-    #                                             np.array([0, 0.2, 0]),
-    #                                             np.zeros(100))),
-    #                             dt=1, x=2, y=0, z=0)
-    #     source = swprocess.Source(0, 0, 0)
-    #     array = swprocess.Array1D([s1, s2], source)
+        # Bad trigger (-0.5s delay, 0.5s record -> 0.2s record)
+        array = self.dummy_array(amp=np.sin(2*np.pi*1*np.arange(-0.5, 0.5, 0.01)),
+                                 dt=0.01, nstacks=1, delay=-0.5, nsensors=2,
+                                 spacing=2, source_x=-5)
+        self.assertEqual(-0.5, array.sensors[0].delay)
+        self.assertEqual(100, array.sensors[0].nsamples)
+        array.trim(-0.1, 0.1)
+        self.assertEqual(-0.1, array.sensors[0].delay)
+        self.assertEqual(21, array.sensors[0].nsamples)
 
-    #     # algorithm = "threshold"
-    #     position, times = array.auto_pick_first_arrivals(algorithm="threshold")
-    #     self.assertListEqual(array.position, position)
-    #     self.assertListEqual([100, 101], times)
+    def test_auto_pick_first_arrivals(self):
+        s1 = swprocess.Sensor1C(np.concatenate((np.zeros(100),
+                                                np.array([0.1, 0, 0]),
+                                                np.zeros(100))),
+                                dt=1, x=1, y=0, z=0)
+        s2 = swprocess.Sensor1C(np.concatenate((np.zeros(100),
+                                                np.array([0, 0.2, 0]),
+                                                np.zeros(100))),
+                                dt=1, x=2, y=0, z=0)
+        source = swprocess.Source(0, 0, 0)
+        array = swprocess.Array1D([s1, s2], source)
 
-    #     # algorithm = "bad"
-    #     self.assertRaises(NotImplementedError, array.auto_pick_first_arrivals,
-    #                       algorithm="bad")
+        # algorithm = "threshold"
+        position, times = array.auto_pick_first_arrivals(algorithm="threshold")
+        self.assertListEqual(array.position(), position)
+        self.assertListEqual([100, 101], times)
+
+        # algorithm = "bad"
+        self.assertRaises(NotImplementedError, array.auto_pick_first_arrivals,
+                          algorithm="bad")
 
     # # def test_manual_pick_first_arrivals(self):
     # #     # fnames = self.full_path + "data/denise/v1.2_y.su.shot1"
