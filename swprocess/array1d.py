@@ -45,20 +45,13 @@ class Array1D():
 
         return (sensors, source)
 
-    def _normalize_positions(self):
-        """Shift array so that the left-most sensor is at x=0."""
-        self.absolute_minus_relative = float(min(self.position))
-        self._regen_position = True
-        for sensor in self.sensors:
-            sensor._x -= self.absolute_minus_relative
-        self.source._x -= self.absolute_minus_relative
-
-    def _make_timeseries_matrix(self):
-        """Pull information from each `Sensor1C` into a 2D matrix."""
-        matrix = np.empty((self.nchannels, self.sensors[0].nsamples))
-        for i, sensor in enumerate(self.sensors):
-            matrix[i, :] = sensor.amp
-        return matrix
+    # def _normalize_positions(self):
+    #     """Shift array so that the left-most sensor is at x=0."""
+    #     self.absolute_minus_relative = float(min(self.position))
+    #     self._regen_position = True
+    #     for sensor in self.sensors:
+    #         sensor._x -= self.absolute_minus_relative
+    #     self.source._x -= self.absolute_minus_relative
 
     def __init__(self, sensors, source):
         """Initialize from an iterable of `Sensor1C`s and a `Source`.
@@ -81,23 +74,41 @@ class Array1D():
         self._regen_timeseriesmatrix = True
 
         # Predefine optional state variables for readability.
-        self._matrix = None
+        # self._matrix = None
 
-    @property
-    def timeseriesmatrix(self):
-        """Sensor amplitudes as 2D `ndarray`."""
-        if self._regen_timeseriesmatrix:
-            self._regen_timeseriesmatrix = False
-            self._matrix = self._make_timeseries_matrix()
-        return self._matrix
+    def timeseriesmatrix(self, detrend=False, normalize="none"):
+        """Sensor amplitudes as 2D `ndarray`.
 
-    # @property
-    # def position(self):
-    #     """Sensor positions as `list`."""
-    #     if self._regen_position:
-    #         self._regen_position = False
-    #         self._position = [sensor.x for sensor in self.sensors]
-    #     return self._position
+        Parameters
+        ----------
+        detrend : bool, optional
+            Boolean to control whether a linear detrending operation is
+            performed, default is `False` so no detrending is performed.
+        normalize : {"none", "each", "all"}, optional
+            Enable different normalizations to be performed. `"each"`
+            normalizes each traces by its maximum. `"all"` normalizes
+            all traces by the same maximum. Default is `"none"` so no
+            normalization is performed.
+
+        Returns
+        -------
+        ndarray
+            Of shape `(nchannels, nsamples)` where each row is the
+            amplitude of a given sensor. 
+
+        """
+        matrix = np.empty((self.nchannels, self[0].nsamples))
+        for i, sensor in enumerate(self.sensors):
+            _amp = sensor.amp
+            amp = signal.detrend(_amp) if detrend else _amp
+            amp = amp/np.max(np.abs(amp)) if normalize == "each" else amp
+            matrix[i, :] = amp
+        
+        if normalize == "all":
+            matrix /= np.max(np.abs(matrix))
+
+        return matrix
+        # TODO(jpv): Write tests!
 
     def position(self, normalize=False):
         """Array sensor positions as `list`.
@@ -107,15 +118,18 @@ class Array1D():
         normalize : bool, optional
             Determines whether the array positions are shifted such
             that the first sensor is located at x=0.
-        """
-        #TODO (jpv): Reorganize position.
-        pass
 
+        """
+        if normalize:
+            position_0 = self.sensors[0].x
+            return [sensor.x - position_0 for sensor in self.sensors]
+        else:
+            return [sensor.x for sensor in self.sensors]
 
     @property
     def offsets(self):
         """Receiver offsets relative to source position as `list`."""
-        positions = self.position
+        positions = self.position(normalize=False)
         offsets = []
         for position in positions:
             offsets.append(abs(self.source._x - position))
@@ -143,17 +157,8 @@ class Array1D():
     @property
     def _source_inside(self):
         sx = self.source.x
-        position = self.position
+        position = self.position(normalize=False)
         return ((sx > position[0]) and (sx < position[-1]))
-
-    # @property
-    # def _safe_spacing(self):
-    #     try:
-    #         spacing = self.spacing
-    #     except ValueError:
-    #         logger.warning("Array1D does not have equal spacing.")
-    #         spacing = self.position[1] - self.position[0]
-    #     return spacing
 
     def trim(self, start_time, end_time):
         """Trim time series belonging to each Sensor1C.
@@ -193,21 +198,21 @@ class Array1D():
 
     @property
     def _flip_required(self):
-        return True if self.source.x > self.position[-1] else False
+        return True if self.source.x > self.position(normalize=False)[-1] else False
 
-    def _norm_traces(self, scale_factor):
-        norm_traces = np.empty_like(self.timeseriesmatrix)
-        position = self.position
-        for k, current_trace in enumerate(self.timeseriesmatrix):
-            current_trace = signal.detrend(current_trace)
-            current_trace /= np.max(np.abs(current_trace))
-            current_trace *= scale_factor
-            current_trace += position[k]
-            norm_traces[k, :] = current_trace
-        return norm_traces
+    # def _norm_traces(self, scale_factor):
+    #     norm_traces = np.empty_like(self.timeseriesmatrix)
+    #     position = self.position
+    #     for k, current_trace in enumerate(self.timeseriesmatrix):
+    #         current_trace = signal.detrend(current_trace)
+    #         current_trace /= np.max(np.abs(current_trace))
+    #         current_trace *= scale_factor
+    #         current_trace += position[k]
+    #         norm_traces[k, :] = current_trace
+    #     return norm_traces
 
-    def waterfall(self, ax=None, scale_factor=1.0, time_along="y",
-                  plot_kwargs=None):
+    def waterfall(self, ax=None, time_ax="y", scale=None,
+                  normalize=False, plot_kwargs=None):
         """Create waterfall plot for this array setup.
 
         Parameters
@@ -215,13 +220,16 @@ class Array1D():
         ax : Axis, optional
             Axes on which to plot, default is `None` indicating a
             `Figure` and `Axis` will be generated on-the-fly.
-        scale_factor : float, optional
-            Denotes the scale of the nomalized timeseries height
-            (peak-to-trough), default is 1. Half the receiver spacing is
-            generally a good value.
-        time_along : {'x', 'y'}, optional
+        time_ax : {'x', 'y'}, optional
             Denotes on which axis time should reside, 'y' is the
             default.
+        scale : float, optional
+            Denotes the scale of the nomalized timeseries height
+            (peak-to-trough), default is `None` so half the receiver
+            spacing is used.
+        normalize : bool, optional
+            Show relative rather than absolute sensor positions,
+            default is `False`, so absolute positions will be shown.
         plot_kwargs : None, dict, optional
             Kwargs for `matplotlib.pyplot.plot <https://matplotlib.org/3.3.1/api/_as_gen/matplotlib.pyplot.plot.html>`_
             to control the style of each trace, default is `None`.
@@ -229,31 +237,36 @@ class Array1D():
         Returns
         -------
         Tuple
-            Of the form (fig, ax) where `fig` is the figure object and
-            `ax` the axes object on which the schematic is plotted, if
-            `ax=None`.
+            Of the form `(fig, ax)` where `fig` is the figure object
+            and `ax` the axes object on which the schematic is plotted,
+            if `ax=None`.
 
         """
+        # Create axes (if required)
         ax_was_none = False
         if ax is None:
             ax_was_none = True
-            if time_along == "x":
+            if time_ax == "x":
                 size = (6, 4)
-            elif time_along == "y":
+            elif time_ax == "y":
                 size = (4, 6)
             else:
-                msg = f"time_along = {time_along} not recognized, use 'x' or 'y'."
+                msg = f"time_ax = {time_ax} not recognized, use 'x' or 'y'."
                 raise ValueError(msg)
             fig, ax = plt.subplots(figsize=size)
 
         time = self[0].time
-        norm_traces = self._norm_traces(scale_factor=scale_factor)
+        scale = abs(self[1].x - self[0].x) if scale is None else scale
+        norm_traces = self._norm_traces(scale_factor=scale)
 
+        # Allow custom plotting kwargs.
         if plot_kwargs is None:
             plot_kwargs = {}
         default_kwargs = dict(color="b", linewidth=0.5)
         kwargs = {**default_kwargs, **plot_kwargs}
-        if time_along == "x":
+
+        # Plot waveforms.
+        if time_ax == "x":
             for trace in norm_traces:
                 ax.plot(time, trace, **kwargs)
                 kwargs["label"] = None
@@ -262,18 +275,17 @@ class Array1D():
                 ax.plot(trace, time, **kwargs)
                 kwargs["label"] = None
 
-        time_ax = time_along
         dist_ax = "x" if time_ax == "y" else "y"
-
         if time_ax == "x":
             time_tuple = (min(time), max(time))
         else:
             time_tuple = (max(time), min(time))
         getattr(ax, f"set_{time_ax}lim")(time_tuple)
 
-        spacing = self.position[1] - self.position[0]
-        getattr(ax, f"set_{dist_ax}lim")(self.position[0]-spacing,
-                                         self.position[-1]+spacing)
+        position = self.position(normalize=normalize)
+        spacing = position[1] - position[0]
+        getattr(ax, f"set_{dist_ax}lim")(position[0]-spacing,
+                                         position[-1]+spacing)
         getattr(ax, "grid")(axis=time_ax, linestyle=":")
         getattr(ax, f"set_{time_ax}label")("Time (s)")
         getattr(ax, f"set_{dist_ax}label")("Distance (m)")
@@ -319,8 +331,9 @@ class Array1D():
         # Plot sensors.
         xs = [sensor.x for sensor in self.sensors]
         ys = [sensor.y for sensor in self.sensors]
-        default_sensor_kwargs = dict(marker="^", color="k", linestyle="",
-                                     label="Sensor")
+        default_sensor_kwargs = dict(marker="^", color="k",
+                                     linestyle="", label="Sensor")
+
         if sensor_kwargs is None:
             sensor_kwargs = {}
         sensor_kwargs = {**default_sensor_kwargs, **sensor_kwargs}
@@ -336,8 +349,8 @@ class Array1D():
                 transform=ax.transAxes, va="top", ha="left")
 
         # Plot source.
-        default_source_kwargs = dict(marker="D", color="b", linestyle="",
-                                     label=f"Source")
+        default_source_kwargs = dict(marker="D", color="b",
+                                     linestyle="", label=f"Source")
         if source_kwargs is None:
             source_kwargs = {}
         source_kwargs = {**default_source_kwargs, **source_kwargs}
