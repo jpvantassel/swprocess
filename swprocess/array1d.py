@@ -96,7 +96,6 @@ class Array1D():
             matrix /= np.max(np.abs(matrix))
 
         return matrix
-        # TODO(jpv): Write tests!
 
     def position(self, normalize=False):
         """Array's sensor positions as `list`.
@@ -126,7 +125,7 @@ class Array1D():
     @property
     def kres(self):
         """The array's resolution wavenumber."""
-        return np.pi / min(np.diff(self.position))
+        return np.pi / min(np.diff(self.position()))
 
     @property
     def nchannels(self):
@@ -437,8 +436,10 @@ class Array1D():
 
         """
         # Create waterfall plot.
+        default_waterfall_kwargs = dict(time_along="y")
         if waterfall_kwargs is None:
-            waterfall_kwargs = dict(time_along="y")
+            waterfall_kwargs = {}
+        waterfall_kwargs = {**default_waterfall_kwargs, **waterfall_kwargs}
         fig, ax = self.waterfall(**waterfall_kwargs)
 
         # Parse x, y to distance, time
@@ -453,7 +454,7 @@ class Array1D():
             xs, ys = self._ginput_session(ax, npts=2,
                                           initial_adjustment=False,
                                           ask_to_continue=False)
-            plt.plot(xs, ys, color="r", linewidth=0.5)
+            ax.plot(xs, ys, color="r", linewidth=0.5)
             signal_start = parse(xs, ys)
         else:
             signal_start = None
@@ -463,7 +464,7 @@ class Array1D():
             xs, ys = self._ginput_session(ax, npts=2,
                                           initial_adjustment=False,
                                           ask_to_continue=False)
-            plt.plot(xs, ys, color="r", linewidth=0.5)
+            ax.plot(xs, ys, color="r", linewidth=0.5)
             signal_end = parse(xs, ys)
         else:
             signal_end = None
@@ -687,15 +688,14 @@ class Array1D():
             sensors.append(Sensor1C.from_sensor1c(_sensor))
         source = Source.from_source(array1d.source)
         obj = cls(sensors, source)
-        obj.absolute_minus_relative = float(array1d.absolute_minus_relative)
         return obj
 
     def is_similar(self, other):
-        """See if `other` is similar to `self`, though not strictly equal."""
+        """Check if `other` is similar to `self`."""
         if not isinstance(other, (Array1D,)):
             return False
 
-        for attr in ["nchannels", "source", "absolute_minus_relative"]:
+        for attr in ["nchannels", "source"]:
             if getattr(self, attr) != getattr(other, attr):
                 return False
 
