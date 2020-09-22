@@ -320,40 +320,108 @@ class Test_Array1D(TestCase):
     def test_interactive_mute(self):
         # Replace self._ginput_session
         class DummyArray1D(swprocess.Array1D):
-            
+
             def set_xy_before(self, xs, ys):
-                self.x_before = xs
-                self.y_before = ys
+                self.xs_before = xs
+                self.ys_before = ys
 
             def set_xy_after(self, xs, ys):
-                self.x_after = xs
-                self.y_after = ys
+                self.xs_after = xs
+                self.ys_after = ys
 
             def _my_generator(self):
-                xs = [self.x_before, self.x_after]
-                ys = [self.y_before, self.y_after]
+                xs = [self.xs_before, self.xs_after]
+                ys = [self.ys_before, self.ys_after]
                 for x, y in zip(xs, ys):
-                    yield (x,y)
+                    yield (x, y)
 
-            def _ginput_session(self, *args, **kwargs):
+            def _opt1_ginput_session(self, *args, **kwargs):
                 if not getattr(self, "mygen", False):
                     self.mygen = self._my_generator()
                 return next(self.mygen)
 
+            def _opt2_ginput_session(self, *args, **kwargs):
+                return (self.xs_after, self.ys_after)
+
+            def interactive_mute(self, mute_location="both",
+                                 window_kwargs=None, waterfall_kwargs=None):
+                if mute_location == "after":
+                    self._ginput_session = self._opt2_ginput_session
+                else:
+                    self._ginput_session = self._opt1_ginput_session
+
+                return super().interactive_mute(mute_location=mute_location,
+                                                window_kwargs=window_kwargs,
+                                                waterfall_kwargs=waterfall_kwargs)
+
         # Create dummy array
         source = swprocess.Source(x=-5, y=0, z=0)
         sensors = [self.sensor_0, self.sensor_5, self.sensor_6]
+        sensors = [swprocess.Sensor1C.from_sensor1c(x) for x in sensors]
         array = DummyArray1D(sensors=sensors, source=source)
 
-        # Call interactive mute
-        array.set_xy_before([1,2],[3,4])
-        array.set_xy_after([5,6],[7,8])
+        # Set mute locations -> time_ax = "y"
+        xs_b, ys_b = (1, 5), (1, 3)
+        array.set_xy_before(xs_b, ys_b)
+        xs_a, ys_a = (1, 6), (4, 7)
+        array.set_xy_after(xs_a, ys_a)
 
-        print(array._ginput_session())
-        print(array._ginput_session())
+        # mute_location = "before" & time_ax = "y"
+        start, end = array.interactive_mute(mute_location="before")
+        self.assertTupleEqual(((xs_b[0], ys_b[0]), (xs_b[1], ys_b[1])), start)
+        self.assertTrue(end is None)
+        delattr(array, "mygen")
 
-        # array.interactive_mute(mute_location="both")
+        # mute_location = "after" & time_ax = "y"
+        start, end = array.interactive_mute(mute_location="after")
+        self.assertTrue(start is None)
+        self.assertTupleEqual(((xs_a[0], ys_a[0]), (xs_a[1], ys_a[1])), end)
 
+        # mute_location = "both" & time_ax = "y"
+        start, end = array.interactive_mute(mute_location="both")
+        self.assertTupleEqual(((xs_b[0], ys_b[0]), (xs_b[1], ys_b[1])), start)
+        self.assertTupleEqual(((xs_a[0], ys_a[0]), (xs_a[1], ys_a[1])), end)
+        delattr(array, "mygen")
+
+        # Set mute locations -> time_ax = "x"
+        array.set_xy_before(ys_b, xs_b)
+        array.set_xy_after(ys_a, xs_a)
+
+        # mute_location = "before" & time_ax = "x"
+        start, end = array.interactive_mute(mute_location="before",
+                                            waterfall_kwargs=dict(time_ax="x"))
+        self.assertTupleEqual(((xs_b[0], ys_b[0]), (xs_b[1], ys_b[1])), start)
+        self.assertTrue(end is None)
+        delattr(array, "mygen")
+
+        # mute_location = "after" & time_ax = "x"
+        start, end = array.interactive_mute(mute_location="after",
+                                            waterfall_kwargs=dict(time_ax="x"))
+        self.assertTrue(start is None)
+        self.assertTupleEqual(((xs_a[0], ys_a[0]), (xs_a[1], ys_a[1])), end)
+
+        # mute_location = "both" & time_ax = "x"
+        start, end = array.interactive_mute(mute_location="both",
+                                            waterfall_kwargs=dict(time_ax="x"))
+        self.assertTupleEqual(((xs_b[0], ys_b[0]), (xs_b[1], ys_b[1])), start)
+        self.assertTupleEqual(((xs_a[0], ys_a[0]), (xs_a[1], ys_a[1])), end)
+        delattr(array, "mygen")
+
+    def test_mute(self):
+        array = self.dummy_array(amp=[1]*100, dt=1, nstacks=1, delay=0,
+                                 nsensors=5, spacing=2, source_x=-5)
+
+        # Rectangular mute
+        array.mute(signal_start=((0, 0), (2, 3)),
+                   signal_end=((0, 6), (4, 12)),
+                   window_kwargs=dict(alpha=0))
+        returned = array.timeseriesmatrix()
+        expected = np.array([[0]*0 + [1]*6 + [0]*94,
+                             [0]*3 + [1]*6 + [0]*91,
+                             [0]*6 + [1]*6 + [0]*88,
+                             [0]*9 + [1]*6 + [0]*85,
+                             [0]*12 + [1]*6 + [0]*82], dtype=float)
+        self.assertArrayEqual(expected, returned)
 
     def test_from_files(self):
         # Single File : SEG2

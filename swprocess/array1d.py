@@ -436,21 +436,21 @@ class Array1D():
 
         """
         # Create waterfall plot.
-        default_waterfall_kwargs = dict(time_along="y")
+        default_waterfall_kwargs = dict(time_ax="y")
         if waterfall_kwargs is None:
             waterfall_kwargs = {}
         waterfall_kwargs = {**default_waterfall_kwargs, **waterfall_kwargs}
         fig, ax = self.waterfall(**waterfall_kwargs)
 
         # Parse x, y to distance, time
-        def parse(xs, ys, time_along=waterfall_kwargs["time_along"]):
-            if time_along == "y":
+        def parse(xs, ys, time_ax=waterfall_kwargs["time_ax"]):
+            if time_ax == "y":
                 return ((xs[0], ys[0]), (xs[1], ys[1]))
             else:
                 return ((ys[0], xs[0]), (ys[1], xs[1]))
 
         # Define the start of the signal.
-        if mute_location == "before" or mute_location == "both":
+        if (mute_location == "before") or (mute_location == "both"):
             xs, ys = self._ginput_session(ax, npts=2,
                                           initial_adjustment=False,
                                           ask_to_continue=False)
@@ -460,7 +460,7 @@ class Array1D():
             signal_start = None
 
         # Define the end of the signal.
-        if mute_location == "after" or mute_location == "both":
+        if (mute_location == "after") or (mute_location == "both"):
             xs, ys = self._ginput_session(ax, npts=2,
                                           initial_adjustment=False,
                                           ask_to_continue=False)
@@ -498,7 +498,7 @@ class Array1D():
 
         """
         # General variables common to intercept calculations.
-        position = np.array(self.position)
+        position = np.array(self.position())
         dt = self[0].dt
         delay = self[0].delay
         ndelay = abs(delay/dt)
@@ -539,7 +539,7 @@ class Array1D():
     # TODO (jpv): Replace hard-coded messaged with user-defined inputs. Generator?
     @staticmethod
     def _ginput_session(ax, initial_adjustment=True, ask_to_continue=True,
-                        npts=None):
+                        npts=None):  # pragma: no cover
         """Start ginput session using the provided axes object.
 
         Parameters
