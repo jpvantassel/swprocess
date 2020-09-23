@@ -31,5 +31,22 @@ class Test_WaveTransform1d(TestCase):
             expected = power/divisor
             self.assertArrayEqual(expected, returned)
 
+    def test_create_vector(self):
+        pmin, pmax, pn = 100, 400, 100
+
+        # linspace
+        approaches = ["linear", "lin"]
+        expected = np.linspace(pmin, pmax, pn)
+        for pspace in approaches:
+            returned = EmptyWavefieldTransform._create_vector(pmin, pmax, pn, pspace)
+            self.assertArrayEqual(expected, returned)
+
+        # geomspace
+        approaches = ["log", "logarithmic"]
+        expected = np.geomspace(pmin, pmax, pn)
+        for pspace in approaches:
+            returned = EmptyWavefieldTransform._create_vector(pmin, pmax, pn, pspace)
+            self.assertArrayEqual(expected, returned)
+
 if __name__ == "__main__":
     unittest.main()

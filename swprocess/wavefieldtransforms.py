@@ -36,11 +36,11 @@ class AbstractWavefieldTransform(ABC):
         self.array = None
 
     @staticmethod
-    def _create_velocities(settings):
+    def _create_vector(pmin, pmax, pn, pspace):
         samplers = {"linear": linspace, "lin": linspace,
                     "log": geomspace, "logarithmic": geomspace}
-        sampler = samplers[settings["vspace"]]
-        return sampler(settings["vmin"], settings["vmax"], settings["nvel"])
+        sampler = samplers[pspace]
+        return sampler(pmin, pmax, pn)
 
     @staticmethod
     def _flip_if_required(array):
@@ -57,7 +57,8 @@ class AbstractWavefieldTransform(ABC):
     @classmethod
     def from_array(cls, array, settings):
         # Create velocity vector.
-        vels = cls._create_velocities(settings)
+        vels = cls._create_vector(settings["vmin"], settings["vmax"],
+                                  settings["nvel"], settings["vspace"])
 
         # Perform transform.
         frqs, powr = cls.transform(array, vels, settings)
@@ -271,8 +272,8 @@ class AbstractWavefieldTransform(ABC):
                               self.power,
                               np.linspace(0, np.max(self.power), 20),
                               cmap=plt.cm.get_cmap(cmap))
-        fig.colorbar(contour, ax=ax, ticks=np.round(
-            np.linspace(0, np.max(self.power), 11), 1))
+        fig.colorbar(contour, ax=ax,
+                     ticks=np.round(np.linspace(0, np.max(self.power), 11), 1))
 
         # Plot peaks (if necessary).
         if peaks != ["none"]:
@@ -361,25 +362,24 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
     @classmethod
     def from_array(cls, array, settings):
         sensor = array[0]
-        frqs = np.arange(sensor.nsamples)*sensor.df
-        keep_ids = cls._frequency_keep_ids(frqs,
-                                           settings["fmin"],
-                                           settings["fmax"],
-                                           sensor.multiple)
+        frqs = np.arange(sensor.nsamples)*sensor._df
+        keep_ids = cls._frequency_keep_ids(frqs, settings["fmin"],
+                                           settings["fmax"], sensor.multiple)
         nvel, nfrq = settings["nvel"], len(keep_ids)
         frequencies = frqs[keep_ids]
-        velocities = cls._create_velocities(settings)
+        velocities = cls._create_vector(settings["vmin"], settings["vmax"],
+                                        settings["nvel"], settings["vspace"])
         power = np.empty((nvel, nfrq), dtype=complex)
         return cls(frequencies, velocities, power)
 
     def stack(self, other):
         try:
-            self.power = (self.power*self.n + other.power*1)/(self.n+1)
+            self.power = (self.power*self.n + other.power*other.n)
+            self.power /= (self.n+other.n)
         except AttributeError as e:
-            msg = "Can only append objects if decendent of AbstractWavefieldTransform"
+            msg = "Can only append objects if descendant of `AbstractWavefieldTransform`."
             raise AttributeError(msg) from e
-
-        self.n += 1
+        self.n += other.n
 
     @classmethod
     def transform(cls, array, velocities, settings):
@@ -415,7 +415,7 @@ class FK(AbstractWavefieldTransform):
         """
         # Frequency vector
         sensor = array.sensors[0]
-        frqs = np.arange(sensor.nsamples) * sensor.df
+        frqs = np.arange(sensor.nsamples) * sensor._df
 
         # Perform 2D FFT
         if array._flip_required:
@@ -530,8 +530,7 @@ class SlantStack(AbstractWavefieldTransform):
 
         # Frequency vector
         sensor = array[0]
-        df = sensor.df
-        frequencies = np.arange(nsamples) * df
+        frequencies = np.arange(nsamples) * sensor._df
 
         # Fourier Transform of the slant-stack
         power = np.fft.fft(slant_stack, n=nsamples)
@@ -574,7 +573,7 @@ class PhaseShift(AbstractWavefieldTransform):
 
         # Frequency vector.
         sensor = array.sensors[0]
-        frqs = np.arange(sensor.nsamples) * sensor.df
+        frqs = np.arange(sensor.nsamples)*sensor._df
 
         # Trim and downsample frequencies.
         keep_ids = cls._frequency_keep_ids(frqs,
@@ -627,13 +626,11 @@ class FDBF(AbstractWavefieldTransform):
         tmatrix = tmatrix.reshape(array.nchannels, sensor.nsamples, 1)
 
         # Frequency vector
-        frqs = np.arange(sensor.nsamples)*sensor.df
+        frqs = np.arange(sensor.nsamples)*sensor._df
 
         # Trim and downsample frequencies.
-        keep_ids = cls._frequency_keep_ids(frqs,
-                                           settings["fmin"],
-                                           settings["fmax"],
-                                           sensor.multiple)
+        keep_ids = cls._frequency_keep_ids(frqs, settings["fmin"],
+                                           settings["fmax"], sensor.multiple)
         frequencies = frqs[keep_ids]
 
         # Calculate the spatiospectral correlation matrix

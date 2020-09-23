@@ -44,26 +44,26 @@ class AbstractMaswWorkflow(ABC):
             # Copy array
             self.noise = Array1D.from_array1d(self.array)
             # Trim out noise.
-            self.noise.trim(snr["noise"]["start"], snr["noise"]["end"])
+            self.noise.trim(snr["noise"]["begin"], snr["noise"]["end"])
 
     def trim(self):
         """Trim record in the time domain."""
         trim = self.settings["pre-processing"]["trim"]
         if trim["apply"]:
-            self.array.trim(trim["start_time"], trim["end_time"])
+            self.array.trim(trim["begin"], trim["end"])
 
     def mute(self):
         """Mute record in the time domain."""
         mute = self.settings["pre-processing"]["mute"]
         if mute["apply"]:
             if self.signal_start is None and self.signal_end is None:
-                if mute["type"] == "interactive":
+                if mute["method"] == "interactive":
                     self.signal_start, self.signal_end = self.array.interactive_mute()
                 # elif muting["type"] == "predefined":
                 #     # TODO (jpv): Implement predefined type for time-domain muting.
                 #     raise NotImplementedError
                 else:
-                    msg = f"mute type {mute['type']} is unknown, use 'interactive'."
+                    msg = f"mute type {mute['method']} is unknown, use 'interactive'."
                     raise KeyError(msg)
             else:
                 self.array.mute(signal_start=self.signal_start,
@@ -79,7 +79,7 @@ class AbstractMaswWorkflow(ABC):
             self.signal = Array1D.from_array1d(self.array)
 
             # Trim out noise.
-            self.signal.trim(snr["signal"]["start"], snr["signal"]["end"])
+            self.signal.trim(snr["signal"]["begin"], snr["signal"]["end"])
 
             # Pad
             if snr["pad"]["apply"]:
@@ -139,7 +139,7 @@ class TimeDomainWorkflow(AbstractMaswWorkflow):
         self.select_signal()
         self.pad()
         Transform = WavefieldTransformRegistry.create_class(
-            self.settings["processing"]["type"])
+            self.settings["processing"]["transform"])
         transform = Transform.from_array(array=self.array,
                                          settings=self.settings["processing"])
         transform.snr = self.snr
@@ -208,7 +208,8 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
         processing = self.settings["processing"]
         running_stack = Transform.from_array(array=ex_array,
                                              settings=processing)
-        Transform = WavefieldTransformRegistry.create_class(processing["type"])
+        Transform = WavefieldTransformRegistry.create_class(
+            processing["transform"])
         for fname in self.fnames:
             self.array = Array1D.from_files(fname, map_x=self.map_x,
                                             map_y=self.map_y)

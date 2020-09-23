@@ -1,15 +1,15 @@
 {
-    "workflow": "frequency-domain",
+    "workflow": "time-domain",
     "pre-processing": {
         "trim": {
             "apply": true,
-            "start_time": 0,
-            "end_time": 0.9
+            "begin": 0.0,
+            "end": 0.9
         },
         "mute": {
             "apply": false,
-            "type": "interactive",
-            "window kwargs": {}
+            "method": "interactive",
+            "window_kwargs": {}
         },
         "pad": {
             "apply": true,
@@ -17,7 +17,7 @@
         }
     },
     "processing": {
-        "type": "phaseshift",
+        "transform": "phaseshift",
         "fmin": 5,
         "fmax": 100,
         "vmin": 100,
@@ -32,11 +32,11 @@
     "signal-to-noise": {
         "perform": false,
         "noise": {
-            "start": -0.5,
+            "begin": -0.5,
             "end": 0.0
         },
         "signal": {
-            "start": 0.0,
+            "begin": 0.0,
             "end": 0.5
         },
         "pad": {
