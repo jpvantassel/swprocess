@@ -37,6 +37,11 @@ class AbstractMaswWorkflow(ABC):
         if self.array._source_inside:
             raise ValueError("Source must be located outside of the array.")
 
+    def detrend(self):
+        """Perform linear detrend operation."""
+        for sensor in self.array:
+            sensor.detrend()
+
     def select_noise(self):
         """Select a portion of the record as noise."""
         snr = self.settings["signal-to-noise"]
@@ -59,9 +64,7 @@ class AbstractMaswWorkflow(ABC):
             if self.signal_start is None and self.signal_end is None:
                 if mute["method"] == "interactive":
                     self.signal_start, self.signal_end = self.array.interactive_mute()
-                # elif muting["type"] == "predefined":
-                #     # TODO (jpv): Implement predefined type for time-domain muting.
-                #     raise NotImplementedError
+                # TODO (jpv): Implement predefined times for muting.
                 else:
                     msg = f"mute type {mute['method']} is unknown, use 'interactive'."
                     raise KeyError(msg)
@@ -102,10 +105,10 @@ class AbstractMaswWorkflow(ABC):
             self.snr_frequencies = frqs[keep_ids]
 
             # Compute SNR
-            self.snr = np.mean(
-                np.abs(np.fft.fft(self.signal.timeseriesmatrix)[:, keep_ids]), axis=0)
-            self.snr /= np.mean(np.abs(np.fft.fft(self.noise.timeseriesmatrix)
-                                       [:, keep_ids]), axis=0)
+            self.snr = np.mean(np.abs(np.fft.fft(
+                self.signal.timeseriesmatrix())[:, keep_ids]), axis=0)
+            self.snr /= np.mean(np.abs(np.fft.fft(
+                self.noise.timeseriesmatrix())[:, keep_ids]), axis=0)
 
             # Clean-up
             self.noise = False
@@ -133,6 +136,7 @@ class TimeDomainWorkflow(AbstractMaswWorkflow):
         self.array = Array1D.from_files(self.fnames, map_x=self.map_x,
                                         map_y=self.map_y)
         self.check()
+        self.detrend()
         self.select_noise()
         self.trim()
         self.mute()
@@ -167,6 +171,7 @@ class SingleMaswWorkflow(TimeDomainWorkflow):
         msg += "MaswWorkflow: single\n"
         msg += "  - Create Array1D from file (ignore if multiple).\n"
         msg += "  - Check array is acceptable.\n"
+        msg += "  - Perform linear detrend on each trace.\n"
         msg += "  - Perform trim (if desired).\n"
         msg += "  - Perform mute (if desired).\n"
         msg += "  - Perform pad  (if desired).\n"
@@ -183,6 +188,7 @@ class TimeDomainMaswWorkflow(TimeDomainWorkflow):
         msg += "MaswWorkflow: time-domain\n"
         msg += "  - Create Array1D from files.\n"
         msg += "  - Check array is acceptable.\n"
+        msg += "  - Perform linear detrend on each trace.\n"
         msg += "  - Perform trim (if desired).\n"
         msg += "  - Perform mute (if desired).\n"
         msg += "  - Perform pad  (if desired).\n"
@@ -197,6 +203,8 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
     def run(self):
         ex_array = Array1D.from_files(self.fnames[0], map_x=self.map_x,
                                       map_y=self.map_y)
+        for sensor in ex_array:
+            sensor.detrend()
         preprocess = self.settings["pre-processing"]
         if preprocess["trim"]["apply"]:
             ex_array.trim(preprocess["trim"]["start_time"],
@@ -217,6 +225,7 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
                 msg = f"Can only stack arrays which are similar, first dissimilar file is {fname}."
                 raise ValueError(msg)
             self.check()
+            self.detrend()
             self.select_noise()
             self.trim()
             self.mute()
@@ -229,6 +238,7 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
         running_stack.snr = self.snr
         running_stack.snr_frequencies = self.snr_frequencies
         running_stack.array = self.array
+
         return running_stack
 
     def __str__(self):

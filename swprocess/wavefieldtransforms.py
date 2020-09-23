@@ -47,10 +47,10 @@ class AbstractWavefieldTransform(ABC):
         """Flip array and offsets if required by source location."""
         if array._flip_required:
             offsets = array.offsets[::-1]
-            tmatrix = np.flipud(array.timeseriesmatrix)
+            tmatrix = np.flipud(array.timeseriesmatrix())
         else:
             offsets = array.offsets
-            tmatrix = array.timeseriesmatrix
+            tmatrix = array.timeseriesmatrix()
         offsets = np.array(offsets)
         return (tmatrix, offsets)
 
@@ -118,69 +118,66 @@ class AbstractWavefieldTransform(ABC):
         # return Peaks(self.frequencies, self.peaks,)
 
     def write_peaks_to_file(self, fname, identifier, append=False, ftype="json"):
-        pass
-        # """Write peak disperison values to file.
+        """Write peak disperison values to file.
 
-        # Parameters
-        # ----------
-        # fname : str
-        #     Name of the output file, may be a relative or the full path.
-        # identifier :  str
-        #     A unique identifier for the peaks. The source offset is
-        #     typically sufficient.
-        # append : bool, optional
-        #     Flag to denote whether `fname` should be appended to or
-        #     overwritten, default is `False` indicating the file will
-        #     be overwritten.
-        # ftype : {'json'}, optional
-        #     Denotes the desired filetype.
-        #     TODO (jpv): Add also a csv option.
+        Parameters
+        ----------
+        fname : str
+            Name of the output file, may be a relative or the full path.
+        identifier :  str
+            A unique identifier for the peaks. The source offset is
+            typically sufficient.
+        append : bool, optional
+            Flag to denote whether `fname` should be appended to or
+            overwritten, default is `False` indicating the file will
+            be overwritten.
+        ftype : {'json'}, optional
+            Denotes the desired filetype.
+            TODO (jpv): Add also a csv option.
 
-        # Returns
-        # -------
-        # None
-        #     Instead writes/appends dispersion peaks to file `fname`.
+        Returns
+        -------
+        None
+            Instead writes/appends dispersion peaks to file `fname`.
 
-        # """
-        # if self.domain == "wavenumber":
-        #     v_peak = 2*np.pi / self.peaks*self.frqs
-        # elif self.domain == "velocity":
-        #     v_peak = self.peaks
-        # else:
-        #     raise NotImplementedError()
+        """
+        if self.domain == "wavenumber":
+            v_peak = 2*np.pi / self.peaks*self.frqs
+        elif self.domain == "velocity":
+            v_peak = self.peaks
+        else:
+            raise NotImplementedError()
 
-        # if ftype != "json":
-        #     raise ValueError()
+        if ftype != "json":
+            raise ValueError()
 
-        # if fname.endswith(".json"):
-        #     fname = fname[:-5]
+        if fname.endswith(".json"):
+            fname = fname[:-5]
 
-        # data = {}
-        # if append:
-        #     try:
-        #         f = open(f"{fname}.json", "r")
-        #     except FileNotFoundError:
-        #         pass
-        #     else:
-        #         data = json.load(f)
-        #         f.close()
+        data = {}
+        if append:
+            try:
+                f = open(f"{fname}.json", "r")
+            except FileNotFoundError:
+                pass
+            else:
+                data = json.load(f)
+                f.close()
 
-        # with open(f"{fname}.json", "w") as fp:
-        #     if identifier in data:
-        #         raise KeyError(f"identifier {identifier} is repeated.")
-        #     else:
-        #         # keep_ids = np.where(v_peak < self.settings["vmax"])
-        #         # ftrim = self.frqs[keep_ids].tolist()
-        #         # vtrim = v_peak[keep_ids].tolist()
-        #         # data.update({identifier: {"frequency": ftrim,
-        #         #                           "velocity": vtrim}})
+        with open(f"{fname}.json", "w") as fp:
+            if identifier in data:
+                raise KeyError(f"identifier {identifier} is repeated.")
+            else:
+                # keep_ids = np.where(v_peak < self.settings["vmax"])
+                # ftrim = self.frqs[keep_ids].tolist()
+                # vtrim = v_peak[keep_ids].tolist()
+                # data.update({identifier: {"frequency": ftrim,
+                #                           "velocity": vtrim}})
 
-        #         data.update({identifier: {"frequency": self.frqs.tolist(),
-        #                                   "velocity": v_peak.tolist()}})
+                data.update({identifier: {"frequency": self.frqs.tolist(),
+                                          "velocity": v_peak.tolist()}})
 
-        #     json.dump(data, fp)
-
-    # def plot_spectra(self, stype="fv", plot_peak=True, plot_limit=None):  # pragma: no cover
+            json.dump(data, fp)
 
     def plot_waterfall(self, *args, **kwargs):
         # Only proceed if array is not None:
@@ -227,7 +224,7 @@ class AbstractWavefieldTransform(ABC):
             fig.tight_layout()
             return (fig, ax)
 
-    def plot(self, ax=None, normalization="frequency-maximum",
+    def plot(self, fig=None, ax=None, normalization="frequency-maximum",
              peaks="frequency-maximum", cmap="jet", peak_kwargs=None):
         """Plot the `WavefieldTransform`'s dispersion image.
 
