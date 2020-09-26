@@ -380,7 +380,7 @@ class Array1D():
 
         return (self.position(), times)
 
-    def manual_pick_first_arrivals(self, waterfall_kwargs=None):  # pragma: no cover
+    def manual_pick_first_arrivals(self, waterfall_kwargs=None):
         """Allow for interactive picking of first arrivals.
 
         Parameters
@@ -659,8 +659,6 @@ class Array1D():
                 x = map_x(float(stats.su.trace_header["source_coordinate_x"]))
                 y = map_y(float(stats.su.trace_header["source_coordinate_y"]))
                 return Source(x=x, y=y, z=0)
-        else:
-            raise NotImplementedError(f"_format={_format} not recognized.")
         source = parse_source(trace.stats)
         obj = cls(sensors, source)
 

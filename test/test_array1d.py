@@ -300,22 +300,28 @@ class Test_Array1D(TestCase):
         self.assertRaises(NotImplementedError, array.auto_pick_first_arrivals,
                           algorithm="bad")
 
-    # def test_manual_pick_first_arrivals(self):
-    #     # fnames = self.full_path + "data/denise/v1.2_y.su.shot1"
-    #     fnames = self.full_path + "../examples/sample_data/vuws/10.dat"
+    def test_manual_pick_first_arrivals(self):
+        # Replace self._ginput_session
+        edist, etime = [0,1,2], [2,1,0]
+        class DummyArray1D(swprocess.Array1D):
+            def _ginput_session(ax, initial_adjustment=True,
+                                ask_to_continue=True, npts=None):
+                return (edist, etime)
+        array = DummyArray1D([self.sensor_0, self.sensor_5, self.sensor_6],
+                             swprocess.Source(x=-5, y=0, z=0))
+        
+        # time_ax = "y"
+        for waterfall_kwargs in [dict(time_ax="y"), None]:
+            rdist, rtime = array.manual_pick_first_arrivals(
+                waterfall_kwargs=waterfall_kwargs)
+        self.assertListEqual(edist, rdist)
+        self.assertListEqual(etime, rtime)
 
-    #     array = swprocess.Array1D.from_files(fnames=fnames)
-    #     #  map_x=lambda x:x/1000,
-    #     #  map_y=lambda y:y/1000)
-
-    #     array.waterfall()
-    #     array.interactive_mute()
-    #     # array.mute(pre_mute=((0, 0.0), (46, 0.2)), post_mute=((0, 0.2), (46, 0.7)),
-    #     #            shape="tukey")
-    #     array.waterfall()
-    #     # plt.show()
-    #     # distance, time = array.manual_pick_first_arrivals()
-    #     # print(distance, time)
+        # time_ax = "x"
+        rtime, rdist = array.manual_pick_first_arrivals(
+            waterfall_kwargs=dict(time_ax="x"))
+        self.assertListEqual(edist, rdist)
+        self.assertListEqual(etime, rtime)
 
     def test_interactive_mute(self):
         # Replace self._ginput_session
@@ -461,6 +467,11 @@ class Test_Array1D(TestCase):
 
         # Bad : miniseed
         fname = self.full_path+"data/custom/0101010.miniseed"
+        self.assertRaises(NotImplementedError,
+                          swprocess.Array1D.from_files, fname)
+
+        # Bad : format
+        fname = self.full_path+"data/custom/0101010.sac"
         self.assertRaises(NotImplementedError,
                           swprocess.Array1D.from_files, fname)
 

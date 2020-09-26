@@ -50,14 +50,14 @@ class ActiveTimeSeries(TimeSeries):
         ----------
         amplitude : array-like
             Recording's amplitude, one per sample. The first 
-            value is associated with time=0 seconds and the last is 
-            associate with (len(amplitude)-1)*dt seconds.
+            value is associated with `time=0` seconds and the last is 
+            associate with `time=(len(amplitude)-1)*dt` seconds.
         dt : float
             Time step between samples in seconds.
         nstacks : int, optional
             Number of stacks used to produce `amplitude`, default is 1.
-        delay : float
-            Delay to the start of the record in seconds.
+        delay : float, optional
+            Delay to the start of the record in seconds, default is 0.
 
         Returns
         -------
