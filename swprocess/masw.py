@@ -5,7 +5,7 @@ import json
 
 from .workflows import MaswWorkflowRegistry
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("swprocess.masw")
 
 
 class Masw():
@@ -31,9 +31,9 @@ class Masw():
         ----------
         fnames : str or iterable of str
             File name or iterable of file names.
-        settings : str
+        settings_fname : str
             JSON settings file detailing how MASW should be performed.
-            See `meth: Masw.example_settings_file()` for more
+            See `meth: Masw.create_settings_file()` for more
             information.
         map_x, map_y : function, optional
             Functions to convert the x and y coordinates of source and
@@ -60,8 +60,8 @@ class Masw():
                             map_y=map_y)
         return workflow.run()
 
-    @classmethod
-    def example_settings_file(cls, fname, workflow="time-domain",
+    @staticmethod
+    def create_settings_file(fname, workflow="time-domain",
                               trim=False, start_time=0.0, end_time=1.0,
                               mute=False, method="interactive",
                               window_kwargs=None, pad=False, df=1.,
@@ -71,6 +71,36 @@ class Masw():
                               snr=False, noise_begin=-0.5, noise_end=0.0,
                               signal_begin=0.0, signal_end=0.5,
                               pad_snr=True, df_snr=1.0):
+        """Create settings file using function arguments.
+
+        Parameters
+        ----------
+        fname : str
+            Name of file where settings will be saved. May include a
+            relative or the full path.
+        workflow : {'time-domain', 'frequency-domain', 'single'}, optional
+            Name of MASW processing workflow, `default is
+            'time-domain'`.
+        trim : bool, optional
+            Denote whether time records are to be trimmed, default is
+            `False`.
+        start_time, end_time : float, optional
+            If `trim` is `True`, these define the trimming start and
+            end time in seconds.
+        mute : bool, optional
+            Denote whether time-domain muting is to be performed,
+            default is `False`.
+        method : {'interactive'}, optional
+            If `mute` is `True`, select the method for performing
+            time-domain muting.
+        window_kwargs : dict, optional
+            If `mute` is `True`, describe the shape of the mute mask,
+            see `scipy.singal.windows.tukey <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.windows.tukey.html>`_
+            for available options.
+        TODO (jpv): To be continued.
+
+        """
+                        
         settings = {"workflow": workflow,
                     "pre-processing": {
                         "trim": {
@@ -81,7 +111,7 @@ class Masw():
                         "mute": {
                             "apply": mute,
                             "method": method,
-                            "window_kwargs": window_kwargs if window_kwargs is not None else {}
+                            "window_kwargs": {}} if window_kwargs is None else window_kwargs
                         },
                         "pad": {
                             "apply": pad,
