@@ -1,5 +1,8 @@
 """Tests for class Masw."""
 
+import json
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -16,48 +19,32 @@ class Test_Masw(TestCase):
         cls.vuws_path = cls.full_path + "../examples/sample_data/vuws/"
         cls.wghs_path = cls.full_path + "../examples/sample_data/wghs/"
 
-    # @unittest.skip
-    # def test_single(self):
-    #     fname = self.vuws_path+"10.dat"
-    #     settings = self.full_path+"settings/settings_new.json"
-    #     fk = swprocess.Masw.run(fnames=fname, settings=settings)
-    #     fk.plot_spectra()
-
-    #     # # array = swprocess.Array1D.from_files(fnames=self.vuws_path+"22.dat")
-    #     # # phase_shift = swprocess.WavefieldTransform1D(array=array,
-    #     # #                                              settings=self.full_path+"settings/settings_phase-shift.json")
-    #     # # phase_shift.plot_spectra(stype="fv")
-
-    #     # # array = swprocess.Array1D.from_files(fnames=self.vuws_path+"22.dat")
-    #     # # slant_stack = swprocess.WavefieldTransform1D(array=array,
-    #     # #                                              settings=self.full_path+"settings/settings_slant-stack.json")
-    #     # # slant_stack.plot_spectra(stype="fv")
-
-    #     # # array = swprocess.Array1D.from_files(fnames=self.vuws_path+"22.dat")
-    #     # # fdbf = swprocess.WavefieldTransform1D(array=array,
-    #     # #                                       settings=self.full_path+"settings/settings_fdbf.json")
-    #     # # fdbf.plot_spectra(stype="fv")
-        
-    #     plt.show()
-
-    # def test_frequency_domain(self):
-    #     fnames = [self.vuws_path+str(x)+".dat" for x in range(11,15)]
-    #     settings = self.full_path+"settings/settings_new.json"
-    #     fk = swprocess.Masw.run(fnames=fnames, settings=settings)
-    #     fk.plot(normalization="absolute-maximum")
-    #     # fk.plot_snr()
-    #     # fk.plot_array()
-    #     # fk.plot_waterfall()
-    #     fk.plot_slices(np.arange(5, 50, 5))
-    #     plt.show()
-
-
     def test_run(self):
-        pass
+        @swprocess.register.MaswWorkflowRegistry.register("dummy")
+        class DummyMaswWorkflow(swprocess.maswworkflows.AbstractMaswWorkflow):
+            def run(self):
+                return 0
+
+            def __str__(self):
+                return "DummyMaswWorkflow"
+
+        swprocess.Masw.create_settings_file(fname="dummy_settings",
+                                            workflow="dummy")
+        self.assertEqual(0, swprocess.Masw.run(fnames="dummy_file",
+                                               settings_fname="dummy_settings"))
+        os.remove("dummy_settings")
 
     def test_create_settings_file(self):
-        pass
+        efname = self.full_path + "data/settings/settings_test.json"
+        with open(efname, "r") as f:
+            expected = json.load(f)
 
+        rfname = "tmp.json"
+        swprocess.Masw.create_settings_file(fname=rfname)
+        with open(rfname, "r") as f:
+            returned = json.load(f)
+        self.assertDictEqual(expected, returned)
+        os.remove(rfname)
 
 
 if __name__ == "__main__":

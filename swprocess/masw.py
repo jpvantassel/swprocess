@@ -3,7 +3,7 @@
 import logging
 import json
 
-from .workflows import MaswWorkflowRegistry
+from .maswworkflows import MaswWorkflowRegistry
 
 logger = logging.getLogger("swprocess.masw")
 
@@ -51,22 +51,29 @@ class Masw():
             If `fnames` is not of type `str` or `iterable`.
 
         """
-        # Load settings
+        # Load settings.
         with open(settings_fname, "r") as f:
             settings = json.load(f)
 
-        Workflow = MaswWorkflowRegistry.create_class(settings["workflow"])
-        workflow = Workflow(fnames=fnames, settings=settings, map_x=map_x,
-                            map_y=map_y)
+        # Acquire Workflow (class) from registry.
+        selected_workflow = settings["workflow"]
+        logger.info(f"selected workflow is {selected_workflow}")
+        Workflow = MaswWorkflowRegistry.create_class(selected_workflow)
+        
+        # Define workflow (instance) from Workflow (class).
+        workflow = Workflow(fnames=fnames, settings=settings,
+                            map_x=map_x, map_y=map_y)
+
+        # Run and return.
         return workflow.run()
 
     @staticmethod
     def create_settings_file(fname, workflow="time-domain",
                               trim=False, start_time=0.0, end_time=1.0,
                               mute=False, method="interactive",
-                              window_kwargs=None, pad=False, df=1.,
+                              window_kwargs=None, pad=False, df=1.0,
                               transform="fdbf", fmin=5, fmax=100, vmin=100,
-                              vmax=400, nvel=100, vspace="linear",
+                              vmax=1000, nvel=200, vspace="linear",
                               weighting="sqrt", steering="cylindrical",
                               snr=False, noise_begin=-0.5, noise_end=0.0,
                               signal_begin=0.0, signal_end=0.5,
@@ -97,10 +104,48 @@ class Masw():
             If `mute` is `True`, describe the shape of the mute mask,
             see `scipy.singal.windows.tukey <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.windows.tukey.html>`_
             for available options.
-        TODO (jpv): To be continued.
+        pad : bool, optional
+            Perform time-domain padding to attain a specific frequency
+            step `df`, default is `False`.
+        df : float, optional
+            Desired frequency step in Hz if `pad=True`, default is 1 Hz.
+        transform : {"fdbf", "phaseshift", "slantstack"}, optional
+            Multichannel transformation, default is `fdbf`.
+        fmin, fmax : float, optional
+            Minimum and maximum processing frequencies, default is `5`
+            and `100`, respectively.
+        vmin, vmax : float, optional
+            Minimum and maximum processing velocity in m/s, default is
+            `100` and `1000`, respectively.
+        nvel : int, optional
+            Number of velocity steps, default is `200`.
+        vpsace : {'linear', 'log'}, optional
+            Select the whether the `nvel` trial velocities are selected
+            in `linear` or `log` space, default is `linear`.
+        weighting : {'sqrt', 'invamp', 'none'}, optional
+            If `transform='fdbf', then select weighting, default is
+            `'sqrt'`.
+        steering ; {'cylindrical', 'plane'}, optional
+            If `transform='fdbf', then select steering, default is
+            `'cylindrical'`.
+        snr : bool, optional
+            Determine whether signal-to-noise ratio calculation should
+            be performed, default is `False`.
+        noise_begin, noise_end : float, optional
+            If `snr=True`, select noise window start and end time
+            respectively, default is `-0.5`, `0` seconds respectively.
+        signal_begin, signal_end : float, optional
+            If `snr=True`, select signal window start and end time
+            respectively, default is `0`, `0.5` seconds respectively.
+        pad_snr : bool, optional
+            If `snr=True`, select whether singal-to-noise ratio windows
+            should be padded. If singal and noise windows are of
+            different lengths, this must be `True`, default is `True`.
+        df_snr : float, optional
+            If `snr=True` and `pad_snr=True`, set the desired frequency
+            domain spacing, default is 1 Hz.
 
         """
-                        
         settings = {"workflow": workflow,
                     "pre-processing": {
                         "trim": {
@@ -111,7 +156,7 @@ class Masw():
                         "mute": {
                             "apply": mute,
                             "method": method,
-                            "window_kwargs": {}} if window_kwargs is None else window_kwargs
+                            "window_kwargs": {} if window_kwargs is None else window_kwargs
                         },
                         "pad": {
                             "apply": pad,
@@ -126,7 +171,7 @@ class Masw():
                         "vmax": vmax,
                         "nvel": nvel,
                         "vspace": vspace,
-                        "fdbf-specfic": {
+                        "fdbf-specific": {
                             "weighting": weighting,
                             "steering": steering
                         }
@@ -145,7 +190,7 @@ class Masw():
                             "apply": pad_snr,
                             "df": df_snr
                         }
-                    }
+                    },
                     }
         with open(fname, "w") as f:
             json.dump(settings, f)

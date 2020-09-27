@@ -2,9 +2,9 @@
     "workflow": "time-domain",
     "pre-processing": {
         "trim": {
-            "apply": true,
+            "apply": false,
             "begin": 0.0,
-            "end": 0.9
+            "end": 1.0
         },
         "mute": {
             "apply": false,
@@ -12,16 +12,16 @@
             "window_kwargs": {}
         },
         "pad": {
-            "apply": true,
-            "df": 1
+            "apply": false,
+            "df": 1.0
         }
     },
     "processing": {
-        "transform": "phaseshift",
+        "transform": "fdbf",
         "fmin": 5,
         "fmax": 100,
         "vmin": 100,
-        "vmax": 400,
+        "vmax": 1000,
         "nvel": 200,
         "vspace": "linear",
         "fdbf-specific": {
@@ -41,7 +41,7 @@
         },
         "pad": {
             "apply": true,
-            "df": 1
+            "df": 1.0
         }
     }
 }
