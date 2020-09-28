@@ -173,8 +173,9 @@ class AbstractWavefieldTransform(ABC):
             fig.tight_layout()
             return (fig, ax)
 
-    def plot(self, fig=None, ax=None, normalization="frequency-maximum",
-             peaks="frequency-maximum", cmap="jet", peak_kwargs=None):
+    def plot(self, fig=None, ax=None, cax=None,
+             normalization="frequency-maximum", peaks="frequency-maximum",
+             cmap="jet", peak_kwargs=None):
         """Plot the `WavefieldTransform`'s dispersion image.
 
         Parameters
@@ -182,6 +183,10 @@ class AbstractWavefieldTransform(ABC):
         ax : Axes, optional
             Axes object on which to plot the dispersion image, default
             is `None` so an `Axes` will be created on-the-fly.
+        cax : Axes, optional
+            Axes object on which to plot the colorbar for the disperison
+            image, default is `None` so an `Axes` will be created from
+            `ax`.
         normalization : {"none", "absolute-maximum", "frequency-maximum"}, optional
             Determines how the surface wave dispersion power is
             normalized, default is 'frequency-maximum'.
@@ -218,8 +223,13 @@ class AbstractWavefieldTransform(ABC):
                               self.power,
                               np.linspace(0, np.max(self.power), 20),
                               cmap=plt.cm.get_cmap(cmap))
-        fig.colorbar(contour, ax=ax,
+        if cax is None:
+            ax_kwargs = dict(ax=ax, pad=0.01)
+        else:
+            ax_kwargs = dict(cax=cax)
+        fig.colorbar(contour, **ax_kwargs,
                      ticks=np.round(np.linspace(0, np.max(self.power), 11), 1))
+                        
 
         # Plot peaks (if necessary).
         if peaks != "none":

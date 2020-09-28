@@ -1,0 +1,30 @@
+{
+    "statistics": {
+        "xtype": "frequency",
+        "ytype": "velocity",
+        "type": "log",
+        "start": 3,
+        "stop": 100,
+        "num": 30
+    },
+    "domains": [
+        [
+            "frequency",
+            "velocity"
+        ],
+        [
+            "wavelength",
+            "velocity"
+        ],
+        [
+            "frequency",
+            "slowness"
+        ]
+    ],
+    "limits": {
+        "velocity": [
+            50,
+            500
+        ]
+    }
+}
