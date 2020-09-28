@@ -1,4 +1,4 @@
-"""Tests for class WavefieldTransform1D."""
+"""Tests for class wavefieldtransforms module."""
 
 import numpy as np
 
@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from testtools import TestCase, unittest, get_full_path
 
 
-class Test_WaveTransform1d(TestCase):
+class Test_WavefieldTransforms(TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -18,7 +18,7 @@ class Test_WaveTransform1d(TestCase):
 
     def test_normalize_power(self):
         nfrqs, nvels = 4, 3
-        power = np.arange(nfrqs*nvels).reshape(nvels, nfrqs)
+        power = np.arange(nfrqs*nvels, dtype=float).reshape(nvels, nfrqs)
         frqs = np.arange(nfrqs)
         vels = np.arange(nvels)
 
@@ -28,7 +28,7 @@ class Test_WaveTransform1d(TestCase):
             transform = EmptyWavefieldTransform(frqs, vels, power)
             transform.normalize(by=approach)
             returned = transform.power
-            expected = power/divisor
+            expected = np.array(power)/divisor
             self.assertArrayEqual(expected, returned)
 
     def test_create_vector(self):

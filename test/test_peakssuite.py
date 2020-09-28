@@ -10,9 +10,10 @@ import matplotlib.pyplot as plt
 import swprocess
 from testtools import unittest, TestCase, get_full_path
 
-mpl_logger = logging.getLogger("matplotlib")
-mpl_logger.setLevel(logging.ERROR)
-logging.basicConfig(level=logging.WARNING)
+# mpl_logger = logging.getLogger("matplotlib")
+# mpl_logger.setLevel(logging.ERROR)
+
+# logging.basicConfig(level=logging.WARNING)
 
 
 class Test_PeaksSuite(TestCase):

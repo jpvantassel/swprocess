@@ -30,6 +30,9 @@ class AbstractWavefieldTransform(ABC):
         self.velocities = velocities
         self.power = power
 
+        # Pre-define internal state attributes
+        self._to_unnormalized = 1.
+
         # Pre-define optional attributes
         self.snr = None
         self.snr_frequencies = None
@@ -93,14 +96,23 @@ class AbstractWavefieldTransform(ABC):
             Update the internal state of power.
 
         """
-        register = {"none": lambda x: np.abs(x),
-                    "absolute-maximum": lambda x: np.abs(x)/np.max(np.abs(x)),
-                    "frequency-maximum": lambda x: np.abs(x)/np.max(np.abs(x), axis=0),
+        # Return power to unnormalized state.
+        self.power *= self._to_unnormalized
+
+        # Normalize power
+        register = {"none": (lambda x: np.abs(x),
+                             lambda x: 1.),
+                    "absolute-maximum": (lambda x: np.abs(x)/np.max(np.abs(x)),
+                                         lambda x: np.max(np.abs(x))),
+                    "frequency-maximum": (lambda x: np.abs(x)/np.max(np.abs(x), axis=0),
+                                          lambda x: np.max(np.abs(x), axis=0))
                     }
-        self.power = register[by](self.power)
+        norm_func, norm_val = register[by]
+        self.power, self._to_unnormalized = (norm_func(self.power),
+                                             norm_val(self.power))
 
     def find_peak_power(self, by="frequency-maximum"):
-        """Pick maximum `WavefieldTransform` power.
+        """Find maximum `WavefieldTransform` power.
 
         Parameters
         ----------
@@ -110,74 +122,11 @@ class AbstractWavefieldTransform(ABC):
 
         Returns
         -------
-        # Peaks
-        #     An instantiated `Peaks` object.
-        """
-        # TODO(jpv): Decide if this should return a peaks object or update state.
-        self.peaks = self.velocities[np.argmax(self.power, axis=0)]
-        # return Peaks(self.frequencies, self.peaks,)
-
-    def write_peaks_to_file(self, fname, identifier, append=False, ftype="json"):
-        """Write peak disperison values to file.
-
-        Parameters
-        ----------
-        fname : str
-            Name of the output file, may be a relative or the full path.
-        identifier :  str
-            A unique identifier for the peaks. The source offset is
-            typically sufficient.
-        append : bool, optional
-            Flag to denote whether `fname` should be appended to or
-            overwritten, default is `False` indicating the file will
-            be overwritten.
-        ftype : {'json'}, optional
-            Denotes the desired filetype.
-            TODO (jpv): Add also a csv option.
-
-        Returns
-        -------
-        None
-            Instead writes/appends dispersion peaks to file `fname`.
+        ndarray
+            Containing the peak velocity at each frequency.
 
         """
-        if self.domain == "wavenumber":
-            v_peak = 2*np.pi / self.peaks*self.frqs
-        elif self.domain == "velocity":
-            v_peak = self.peaks
-        else:
-            raise NotImplementedError()
-
-        if ftype != "json":
-            raise ValueError()
-
-        if fname.endswith(".json"):
-            fname = fname[:-5]
-
-        data = {}
-        if append:
-            try:
-                f = open(f"{fname}.json", "r")
-            except FileNotFoundError:
-                pass
-            else:
-                data = json.load(f)
-                f.close()
-
-        with open(f"{fname}.json", "w") as fp:
-            if identifier in data:
-                raise KeyError(f"identifier {identifier} is repeated.")
-            else:
-                # keep_ids = np.where(v_peak < self.settings["vmax"])
-                # ftrim = self.frqs[keep_ids].tolist()
-                # vtrim = v_peak[keep_ids].tolist()
-                # data.update({identifier: {"frequency": ftrim,
-                #                           "velocity": vtrim}})
-
-                data.update({identifier: {"frequency": self.frqs.tolist(),
-                                          "velocity": v_peak.tolist()}})
-
-            json.dump(data, fp)
+        return self.velocities[np.argmax(self.power, axis=0)]
 
     def plot_waterfall(self, *args, **kwargs):
         # Only proceed if array is not None:
@@ -261,7 +210,7 @@ class AbstractWavefieldTransform(ABC):
         self.normalize(by=normalization)
 
         # Select peaks.
-        self.find_peak_power(by=peaks)
+        selected_peaks = self.find_peak_power(by=peaks)
 
         # Plot dispersion image.
         contour = ax.contourf(self.frequencies,
@@ -273,12 +222,12 @@ class AbstractWavefieldTransform(ABC):
                      ticks=np.round(np.linspace(0, np.max(self.power), 11), 1))
 
         # Plot peaks (if necessary).
-        if peaks != ["none"]:
+        if peaks != "none":
             default_kwargs = dict(marker="o", markersize=1, markeredgecolor="w",
                                   markerfacecolor='none', linestyle="none")
             peak_kwargs = {} if peak_kwargs is None else peak_kwargs
             peak_kwargs = {**default_kwargs, **peak_kwargs}
-            ax.plot(self.frequencies, self.peaks, **peak_kwargs)
+            ax.plot(self.frequencies, selected_peaks, **peak_kwargs)
 
         ax.set_xlabel("Frequency (Hz)")
         ax.set_ylabel("Phase Velocity (m/s)")
@@ -676,7 +625,7 @@ class FDBF(AbstractWavefieldTransform):
         ----------
         tmatrix : ndarray
             Three-dimensional matrix of shape
-            `(samples_per_block, nblocks, nchannels)`. 
+            `(samples_per_block, nblocks, nchannels)`.
         fmin, fmax : float, optional
             Minimum and maximum frequency of interest.
 
