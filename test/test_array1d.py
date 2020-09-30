@@ -19,7 +19,7 @@ class Test_Array1D(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.full_path = get_full_path(__file__)
-        cls.vuws_path = cls.full_path + "../examples/sample_data/vuws/"
+        cls.wghs_path = cls.full_path + "../examples/sample_data/wghs/"
 
         cls.sensor_0 = swprocess.Sensor1C(amplitude=[-.1]*9 + [-0.11] + [-.1]*9,
                                           dt=1, x=0, y=0, z=0, nstacks=1,
@@ -234,22 +234,22 @@ class Test_Array1D(TestCase):
 
     def test_waterfall(self):
         # Single shot (near-side)
-        fname = self.vuws_path+"1.dat"
+        fname = self.wghs_path+"1.dat"
         array1 = swprocess.Array1D.from_files(fname)
         array1.waterfall()
 
         # Multiple shots (near-side)
-        fnames = [f"{self.vuws_path}{x}.dat" for x in range(1, 6)]
+        fnames = [f"{self.wghs_path}{x}.dat" for x in range(1, 6)]
         array2 = swprocess.Array1D.from_files(fnames)
         array2.waterfall()
 
         # Single shot (far-side)
-        fname = self.vuws_path+"16.dat"
+        fname = self.wghs_path+"16.dat"
         array3 = swprocess.Array1D.from_files(fname)
         array3.waterfall()
 
         # Multiple shots (near-side)
-        fnames = [f"{self.vuws_path}{x}.dat" for x in range(16, 20)]
+        fnames = [f"{self.wghs_path}{x}.dat" for x in range(16, 20)]
         array4 = swprocess.Array1D.from_files(fnames)
         array4.waterfall()
         array4.waterfall(time_ax="x")
@@ -262,7 +262,7 @@ class Test_Array1D(TestCase):
 
     def test_plot(self):
         # Basic case (near-side, 2m spacing)
-        fname = self.vuws_path+"1.dat"
+        fname = self.wghs_path+"1.dat"
         swprocess.Array1D.from_files(fname).plot()
 
         # Non-linear spacing
@@ -273,7 +273,7 @@ class Test_Array1D(TestCase):
         array.plot()
 
         # Basic case (far-side, 2m spacing)
-        fname = self.vuws_path+"20.dat"
+        fname = self.wghs_path+"20.dat"
         swprocess.Array1D.from_files(fname).plot()
 
         plt.show(block=False)
@@ -431,7 +431,7 @@ class Test_Array1D(TestCase):
 
     def test_from_files(self):
         # Single File : SEG2
-        fname = self.vuws_path + "1.dat"
+        fname = self.wghs_path + "1.dat"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             known = obspy.read(fname)
@@ -449,7 +449,7 @@ class Test_Array1D(TestCase):
                               test.timeseriesmatrix()[0, :])
 
         # Multiple Files
-        fnames = [f"{self.vuws_path}{x}.dat" for x in range(1, 5)]
+        fnames = [f"{self.wghs_path}{x}.dat" for x in range(1, 5)]
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             tmp_stream = obspy.read(fnames[0])
@@ -462,7 +462,7 @@ class Test_Array1D(TestCase):
         self.assertArrayAlmostEqual(expected, returned, places=2)
 
         # Bad : incompatible sources
-        fnames = [f"{self.vuws_path}{x}.dat" for x in range(1, 10)]
+        fnames = [f"{self.wghs_path}{x}.dat" for x in range(1, 10)]
         self.assertRaises(ValueError, swprocess.Array1D.from_files, fnames)
 
         # Bad : miniseed

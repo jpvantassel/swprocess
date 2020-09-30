@@ -1,6 +1,6 @@
 {
     "statistics": {
-        "xtype": "frequency",
+        "xtype": "wavelength",
         "ytype": "velocity",
         "type": "log",
         "start": 3,

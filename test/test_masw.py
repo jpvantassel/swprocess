@@ -16,7 +16,6 @@ class Test_Masw(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.full_path = get_full_path(__file__)
-        cls.vuws_path = cls.full_path + "../examples/sample_data/vuws/"
         cls.wghs_path = cls.full_path + "../examples/sample_data/wghs/"
 
     def test_run(self):
