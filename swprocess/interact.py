@@ -2,6 +2,9 @@
 
 import warnings
 
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Cursor
+
 
 def ginput_session(ax, initial_adjustment=True,
                    initial_adjustment_message=None, npts=None,
@@ -49,10 +52,9 @@ def ginput_session(ax, initial_adjustment=True,
     # Permit initial adjustment with blocking call to figure.
     if initial_adjustment:
         if initial_adjustment_message is None:
-            initial_adjustment_message = "Adjust view, spacebar when ready."
+            initial_adjustment_message = "Adjust view,\nspacebar when ready."
         text = ax.text(0.95, 0.95, initial_adjustment_message,
-                       loc="upper right", transform=ax.AxesTransform)
-        print(initial_adjustment_message)
+                       ha="right", va="top", transform=ax.transAxes)
         while True:
             if plt.waitforbuttonpress(timeout=-1):
                 text.set_visible(False)
@@ -61,10 +63,9 @@ def ginput_session(ax, initial_adjustment=True,
     # Begin selection of npts.
     npt, xs, ys = 0, [], []
     while npt < npts:
-        selection_message = "Left click to add, right click to remove, enter to accept."
+        selection_message = "Left click to add,\nright click to remove,\nenter to accept."
         text = ax.text(0.95, 0.95, selection_message,
-                       loc="upper right", transform=ax.AxesTransform)
-        print(selection_message)
+                       ha="right", va="top", transform=ax.transAxes)
         vals = plt.ginput(n=-1, timeout=0)
         text.set_visible(False)
 
@@ -80,10 +81,10 @@ def ginput_session(ax, initial_adjustment=True,
 
         if ask_to_continue:
             if ask_to_continue_message is None:
-                msg = "Adjust view, press spacebar once to contine, twice to exit"
+                msg = "Adjust view,\n press spacebar\n once to contine,\n twice to exit."
             text = ax.text(0.95, 0.95, ask_to_continue_message,
-                           loc="upper right", transform=ax.AxesTransform)
-            print(msg)
+                           ha="right", va="top",
+                           transform=ax.transAxes)
             while True:
                 if plt.waitforbuttonpress(timeout=-1):
                     text.set_visible(False)
@@ -91,6 +92,6 @@ def ginput_session(ax, initial_adjustment=True,
 
         if plt.waitforbuttonpress(timeout=0.25):
             break
-    print("Interactive session complete, close figure when ready.")
+    print("Interactive session complete, close figure(s) when ready.")
 
     return (xs, ys)

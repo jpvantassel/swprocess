@@ -7,7 +7,6 @@ import numpy as np
 import obspy
 import matplotlib.pyplot as plt
 from scipy import signal
-from matplotlib.widgets import Cursor
 
 from .interact import ginput_session
 from swprocess import ActiveTimeSeries, Source, Sensor1C
