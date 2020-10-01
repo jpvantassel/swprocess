@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from scipy import signal
 from matplotlib.widgets import Cursor
 
+from .interact import ginput_session
 from swprocess import ActiveTimeSeries, Source, Sensor1C
 
 logger = logging.getLogger("swprocess.array1d")
@@ -409,6 +410,10 @@ class Array1D():
             time, distance = pairs
 
         return (distance, time)
+
+    @staticmethod
+    def _ginput_session(*args, **kwargs):
+        return ginput_session(*args, **kwargs)
 
     def interactive_mute(self, mute_location="both", window_kwargs=None,
                          waterfall_kwargs=None):
