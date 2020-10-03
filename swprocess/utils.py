@@ -3,20 +3,25 @@
 import os
 
 import obspy
-import pandas
+import pandas as pd
+
+logger = logging.getLogger("swprocess.utils")
 
 def extract_mseed(startend_fname, network):
     """Extract specific time blocks from a set of miniseed files.
 
-    Read a large set of miniseed files, trims out specified time
-    block(s), and writes the trimmed block(s) to disk. Is useful for condensing
-    a dataset consisting of miniseed files written at the end of each
-    hour to a single file that spans several hours.
+    Reads a large set of miniseed files, trims out specified time
+    block(s), and writes the trimmed block(s) to disk. Useful for
+    condensing a large dataset consisting of miniseed files written at
+    the end of each hour to a single file that spans several hours.
+    Stations which share an array name will appear in a common
+    directory.
 
     Parameters
     ----------
     startend_fname : str
-        Name of file with start and end times.
+        Name of .xlsx or .csv file with start and end times. An example
+        file is provided here TODO (jpv): Add link to example file.
     network : str
         Short string of characters to identify the network. Exported
         files will utilize this network code as its prefix.
@@ -27,20 +32,21 @@ def extract_mseed(startend_fname, network):
         Writes folder and files to disk.
 
     """
+    # Read start and end times.
+    try:
+        df = pd.read_excel(startend_fname)
+    except:
+        raise NotImplementedError("To implement csv parsing")
 
-    # Loop through single stations
-    total = db['Start Year'].count()
-    for n in range(total):
+    # Loop through across defined timeblocks.
+    logger.info("Begin iteration across dataframe ...")
+    for index, series in df.iterrows():
+        logger.debug(f"\tindex={index} series={series}")
+
+        # Range of years required.
+        years = np.range(series["start year"], series["end years"] + 1)
+        logger.debug(f"\t\tyears={years}")
         
-        # Count number of files for each station
-        n_files=0
-        
-        # Loop through potential years
-        if db['Start Year'][n]==db['End Year'][n]:
-            searchYears=[db['Start Year'][n]]
-        else:
-            error('Different start and end years!')
-                    
         # Loop through potential months
         for m in range(len(searchYears)):
             if db['Start Month'][n]==db['End Month'][n]:
