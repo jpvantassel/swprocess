@@ -38,7 +38,7 @@ setup(
     keywords='surface-wave processing geopsy active passive',
     packages=find_packages(),
     python_requires = '>3.6',
-    install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy"],
+    install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy", "pandas", "xlrd"],
     extras_require={
         'dev': [],
     },
