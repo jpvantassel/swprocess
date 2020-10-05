@@ -1,13 +1,15 @@
 """Surface wave processing utilities."""
 
 import os
+import datetime
 
 import obspy
 import pandas as pd
 
 logger = logging.getLogger("swprocess.utils")
 
-def extract_mseed(startend_fname, network):
+
+def extract_mseed(startend_fname, network, data_dir="./"):
     """Extract specific time blocks from a set of miniseed files.
 
     Reads a large set of miniseed files, trims out specified time
@@ -25,6 +27,9 @@ def extract_mseed(startend_fname, network):
     network : str
         Short string of characters to identify the network. Exported
         files will utilize this network code as its prefix.
+    data_dir : str, optional
+        The full or a relative file path to the directory containing the
+        miniseed files.
 
     Returns
     -------
@@ -36,93 +41,85 @@ def extract_mseed(startend_fname, network):
     try:
         df = pd.read_excel(startend_fname)
     except:
-        raise NotImplementedError("To implement csv parsing")
+        raise NotImplementedError("To implement .csv parsing")
 
     # Loop through across defined timeblocks.
     logger.info("Begin iteration across dataframe ...")
+    total = df["folder"].count()
     for index, series in df.iterrows():
         logger.debug(f"\tindex={index} series={series}")
 
-        # Range of years required.
-        years = np.range(series["start year"], series["end years"] + 1)
-        logger.debug(f"\t\tyears={years}")
-        
-        # Loop through potential months
-        for m in range(len(searchYears)):
-            if db['Start Month'][n]==db['End Month'][n]:
-                searchMonths=[db['Start Month'][n]]
-            else:
-                error('Different start and end months!')
-                
-            # Loop through potential dates  
-            for o in range(len(searchMonths)):
-                if db['Start Date'][n]==db['End Date'][n]:
-                    searchDates=[db['Start Date'][n]]
-                else:
-                    searchDates = list(range(db['Start Date'][n],db['End Date'][n]+1))
-                    
-                # Loop through potential hours
-                for p in range(len(searchDates)):
-                    if (len(searchDates)==1) & (db['Start Hour'][n]==db['End Hour'][n]):
-                        searchHours=[db['Start Hour'][n]]
-                    elif (len(searchDates)==1) & (db['Start Hour'][n]<db['End Hour'][n]):
-                        searchHours=list(range(db['Start Hour'][n],db['End Hour'][n]+1))
-                    else:
-                        if p==0:
-                            searchHours=list(range(db['Start Hour'][n],24))
-                        elif p==len(searchDates)-1:
-                            searchHours = list(range(0,db['End Hour'][n]+1))
-                        else:
-                            searchHours=list(range(0,24))
-                            
-                    for q in range(len(searchHours)):
-                
-    #                     # Current miniseed file named as follows: UT.STN01_YYYYMMDD_HH0000.miniseed
-    #                     currentFile = station_code+'.STN'+str(db.Station[n]).zfill(2)+'_'+str(searchYears[m])+str(searchMonths[o]).zfill(2)\
-    #                     +str(searchDates[p]).zfill(2)+'_'+str(searchHours[q]).zfill(2)+'0000.miniseed'
-                        
-                        # Current miniseed file named as follows: CD.STN01_SENSOR_YYYYMMDD_HH0000.miniseed
-                        currentFile = station_code+'.STN'+str(db.Station[n]).zfill(2)+'_'+str(db.Sensor[n])+'_'+str(searchYears[m])+str(searchMonths[o]).zfill(2)\
-                        +str(searchDates[p]).zfill(2)+'_'+str(searchHours[q]).zfill(2)+'0000.miniseed'
+        # Start and end time.
+        starttime = datetime.datetime(year=series["start year"],
+                                      month=series["start month"],
+                                      day=series["start date"],
+                                      hour=series["start hour"],
+                                      tzinfo=datetime.timezone.utc)
+        logging.debug(f"\t\tstarttime={starttime}")
+        currenttime = starttime
 
-                        # Read current file and append if necessary
-                        data_dir = f"{searchYears[m]}_{str(searchMonths[o]).zfill(2)}_{str(searchDates[p]).zfill(2)}"
-                        if n_files==0:
-                            XX = obspy.read(data_dir+'\\'+currentFile)
-                            n_files += 1
-                        else:
-                            XX += obspy.read(data_dir+'\\'+currentFile)
-                            
-        XX = XX.merge(method=1)
-        
-    #     # Rename station for all components
-    #     for r in range(3):
-    #         XX.traces[r].stats.station = str(n).zfill(3)
-                        
-        # Trim stream object to be between specified start and end times
-        s_timeS = obspy.UTCDateTime(db['Start Year'][n], db['Start Month'][n], db['Start Date'][n], db['Start Hour'][n],\
-                                    db['Start Minute'][n], db['Start Second'][n])
-        e_timeS = obspy.UTCDateTime(db['End Year'][n], db['End Month'][n], db['End Date'][n], db['End Hour'][n],\
-                                    db['End Minute'][n], db['End Second'][n])
-        XX.trim( starttime=s_timeS, endtime=e_timeS)
-                
+        endtime = datetime.datetime(year=series["end year"],
+                                    month=series["end month"],
+                                    day=series["end date"],
+                                    hour=series["end hour"],
+                                    tzinfo=datetime.timezone.utc)
+        logging.debug(f"\t\tendtime={endtime}")
+
+        # Avoid nonsensical time blocks.
+        if endtime < starttime:
+            msg = f"endtime={endtime} is less than starttime={starttime}."
+            raise ValueError(msg)
+
+        # Loop across the required hours and merge traces.
+        append = False
+        dt = datetime.timedelta(hours=1)
+        while currenttime <= endtime:
+
+            # miniSEED file name: NW.STNSN_SENSOR_YYYYMMDD_HH0000.miniseed
+            fname = f"{network}.STN{str(series["station number"]).zfill(2)}_\
+                      {currenttime.year}\
+                      {str(currenttime.month).zfill(2)}\
+                      {str(currenttime.day).zfill(2)}_\
+                      {str(currenttime.hour).zfill(2)}+'0000.miniseed"
+
+            # Read current file and append if necessary
+            if append:
+                master += obspy.read(f"{data_dir}\{fname}")
+            else:
+                master = obspy.read(f"{data_dir}\{fname}")
+                append = True
+
+            currenttime += dt
+
+        master = master.merge(method=1)
+
+        # Trim merged traces between specified start and end times
+        trim_start = obspy.UTCDateTime(series["start year"], series["start month"],
+                                       series["start date"], series["start hour"],
+                                       series["start minute"], series["start second"])
+        trim_end = obspy.UTCDateTime(series["end year"], series["end month"],
+                                     series["end date"], series["end hour"],
+                                     series["end minute"], series["end second"])
+        master.trim(starttime=trim_start, endtime=trim_end)
+
         # Store new miniseed files in folder titled "Array Miniseed"
-        aName = db.ShortName[n]
-        if not os.path.isdir('./' + aName):
-            print("Creating Directory".format(aName))
-            os.mkdir('./' + aName) 
-        
-        # In case somehow it becomes a masked array. Why this sometimes happens is unclear
-        for tr in XX:
+        folder = series["folder"]
+        if not os.path.isdir(f"./{folder}"):
+            logger.info(f"Creating folder: {folder}")
+            os.mkdir(f"./{folder}")
+
+        # Unmask masked array.
+        for tr in master:
             if isinstance(tr.data, np.ma.masked_array):
                 tr.data = tr.data.filled()
-                print(str(db.ShortName[n])+str(n).zfill(2)+' was a masked array')
+                logger.info(f"{series["folder"]} {series["file suffix"]}\
+                               STN{str(series["station number"]).zfill(2)}\
+                               was a masked array.")
 
-        # Create new miniseed file containing only the data between specified start and end times   
-    #     filename='SSHV_'+str(n).zfill(3)+'.miniseed'
-    #     print('SSHV '+str(n+1)+' of '+str(total)+' Extracting data from station '+str(db.Station[n]).zfill(2)+' Creating file: ' + filename)
+        # Write trimmed file to disk.
+        fname_out = f"./{folder}/{network}.STN{str(series["station number"]).zfill(2)}.{series["file_suffix"].mseed"
+        logger.info(f"Extracted {index+1} of {total}.\
+                      Extracting data from station {str(db.Station[n]).zfill(2)}.\
+                      Creating file: {fname_out}.")
 
-        filename = './'+aName+'/'+station_code+'.STN'+str(db.Station[n]).zfill(2) + '.' + aName + '.miniseed'
-        print('Extracted '+str(n+1)+' of '+str(total)+' Extracting data from station '+str(db.Station[n]).zfill(2)+' Creating file: ' + filename)
-
-        XX.write( filename, format="MSEED")
+        master.write(fname_out)
