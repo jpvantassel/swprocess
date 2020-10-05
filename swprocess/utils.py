@@ -2,14 +2,17 @@
 
 import os
 import datetime
+import logging
+import warnings
 
+import numpy as np
 import obspy
 import pandas as pd
 
 logger = logging.getLogger("swprocess.utils")
 
 
-def extract_mseed(startend_fname, network, data_dir="./"):
+def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", extension="mseed"):
     """Extract specific time blocks from a set of miniseed files.
 
     Reads a large set of miniseed files, trims out specified time
@@ -29,7 +32,12 @@ def extract_mseed(startend_fname, network, data_dir="./"):
         files will utilize this network code as its prefix.
     data_dir : str, optional
         The full or a relative file path to the directory containing the
-        miniseed files.
+        miniseed files, default is the current directory.
+    output_dir : str, optional
+        The full or a relative file path to the location to place the
+        output miniseed files, default is the current directory.
+    extension : {"mseed", "miniseed"}, optional
+        Extension used for miniSEED format, default is `"mseed"`.
 
     Returns
     -------
@@ -39,7 +47,9 @@ def extract_mseed(startend_fname, network, data_dir="./"):
     """
     # Read start and end times.
     try:
-        df = pd.read_excel(startend_fname)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            df = pd.read_excel(startend_fname)
     except:
         raise NotImplementedError("To implement .csv parsing")
 
@@ -76,17 +86,13 @@ def extract_mseed(startend_fname, network, data_dir="./"):
         while currenttime <= endtime:
 
             # miniSEED file name: NW.STNSN_SENSOR_YYYYMMDD_HH0000.miniseed
-            fname = f"{network}.STN{str(series["station number"]).zfill(2)}_\
-                      {currenttime.year}\
-                      {str(currenttime.month).zfill(2)}\
-                      {str(currenttime.day).zfill(2)}_\
-                      {str(currenttime.hour).zfill(2)}+'0000.miniseed"
+            fname = f"{network}.STN{str(series['station number']).zfill(2)}_{currenttime.year}{str(currenttime.month).zfill(2)}{str(currenttime.day).zfill(2)}_{str(currenttime.hour).zfill(2)}0000.{extension}"
 
             # Read current file and append if necessary
             if append:
-                master += obspy.read(f"{data_dir}\{fname}")
+                master += obspy.read(f"{data_dir}{fname}")
             else:
-                master = obspy.read(f"{data_dir}\{fname}")
+                master = obspy.read(f"{data_dir}{fname}")
                 append = True
 
             currenttime += dt
@@ -104,22 +110,18 @@ def extract_mseed(startend_fname, network, data_dir="./"):
 
         # Store new miniseed files in folder titled "Array Miniseed"
         folder = series["folder"]
-        if not os.path.isdir(f"./{folder}"):
-            logger.info(f"Creating folder: {folder}")
-            os.mkdir(f"./{folder}")
+        if not os.path.isdir(f"{output_dir}{folder}"):
+            logger.info(f"Creating folder: {output_dir}{folder}")
+            os.mkdir(f"{output_dir}{folder}")
 
         # Unmask masked array.
         for tr in master:
             if isinstance(tr.data, np.ma.masked_array):
                 tr.data = tr.data.filled()
-                logger.info(f"{series["folder"]} {series["file suffix"]}\
-                               STN{str(series["station number"]).zfill(2)}\
-                               was a masked array.")
+                logger.info(f"{series['folder']} {series['file suffix']}STN{str(series['station number']).zfill(2)} was a masked array.")
 
         # Write trimmed file to disk.
-        fname_out = f"./{folder}/{network}.STN{str(series["station number"]).zfill(2)}.{series["file_suffix"].mseed"
-        logger.info(f"Extracted {index+1} of {total}.\
-                      Extracting data from station {str(db.Station[n]).zfill(2)}.\
-                      Creating file: {fname_out}.")
+        fname_out = f"{output_dir}{folder}/{network}.STN{str(series['station number']).zfill(2)}.{series['file suffix']}.{extension}"
+        logger.info(f"Extracted {index+1} of {total}. Extracting data from station {str(series['station number']).zfill(2)}. Creating file: {fname_out}.")
 
-        master.write(fname_out)
+        master.write(fname_out, format="mseed")
