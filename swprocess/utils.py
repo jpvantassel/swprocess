@@ -55,7 +55,7 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
 
     # Loop through across defined timeblocks.
     logger.info("Begin iteration across dataframe ...")
-    total = df["folder"].count()
+    total = df["folder name"].count()
     for index, series in df.iterrows():
         logger.debug(f"\tindex={index} series={series}")
 
@@ -109,19 +109,19 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
         master.trim(starttime=trim_start, endtime=trim_end)
 
         # Store new miniseed files in folder titled "Array Miniseed"
-        folder = series["folder"]
+        folder = series["folder name"]
         if not os.path.isdir(f"{output_dir}{folder}"):
             logger.info(f"Creating folder: {output_dir}{folder}")
             os.mkdir(f"{output_dir}{folder}")
 
-        # Unmask masked array.
-        for tr in master:
-            if isinstance(tr.data, np.ma.masked_array):
-                tr.data = tr.data.filled()
-                logger.info(f"{series['folder']} {series['file suffix']}STN{str(series['station number']).zfill(2)} was a masked array.")
+        # # Unmask masked array.
+        # for tr in master:
+        #     if isinstance(tr.data, np.ma.masked_array):
+        #         tr.data = tr.data.filled()
+        #         logger.info(f"{folder}/{network}.STN{str(series['station number']).zfill(2)} was a masked array.")
 
         # Write trimmed file to disk.
-        fname_out = f"{output_dir}{folder}/{network}.STN{str(series['station number']).zfill(2)}.{series['file suffix']}.{extension}"
+        fname_out = f"{output_dir}{folder}/{network}.STN{str(series['station number']).zfill(2)}.{series['array name']}.{extension}"
         logger.info(f"Extracted {index+1} of {total}. Extracting data from station {str(series['station number']).zfill(2)}. Creating file: {fname_out}.")
 
         master.write(fname_out, format="mseed")
