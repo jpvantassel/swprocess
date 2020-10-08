@@ -1,6 +1,10 @@
 """This file contains the Source class for storing information on the
 type and location of an active-source."""
 
+import logging
+
+logger = logging.getLogger("swprocess.source")
+
 class Source():
     """A Source class for storing information about an active-source.
     
@@ -13,9 +17,6 @@ class Source():
             position: Dictionary showing the relative position of the
                 source from the first receiver of the form:
                 {'x': xval, 'y':yval, 'z':zval}
-                TODO (jpv): allow for non-relative positions.
-
-            TODO (jpv): Add type of source, timeseries etc
          
         Returns:
             This method returns no value.
@@ -26,7 +27,8 @@ class Source():
         self._x = float(x)
         self._y = float(y)
         self._z = float(z)
-    
+        logger.info(f"Created {self}.")
+
     @property
     def x(self):
         return self._x
