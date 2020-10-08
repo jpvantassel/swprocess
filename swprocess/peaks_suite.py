@@ -123,7 +123,7 @@ class PeaksSuite():
             with open(fname, "r") as f:
                 peak_data = f.read()
 
-            regex = get_all(time="(\d+\.?\d*)", wavetype=wavetype)
+            regex = get_all(wavetype=wavetype)
             found_times = []
             for found in regex.finditer(peak_data):
                 start_time = found.groups()[0]
@@ -193,7 +193,7 @@ class PeaksSuite():
             _peak._reject(_reject_ids)
 
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
-             plot_kwargs=None, ax_kwargs=None): # pragma: no cover
+             plot_kwargs=None, ax_kwargs=None):  # pragma: no cover
         """Create plot of dispersion data.
 
         TODO (jpv): Refence Peaks.plot for more information.
@@ -230,7 +230,7 @@ class PeaksSuite():
         if ax_was_none:
             return (fig, ax)
 
-    def plot_subset(self, ax, xtype, ytype, indices, plot_kwargs=None): # pragma: no cover
+    def plot_subset(self, ax, xtype, ytype, indices, plot_kwargs=None):  # pragma: no cover
         if isinstance(xtype, str):
             ax = [ax]
             xtype = [xtype]
@@ -252,7 +252,7 @@ class PeaksSuite():
                          **plot_kwargs)
 
     @staticmethod
-    def _prepare_kwargs(kwargs, index): # pragma: no cover
+    def _prepare_kwargs(kwargs, index):  # pragma: no cover
         new_kwargs = {}
         for key, value in kwargs.items():
             if isinstance(value, (str, int, float)):
@@ -263,7 +263,7 @@ class PeaksSuite():
                 new_kwargs[key] = value[index]
         return new_kwargs
 
-    def interactive_trimming(self, settings_file): # pragma: no cover
+    def interactive_trimming(self, settings_file):  # pragma: no cover
         with open(settings_file, "r") as f:
             settings = json.load(f)
 
@@ -397,7 +397,7 @@ class PeaksSuite():
         return {**default, **custom}
 
     def plot_statistics(self, statistics=None, ax=None, statistics_kwargs=None,
-                        plot_kwargs=None): # pragma: no cover
+                        plot_kwargs=None):  # pragma: no cover
         if ax is None:
             raise NotImplementedError
 
@@ -417,7 +417,7 @@ class PeaksSuite():
         for index, column in enumerate(data_matrix.T):
             if np.isnan(column).all():
                 drop_cols.append(index)
-        drop_cols =  np.array(drop_cols, dtype=int)
+        drop_cols = np.array(drop_cols, dtype=int)
         data_matrix = np.delete(data_matrix, drop_cols, axis=1)
 
         drop_rows = []
@@ -749,7 +749,7 @@ class PeaksSuite():
 
     #         del cid
 
-    def _draw_box(self, fig): # pragma: no cover
+    def _draw_box(self, fig):  # pragma: no cover
         """Prompt user to define a rectangular box on a two-panel plot.
 
         Parameters

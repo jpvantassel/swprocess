@@ -2,41 +2,50 @@
 
 import re
 
-__all__ = ["getpeak_rayleigh", "getpeak_love", "getall_rayleigh", "getall_love"]
+__all__ = ["get_peak_from_max", "get_all"]
 
-# rpat = 
-# lpat = f"({time}) (\d+\.?\d*) Love ({number}) ({number}) ({number}) (\d+\.?\d*|-?inf|nan) (\d+\.?\d*) 1"
 
-# lcnt = f".* Love .* 1"
-
-# getpeak_rayleigh = re.compile(rpat)
-# getpeak_love = re.compile(lpat)
-
-# getall_rayleigh = re.compile(rcnt)
-# getall_love = re.compile(lcnt)
-
-def get_peak_from_max(time=None, wavetype=None):
-    """Returns a compiled regex for details specified.
+def get_peak_from_max(wavetype="rayleigh", time="(\d+\.?\d*)"):
+    """Compile regular expression to extract peaks from a `.max` file.
 
     Parameters
     ----------
+    wavetype : {'rayleigh', 'love', 'vertical', 'radial', 'transverse'}, optional
+        Define a specific wavetype to extract, default is `'rayleigh'`.
     time : str, optional
+        Define a specific time of interest, default is `"(\d+\.?\d*)")`,
+        a generic regular expression which will match all time.
 
-    wavetype : {'rayleigh', 'love'}, optional
+    Return
+    ------
+    Compiled Regular Expression
+        To extract peaks from a `.max` file.
 
     """
-    if time is None:
-        time = "(\d+\.?\d*)"
-
-    if wavetype is None:
-        wavetype = "(Rayleigh|Love)"
-    else:
+    if wavetype in ["rayleigh", "love", "vertical", "radial", "transverse"]:
         wavetype = wavetype.capitalize()
 
     number = "-?\d+.?\d*[eE]?[+-]?\d*"
     pattern = f"{time} (\d+\.?\d*) {wavetype} ({number}) ({number}) ({number}) (\d+\.?\d*|-?inf|nan) (\d+\.?\d*) 1"
     return re.compile(pattern)
 
-def get_all(time, wavetype):
+
+def get_all(wavetype="rayleigh", time="(\d+\.?\d*)"):
+    """Compile regular expression to identify peaks from a `.max` file.
+
+    Parameters
+    ----------
+    wavetype : {'rayleigh', 'love', 'vertical', 'radial', 'transverse'}, optional
+        Define a specific wavetype to extract, default is `'rayleigh'`.
+    time : str, optional
+        Define a specific time of interest, default is `"(\d+\.?\d*)")`,
+        a generic regular expression which will match all time.
+
+    Return
+    ------
+    Compiled Regular Expression
+        To identify peaks from a `.max` file.
+
+    """
     pattern = f"{time} .* {wavetype.capitalize()} .* 1"
     return re.compile(pattern)

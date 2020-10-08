@@ -140,7 +140,7 @@ class Peaks():
     def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None):
         """Parse data for given time_block."""
         if start_time is None:
-            regex = get_peak_from_max(time=None, wavetype=wavetype)
+            regex = get_peak_from_max(wavetype=wavetype)
             start_time, *_ = regex.search(peak_data).groups()
 
         getpeak = get_peak_from_max(time=start_time, wavetype=wavetype)
@@ -157,7 +157,7 @@ class Peaks():
             pwrs.append(float(_pwr))
 
         # Include for "belt and suspenders".
-        getall = get_all(start_time, wavetype)
+        getall = get_all(time=start_time, wavetype=wavetype)
         count = len(getall.findall(peak_data))
         if len(frqs) != count:
             msg = f"Missing {count- len(frqs)} dispersion peaks."
@@ -204,7 +204,7 @@ class Peaks():
 
         return cls._parse_peaks(peak_data, wavetype=wavetype, start_time=None)
 
-    def _plot(self, xtype, ytype, ax, plot_kwargs=None, ax_kwargs=None): # pragma: no cover
+    def _plot(self, xtype, ytype, ax, plot_kwargs=None, ax_kwargs=None):  # pragma: no cover
         """Plot requested `Peaks` data to provided `Axes`."""
         for _type, value in zip(["xtype", "ytype"], [xtype, ytype]):
             if value not in self.extended_attrs:
@@ -238,7 +238,7 @@ class Peaks():
             getattr(ax, key)(value)
 
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
-             plot_kwargs=None, ax_kwargs=None): # pragma: no cover
+             plot_kwargs=None, ax_kwargs=None):  # pragma: no cover
         """Create plot of dispersion data.
 
         Parameters
@@ -285,7 +285,7 @@ class Peaks():
             return (fig, ax)
 
     @staticmethod
-    def _check_plot(xtype, ytype, ax, plot_kwargs, ax_kwargs): # pragma: no cover
+    def _check_plot(xtype, ytype, ax, plot_kwargs, ax_kwargs):  # pragma: no cover
         if isinstance(xtype, str):
             xtype = [xtype]
         if isinstance(ytype, str):
@@ -306,7 +306,7 @@ class Peaks():
         return (xtype, ytype, plot_kwargs, ax_kwargs, ax_was_none)
 
     @staticmethod
-    def _check_kwargs(kwargs, ncols): # pragma: no cover
+    def _check_kwargs(kwargs, ncols):  # pragma: no cover
         if kwargs is None or isinstance(kwargs, dict):
             return [kwargs]*ncols
         elif isinstance(kwargs, list) and len(kwargs) == ncols:
@@ -455,7 +455,7 @@ class Peaks():
                     return False
             except AttributeError as e:
                 return False
-        
+
         # Check attributes
         if len(self.attrs) != len(other.attrs):
             return False
