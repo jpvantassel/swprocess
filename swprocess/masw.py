@@ -59,7 +59,7 @@ class Masw():
         selected_workflow = settings["workflow"]
         logger.info(f"selected workflow is {selected_workflow}")
         Workflow = MaswWorkflowRegistry.create_class(selected_workflow)
-        
+
         # Define workflow (instance) from Workflow (class).
         workflow = Workflow(fnames=fnames, settings=settings,
                             map_x=map_x, map_y=map_y)
@@ -68,16 +68,79 @@ class Masw():
         return workflow.run()
 
     @staticmethod
+    def create_settings_dict(workflow="time-domain",
+                             trim=False, start_time=0.0, end_time=1.0,
+                             mute=False, method="interactive",
+                             window_kwargs=None, pad=False, df=1.0,
+                             transform="fdbf", fmin=5, fmax=100, vmin=100,
+                             vmax=1000, nvel=200, vspace="linear",
+                             weighting="sqrt", steering="cylindrical",
+                             snr=False, noise_begin=-0.5, noise_end=0.0,
+                             signal_begin=0.0, signal_end=0.5,
+                             pad_snr=True, df_snr=1.0):
+        """Create settings `dict` using function arguments.
+
+        See :meth:`Masw.create_settings_file` for details.
+
+        """
+        return {"workflow": workflow,
+                "pre-processing": {
+                    "trim": {
+                        "apply": trim,
+                        "begin": start_time,
+                        "end": end_time
+                    },
+                    "mute": {
+                        "apply": mute,
+                        "method": method,
+                        "window_kwargs": {} if window_kwargs is None else window_kwargs
+                    },
+                    "pad": {
+                        "apply": pad,
+                        "df": df
+                    }
+                },
+                "processing": {
+                    "transform": transform,
+                    "fmin": fmin,
+                    "fmax": fmax,
+                    "vmin": vmin,
+                    "vmax": vmax,
+                    "nvel": nvel,
+                    "vspace": vspace,
+                    "fdbf-specific": {
+                        "weighting": weighting,
+                        "steering": steering
+                    }
+                },
+                "signal-to-noise": {
+                    "perform": snr,
+                    "noise": {
+                        "begin": noise_begin,
+                        "end": noise_end
+                    },
+                    "signal": {
+                        "begin": signal_begin,
+                        "end": signal_end
+                    },
+                    "pad": {
+                        "apply": pad_snr,
+                        "df": df_snr
+                    }
+                },
+                }
+
+    @staticmethod
     def create_settings_file(fname, workflow="time-domain",
-                              trim=False, start_time=0.0, end_time=1.0,
-                              mute=False, method="interactive",
-                              window_kwargs=None, pad=False, df=1.0,
-                              transform="fdbf", fmin=5, fmax=100, vmin=100,
-                              vmax=1000, nvel=200, vspace="linear",
-                              weighting="sqrt", steering="cylindrical",
-                              snr=False, noise_begin=-0.5, noise_end=0.0,
-                              signal_begin=0.0, signal_end=0.5,
-                              pad_snr=True, df_snr=1.0):
+                             trim=False, start_time=0.0, end_time=1.0,
+                             mute=False, method="interactive",
+                             window_kwargs=None, pad=False, df=1.0,
+                             transform="fdbf", fmin=5, fmax=100, vmin=100,
+                             vmax=1000, nvel=200, vspace="linear",
+                             weighting="sqrt", steering="cylindrical",
+                             snr=False, noise_begin=-0.5, noise_end=0.0,
+                             signal_begin=0.0, signal_end=0.5,
+                             pad_snr=True, df_snr=1.0):
         """Create settings file using function arguments.
 
         Parameters
@@ -146,51 +209,20 @@ class Masw():
             domain spacing, default is 1 Hz.
 
         """
-        settings = {"workflow": workflow,
-                    "pre-processing": {
-                        "trim": {
-                            "apply": trim,
-                            "begin": start_time,
-                            "end": end_time
-                        },
-                        "mute": {
-                            "apply": mute,
-                            "method": method,
-                            "window_kwargs": {} if window_kwargs is None else window_kwargs
-                        },
-                        "pad": {
-                            "apply": pad,
-                            "df": df
-                        }
-                    },
-                    "processing": {
-                        "transform": transform,
-                        "fmin": fmin,
-                        "fmax": fmax,
-                        "vmin": vmin,
-                        "vmax": vmax,
-                        "nvel": nvel,
-                        "vspace": vspace,
-                        "fdbf-specific": {
-                            "weighting": weighting,
-                            "steering": steering
-                        }
-                    },
-                    "signal-to-noise": {
-                        "perform": snr,
-                        "noise": {
-                            "begin": noise_begin,
-                            "end": noise_end
-                        },
-                        "signal": {
-                            "begin": signal_begin,
-                            "end": signal_end
-                        },
-                        "pad": {
-                            "apply": pad_snr,
-                            "df": df_snr
-                        }
-                    },
-                    }
+        settings = Masw.create_settings_dict(workflow=workflow,
+                                             trim=trim,
+                                             start_time=start_time,
+                                             end_time=end_time,
+                                             mute=mute, method=method,
+                                             window_kwargs=window_kwargs,
+                                             pad=pad, df=df, transform=transform,
+                                             fmin=fmin, fmax=fmax, vmin=vmin,
+                                             vmax=vmax, nvel=nvel, vspace=vspace,
+                                             weighting=weighting, steering=steering,
+                                             snr=snr, noise_begin=noise_begin,
+                                             noise_end=noise_end,
+                                             signal_begin=signal_begin,
+                                             signal_end=signal_end,
+                                             pad_snr=pad_snr, df_snr=df_snr)
         with open(fname, "w") as f:
             json.dump(settings, f)

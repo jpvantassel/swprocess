@@ -12,8 +12,9 @@ from .array1d import Array1D
 
 logger = logging.getLogger("swprocess.maswworkflows")
 
+
 class AbstractMaswWorkflow(ABC):
-    """Abstract base class defining an MASW workflow."""
+    """Abstract base class (ABC) defining an MASW workflow."""
 
     def __init__(self, fnames=None, settings=None, map_x=None, map_y=None):
         """Perform initialization common to all `MaswWorkflow`s."""
@@ -48,9 +49,8 @@ class AbstractMaswWorkflow(ABC):
         """Select a portion of the record as noise."""
         snr = self.settings["signal-to-noise"]
         if snr["perform"] and self.noise is None:
-            # Copy array
+            # Copy array and trim noise.
             self.noise = Array1D.from_array1d(self.array)
-            # Trim out noise.
             self.noise.trim(snr["noise"]["begin"], snr["noise"]["end"])
 
     def trim(self):
@@ -93,7 +93,7 @@ class AbstractMaswWorkflow(ABC):
 
             # Check signal and noise windows are indeed the same length.
             if self.noise[0].nsamples != self.signal[0].nsamples:
-                msg = f"Signal and noise windows must be of equal length, or use set pad apply to 'true'."
+                msg = f"Signal and noise windows must be of equal length, or set 'pad_snr' to 'True'."
                 raise IndexError(msg)
 
             # Frequency vector
@@ -140,22 +140,18 @@ class TimeDomainWorkflow(AbstractMaswWorkflow):
         self.check()
         self.detrend()
         self.select_noise()
-        self.trim()
-        self.mute()
-        self.select_signal()
-        self.pad()
-        Transform = WavefieldTransformRegistry.create_class(
-            self.settings["processing"]["transform"])
-        transform = Transform.from_array(array=self.array,
-                                         settings=self.settings["processing"])
-        transform.snr = self.snr
-        transform.snr_frequencies = self.snr_frequencies
-        transform.array = self.array
-        return transform
-
-    def __str__(self):
-        pass
-
+        # self.trim()
+        # self.mute()
+        # self.select_signal()
+        # self.pad()
+        # Transform = WavefieldTransformRegistry.create_class(
+        #     self.settings["processing"]["transform"])
+        # transform = Transform.from_array(array=self.array,
+        #                                  settings=self.settings["processing"])
+        # transform.snr = self.snr
+        # transform.snr_frequencies = self.snr_frequencies
+        # transform.array = self.array
+        # return transform
 
 @MaswWorkflowRegistry.register("single")
 class SingleMaswWorkflow(TimeDomainWorkflow):
@@ -203,7 +199,8 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
     """Stack in the frequency-domain."""
 
     def run(self):
-        ex_array = Array1D.from_files(self.fnames[0], map_x=self.map_x,
+        ex_array = Array1D.from_files(self.fnames[0],
+                                      map_x=self.map_x,
                                       map_y=self.map_y)
         for sensor in ex_array:
             sensor.detrend()
