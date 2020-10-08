@@ -8,6 +8,7 @@ import obspy
 import numpy as np
 import matplotlib.pyplot as plt
 
+from unittest.mock import patch
 from testtools import TestCase, unittest, get_full_path
 import swprocess
 
@@ -302,14 +303,15 @@ class Test_Array1D(TestCase):
 
     def test_manual_pick_first_arrivals(self):
         # Replace self._ginput_session
-        edist, etime = [0,1,2], [2,1,0]
+        edist, etime = [0, 1, 2], [2, 1, 0]
+
         class DummyArray1D(swprocess.Array1D):
             def _ginput_session(ax, initial_adjustment=True,
                                 ask_to_continue=True, npts=None):
                 return (edist, etime)
         array = DummyArray1D([self.sensor_0, self.sensor_5, self.sensor_6],
                              swprocess.Source(x=-5, y=0, z=0))
-        
+
         # time_ax = "y"
         for waterfall_kwargs in [dict(time_ax="y"), None]:
             rdist, rtime = array.manual_pick_first_arrivals(
@@ -322,6 +324,18 @@ class Test_Array1D(TestCase):
             waterfall_kwargs=dict(time_ax="x"))
         self.assertListEqual(edist, rdist)
         self.assertListEqual(etime, rtime)
+
+    @patch('matplotlib.pyplot.ginput', return_value=[(0, 1)])
+    @patch('matplotlib.pyplot.waitforbuttonpress', return_value=True)
+    def test_ginput_session(self, input_a, input_b):
+        fig, ax = plt.subplots()
+        x, y = swprocess.Array1D._ginput_session(ax,
+                                                 npts=1,
+                                                 initial_adjustment=False,
+                                                 ask_to_continue=False)
+        returned = [(x[-1], y[-1])]
+        expected = [(0, 1)]
+        self.assertEqual(expected[0], returned[0])
 
     def test_interactive_mute(self):
         # Replace self._ginput_session

@@ -401,7 +401,7 @@ class Array1D():
 
         fig, ax = self.waterfall(**waterfall_kwargs)
 
-        pairs = self._ginput_session(ax)
+        pairs = self._ginput_session(ax, npts=np.inf)
 
         if ax.get_xlabel() == "Distance (m)":
             distance, time = pairs
