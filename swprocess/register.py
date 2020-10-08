@@ -3,7 +3,7 @@
 from abc import ABC
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("swprocess.register")
 
 
 class AbstractRegistry(ABC):
