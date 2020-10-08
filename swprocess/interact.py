@@ -2,12 +2,13 @@
 
 import warnings
 
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
 
 def ginput_session(ax, initial_adjustment=True,
-                   initial_adjustment_message=None, npts=None,
+                   initial_adjustment_message=None, npts=1,
                    ask_to_continue=True,
                    ask_to_continue_message=None, ):
     """Start ginput session using the provided axes object.
@@ -24,8 +25,7 @@ def ginput_session(ax, initial_adjustment=True,
         default is `None` so predefined message is displayed.
     npts : int, optional
         Predefine the number of points the user is allowed to
-        select, the default is `None` which allows the selection of
-        an infinite number of points.
+        select, the default is `1`.
     ask_to_continue : bool, optional
         Pause the selection process after each point. This allows
         the user to pan and zoom the figure as well as select when
@@ -42,10 +42,6 @@ def ginput_session(ax, initial_adjustment=True,
         order in which they were picked.
 
     """
-    # Set npts to infinity if npts is None
-    if npts is None:
-        npts = np.inf
-
     # Enable cursor to make precise selection easier.
     cursor = Cursor(ax, useblit=True, color='k', linewidth=1)
 
@@ -81,7 +77,7 @@ def ginput_session(ax, initial_adjustment=True,
 
         if ask_to_continue:
             if ask_to_continue_message is None:
-                msg = "Adjust view,\n press spacebar\n once to contine,\n twice to exit."
+                msg = "Adjust view,\npress spacebar\nonce to contine,\ntwice to exit."
             text = ax.text(0.95, 0.95, ask_to_continue_message,
                            ha="right", va="top",
                            transform=ax.transAxes)
@@ -92,6 +88,10 @@ def ginput_session(ax, initial_adjustment=True,
 
         if plt.waitforbuttonpress(timeout=0.25):
             break
-    print("Interactive session complete, close figure(s) when ready.")
+
+    finish_message = "Interactive session complete,\nclose figure(s) when ready."
+    text = ax.text(0.95, 0.95, finish_message,
+                   ha="right", va="top",
+                   transform=ax.transAxes)
 
     return (xs, ys)
