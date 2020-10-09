@@ -69,7 +69,7 @@ class Masw():
 
     @staticmethod
     def create_settings_dict(workflow="time-domain",
-                             trim=False, start_time=0.0, end_time=1.0,
+                             trim=False, trim_begin=0.0, trim_end=1.0,
                              mute=False, method="interactive",
                              window_kwargs=None, pad=False, df=1.0,
                              transform="fdbf", fmin=5, fmax=100, vmin=100,
@@ -87,8 +87,8 @@ class Masw():
                 "pre-processing": {
                     "trim": {
                         "apply": trim,
-                        "begin": start_time,
-                        "end": end_time
+                        "begin": trim_begin,
+                        "end": trim_end
                     },
                     "mute": {
                         "apply": mute,
@@ -132,7 +132,7 @@ class Masw():
 
     @staticmethod
     def create_settings_file(fname, workflow="time-domain",
-                             trim=False, start_time=0.0, end_time=1.0,
+                             trim=False, trim_begin=0.0, trim_end=1.0,
                              mute=False, method="interactive",
                              window_kwargs=None, pad=False, df=1.0,
                              transform="fdbf", fmin=5, fmax=100, vmin=100,
@@ -154,7 +154,7 @@ class Masw():
         trim : bool, optional
             Denote whether time records are to be trimmed, default is
             `False`.
-        start_time, end_time : float, optional
+        trim_begin, trim_end : float, optional
             If `trim` is `True`, these define the trimming start and
             end time in seconds.
         mute : bool, optional
@@ -211,8 +211,8 @@ class Masw():
         """
         settings = Masw.create_settings_dict(workflow=workflow,
                                              trim=trim,
-                                             start_time=start_time,
-                                             end_time=end_time,
+                                             trim_begin=trim_begin,
+                                             trim_end=trim_end,
                                              mute=mute, method=method,
                                              window_kwargs=window_kwargs,
                                              pad=pad, df=df, transform=transform,

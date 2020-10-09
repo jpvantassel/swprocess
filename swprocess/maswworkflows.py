@@ -100,11 +100,11 @@ class AbstractMaswWorkflow(ABC):
             self.array.zero_pad(pad["df"])
 
     @abstractmethod
-    def run(self): # pragma: no cover
+    def run(self):  # pragma: no cover
         pass
 
     @abstractmethod
-    def __str__(self): # pragma: no cover
+    def __str__(self):  # pragma: no cover
         """Human-readable representaton of the workflow."""
         pass
 
@@ -178,46 +178,47 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
     """Stack in the frequency-domain."""
 
     def run(self):
-        ex_array = Array1D.from_files(self.fnames[0],
-                                      map_x=self.map_x,
-                                      map_y=self.map_y)
-        for sensor in ex_array:
+        example_array = Array1D.from_files(self.fnames[0],
+                                           map_x=self.map_x,
+                                           map_y=self.map_y)
+        for sensor in example_array.sensors:
             sensor.detrend()
         preprocess = self.settings["pre-processing"]
         if preprocess["trim"]["apply"]:
-            ex_array.trim(preprocess["trim"]["start_time"],
-                          preprocess["trim"]["end_time"])
+            example_array.trim(preprocess["trim"]["begin"],
+                               preprocess["trim"]["end"])
         if preprocess["pad"]["apply"]:
-            ex_array.zero_pad(preprocess["pad"]["df"])
+            example_array.zero_pad(preprocess["pad"]["df"])
 
         Transform = WavefieldTransformRegistry.create_class("empty")
-        processing = self.settings["processing"]
-        running_stack = Transform.from_array(array=ex_array,
-                                             settings=processing)
-        Transform = WavefieldTransformRegistry.create_class(
-            processing["transform"])
+        proc = self.settings["processing"]
+        running_stack = Transform.from_array(array=example_array,
+                                             settings=proc)
+        Transform = WavefieldTransformRegistry.create_class(proc["transform"])
         for fname in self.fnames:
-            self.array = Array1D.from_files(fname, map_x=self.map_x,
+            self.array = Array1D.from_files(fname,
+                                            map_x=self.map_x,
                                             map_y=self.map_y)
-            if not self.array.is_similar(ex_array):
+            if not self.array.is_similar(example_array):
                 msg = f"Can only stack arrays which are similar, first dissimilar file is {fname}."
                 raise ValueError(msg)
             self.check()
             self.detrend()
+            # TODO (jpv): Calling select_noise n times.
             self.select_noise()
             self.trim()
             self.mute()
+            # TODO (jpv): Calling select_singal n times.
             self.select_signal()
-            self.calculate_snr()
             self.pad()
             transform = Transform.from_array(array=self.array,
-                                             settings=processing)
+                                             settings=proc)
             running_stack.stack(transform)
-
-        running_stack.snr = self.snr
-        running_stack.snr_frequencies = self.snr_frequencies
         running_stack.array = self.array
-
+        if self.settings["signal-to-noise"]["perform"]:
+            self.calculate_snr()
+            running_stack.snr = self.snr.snr
+            running_stack.snr_frequencies = self.snr.frequencies
         return running_stack
 
     def __str__(self):
