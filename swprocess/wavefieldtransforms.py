@@ -342,69 +342,69 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
         pass
 
 
-class FK(AbstractWavefieldTransform):
+# class FK(AbstractWavefieldTransform):
 
-    def __init__(self, frequencies, velocities, power):
-        """Perform Frequency-Wavenumber (fk) transform.
+#     def __init__(self, frequencies, velocities, power):
+#         """Perform Frequency-Wavenumber (fk) transform.
 
-        The FK approach utilizes a 2D Fourier Transform to transform
-        data from the time-space domain to the frequency-wavenumber
-        domain. The FK approach was adapted by Gabriels et al. (1987)
-        for linear arrays from the FK approach developed by Nolet and
-        Panza (1976) for 2D arrays.
+#         The FK approach utilizes a 2D Fourier Transform to transform
+#         data from the time-space domain to the frequency-wavenumber
+#         domain. The FK approach was adapted by Gabriels et al. (1987)
+#         for linear arrays from the FK approach developed by Nolet and
+#         Panza (1976) for 2D arrays.
 
-        Parameters
-        ----------
-        array : Array1d
-            One-dimensional array object.
-        nwave : int
-            Number of wavenumbers to consider.
-        fmin, fmax : float
-            Minimum and maximum frequency of interest in the
-            transformation.
+#         Parameters
+#         ----------
+#         array : Array1d
+#             One-dimensional array object.
+#         nwave : int
+#             Number of wavenumbers to consider.
+#         fmin, fmax : float
+#             Minimum and maximum frequency of interest in the
+#             transformation.
 
-        Returns
-        -------
-        Tuple
-            Of the form `(frqs, domain, ks, pnorm, kpeaks)`.
+#         Returns
+#         -------
+#         Tuple
+#             Of the form `(frqs, domain, ks, pnorm, kpeaks)`.
 
-        """
-        # Frequency vector
-        sensor = array.sensors[0]
-        frqs = np.arange(sensor.nsamples) * sensor._df
+#         """
+#         # Frequency vector
+#         sensor = array.sensors[0]
+#         frqs = np.arange(sensor.nsamples) * sensor._df
 
-        # Perform 2D FFT
-        if array._flip_required:
-            tseries = np.flipud(array.timeseriesmatrix)
-        else:
-            tseries = array.timeseriesmatrix
-        fk = np.fft.fft2(tseries, s=(nwave, sensor.nsamples))
-        fk = np.abs(fk[-2::-1, 0:len(frqs)])
+#         # Perform 2D FFT
+#         if array._flip_required:
+#             tseries = np.flipud(array.timeseriesmatrix)
+#         else:
+#             tseries = array.timeseriesmatrix
+#         fk = np.fft.fft2(tseries, s=(nwave, sensor.nsamples))
+#         fk = np.abs(fk[-2::-1, 0:len(frqs)])
 
-        # Trim frequencies and downsample (if required by zero padding)
-        fmin_ids = np.argmin(np.abs(frqs-fmin))
-        fmax_ids = np.argmin(np.abs(frqs-fmax))
-        freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
-        frqs = frqs[freq_ids]
-        fk = fk[:, freq_ids]
+#         # Trim frequencies and downsample (if required by zero padding)
+#         fmin_ids = np.argmin(np.abs(frqs-fmin))
+#         fmax_ids = np.argmin(np.abs(frqs-fmax))
+#         freq_ids = range(fmin_ids, (fmax_ids+1), sensor.multiple)
+#         frqs = frqs[freq_ids]
+#         fk = fk[:, freq_ids]
 
-        # Wavenumber vector
-        kres = array.kres
-        dk = 2*kres / nwave
-        ks = np.arange(dk, 2*kres, dk)
+#         # Wavenumber vector
+#         kres = array.kres
+#         dk = 2*kres / nwave
+#         ks = np.arange(dk, 2*kres, dk)
 
-        # Normalize power and find peaks
-        pnorm = np.empty_like(fk)
-        kpeaks = np.empty_like(frqs)
-        for k, _fk in enumerate(fk.T):
-            normed_fk = np.abs(_fk/np.max(_fk))
-            pnorm[:, k] = normed_fk
-            kpeaks[k] = ks[np.argmax(normed_fk)]
+#         # Normalize power and find peaks
+#         pnorm = np.empty_like(fk)
+#         kpeaks = np.empty_like(frqs)
+#         for k, _fk in enumerate(fk.T):
+#             normed_fk = np.abs(_fk/np.max(_fk))
+#             pnorm[:, k] = normed_fk
+#             kpeaks[k] = ks[np.argmax(normed_fk)]
 
-        return (frqs, "wavenumber", ks, pnorm, kpeaks)
+#         return (frqs, "wavenumber", ks, pnorm, kpeaks)
 
-    def plot(self, *args, **kwargs):
-        raise NotImplementedError
+#     def plot(self, *args, **kwargs):
+#         raise NotImplementedError
 
 
 @WavefieldTransformRegistry.register('slantstack')

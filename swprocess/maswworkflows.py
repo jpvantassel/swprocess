@@ -42,7 +42,7 @@ class AbstractMaswWorkflow(ABC):
 
     def detrend(self):
         """Perform linear detrend operation."""
-        for sensor in self.array:
+        for sensor in self.array.sensors:
             sensor.detrend()
 
     def select_noise(self):
@@ -140,7 +140,7 @@ class TimeDomainWorkflow(AbstractMaswWorkflow):
         self.check()
         self.detrend()
         self.select_noise()
-        # self.trim()
+        self.trim()
         # self.mute()
         # self.select_signal()
         # self.pad()
