@@ -9,6 +9,7 @@ import numpy as np
 from .register import MaswWorkflowRegistry
 from .wavefieldtransforms import WavefieldTransformRegistry
 from .array1d import Array1D
+from .snr import SignaltoNoiseRatio
 
 logger = logging.getLogger("swprocess.maswworkflows")
 
@@ -33,7 +34,6 @@ class AbstractMaswWorkflow(ABC):
         self.noise = None
         self.signal = None
         self.snr = None
-        self.snr_frequencies = None
 
     def check(self):
         """Check array is acceptable for WavefieldTransform."""
@@ -80,41 +80,18 @@ class AbstractMaswWorkflow(ABC):
         """Select a portion of the record as signal."""
         snr = self.settings["signal-to-noise"]
         if snr["perform"] and self.signal is None:
-            # Copy array
+            # Copy array and trim noise.
             self.signal = Array1D.from_array1d(self.array)
-
-            # Trim out noise.
             self.signal.trim(snr["signal"]["begin"], snr["signal"]["end"])
 
-            # Pad
-            if snr["pad"]["apply"]:
-                self.noise.zero_pad(snr["pad"]["df"])
-                self.signal.zero_pad(snr["pad"]["df"])
-
-            # Check signal and noise windows are indeed the same length.
-            if self.noise[0].nsamples != self.signal[0].nsamples:
-                msg = f"Signal and noise windows must be of equal length, or set 'pad_snr' to 'True'."
-                raise IndexError(msg)
-
-            # Frequency vector
-            sensor = self.noise[0]
-            frqs = np.arange(sensor.nsamples) * sensor.df
-            Empty = WavefieldTransformRegistry.create_class("empty")
-            keep_ids = Empty._frequency_keep_ids(frqs,
-                                                 self.settings["processing"]["fmin"],
-                                                 self.settings["processing"]["fmax"],
-                                                 sensor.multiple)
-            self.snr_frequencies = frqs[keep_ids]
-
-            # Compute SNR
-            self.snr = np.mean(np.abs(np.fft.fft(
-                self.signal.timeseriesmatrix())[:, keep_ids]), axis=0)
-            self.snr /= np.mean(np.abs(np.fft.fft(
-                self.noise.timeseriesmatrix())[:, keep_ids]), axis=0)
-
-            # Clean-up
-            self.noise = False
-            self.signal = False
+    def calculate_snr(self):
+        snr = self.settings["signal-to-noise"]
+        process = self.settings["processing"]
+        if snr["perform"]:
+            self.snr = SignaltoNoiseRatio.from_array1ds(
+                self.signal, self.noise,
+                fmin=process["fmin"], fmax=process["fmax"],
+                pad_snr=snr["pad"]["apply"], df_snr=snr["pad"]["df"])
 
     def pad(self):
         """Pad record in the time domain."""
@@ -123,11 +100,11 @@ class AbstractMaswWorkflow(ABC):
             self.array.zero_pad(pad["df"])
 
     @abstractmethod
-    def run(self):
+    def run(self): # pragma: no cover
         pass
 
     @abstractmethod
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         """Human-readable representaton of the workflow."""
         pass
 
@@ -141,17 +118,19 @@ class TimeDomainWorkflow(AbstractMaswWorkflow):
         self.detrend()
         self.select_noise()
         self.trim()
-        # self.mute()
-        # self.select_signal()
-        # self.pad()
-        # Transform = WavefieldTransformRegistry.create_class(
-        #     self.settings["processing"]["transform"])
-        # transform = Transform.from_array(array=self.array,
-        #                                  settings=self.settings["processing"])
-        # transform.snr = self.snr
-        # transform.snr_frequencies = self.snr_frequencies
-        # transform.array = self.array
-        # return transform
+        self.mute()
+        self.select_signal()
+        self.calculate_snr()
+        self.pad()
+        proc = self.settings["processing"]
+        Transform = WavefieldTransformRegistry.create_class(proc["transform"])
+        transform = Transform.from_array(array=self.array, settings=proc)
+        transform.array = self.array
+        if self.settings["signal-to-noise"]["perform"]:
+            transform.snr = self.snr.snr
+            transform.snr_frequencies = self.snr.frequencies
+        return transform
+
 
 @MaswWorkflowRegistry.register("single")
 class SingleMaswWorkflow(TimeDomainWorkflow):
@@ -229,6 +208,7 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
             self.trim()
             self.mute()
             self.select_signal()
+            self.calculate_snr()
             self.pad()
             transform = Transform.from_array(array=self.array,
                                              settings=processing)
