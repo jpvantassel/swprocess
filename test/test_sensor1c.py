@@ -2,6 +2,7 @@
 
 import warnings
 import logging
+from unittest.mock import MagicMock
 
 import numpy as np
 import obspy
@@ -82,6 +83,41 @@ class Test_Sensor1C(TestCase):
             self.assertEqual(-2., sensor.delay)
             self.assertListEqual([3, 6, 12],
                                 [getattr(sensor, c) for c in ["x", "y", "z"]])
+
+        # set trace.stats._format to integer so it raises ValueError
+        mock_trace = MagicMock()
+        mock_trace.stats._format = 1
+        self.assertRaises(ValueError, Sensor1C.from_trace, mock_trace)
+
+    def test_is_similar(self):
+        a = Sensor1C(amplitude=[1.,2,3], dt=1., x=0, y=0, z=0, nstacks=1, delay=0)
+
+        b = "Not a Sensor1C"
+        c = Sensor1C(amplitude=[1.,2], dt=1., x=0, y=0, z=0, nstacks=1, delay=0)
+        d = Sensor1C(amplitude=[1.,2,3], dt=2., x=0, y=0, z=0, nstacks=1, delay=0)
+        e = Sensor1C(amplitude=[1.,2,3], dt=1., x=1, y=0, z=0, nstacks=1, delay=0)
+        f = Sensor1C(amplitude=[1.,2,3], dt=1., x=0, y=1, z=0, nstacks=1, delay=0)
+        g = Sensor1C(amplitude=[1.,2,3], dt=1., x=0, y=0, z=1, nstacks=1, delay=0)
+        h = Sensor1C(amplitude=[1.,2,3], dt=1., x=0, y=0, z=0, nstacks=2, delay=0)
+        i = Sensor1C(amplitude=[1.,2,3], dt=1., x=0, y=0, z=0, nstacks=1, delay=-0.5)
+
+        j = Sensor1C(amplitude=[1.,2,3], dt=1., x=0, y=0, z=0, nstacks=1, delay=0)
+
+        self.assertFalse(a._is_similar(b))
+        self.assertFalse(a._is_similar(c))
+        self.assertFalse(a._is_similar(d))
+        self.assertFalse(a._is_similar(e))
+        self.assertFalse(a._is_similar(f))
+        self.assertFalse(a._is_similar(g))
+
+        self.assertTrue(a._is_similar(c, exclude=["nsamples"]))
+        self.assertTrue(a._is_similar(d, exclude=["dt"]))
+        self.assertTrue(a._is_similar(e, exclude=["x"]))
+        self.assertTrue(a._is_similar(f, exclude=["y"]))
+        self.assertTrue(a._is_similar(g, exclude=["z"]))
+        self.assertTrue(a._is_similar(h, exclude=["nstacks"]))
+        self.assertTrue(a._is_similar(i, exclude=["delay"]))
+        self.assertTrue(a._is_similar(j))
 
 
 if __name__ == "__main__":

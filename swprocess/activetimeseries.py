@@ -123,7 +123,7 @@ class ActiveTimeSeries(TimeSeries):
             are dissimilar). 
 
         """
-        if not self._is_similar(timeseries, exclude=["_nstacks"]):
+        if not self._is_similar(timeseries, exclude=["nstacks"]):
             msg = "`timeseries` is incompatible and cannot be stacked."
             raise ValueError(msg)
 
@@ -371,7 +371,7 @@ class ActiveTimeSeries(TimeSeries):
         if not isinstance(other, ActiveTimeSeries):
             return False
 
-        for attr in ["dt", "_nstacks", "_delay", "nsamples"]:
+        for attr in ["dt", "nstacks", "delay", "nsamples"]:
             if attr in exclude:
                 continue
             if getattr(self, attr) != getattr(other, attr):
@@ -380,13 +380,11 @@ class ActiveTimeSeries(TimeSeries):
 
     def __eq__(self, other):
         """Check if `other` is equal to `self`."""
-
         if not self._is_similar(other):
             return False
 
-        for my_val, ur_val in zip(self.amp, other.amp):
-            if my_val != ur_val:
-                return False
+        if not np.allclose(self.amp, other.amp):
+            return False
 
         return True
 
