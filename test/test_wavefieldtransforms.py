@@ -1,5 +1,7 @@
 """Tests for class wavefieldtransforms module."""
 
+import logging
+
 import numpy as np
 
 from swprocess.wavefieldtransforms import EmptyWavefieldTransform
@@ -7,6 +9,8 @@ import swprocess
 import matplotlib.pyplot as plt
 from testtools import TestCase, unittest, get_full_path
 
+logger = logging.getLogger("swprocess.wavefieldtransforms")
+logger.setLevel(logging.WARNING)
 
 class Test_WavefieldTransforms(TestCase):
 

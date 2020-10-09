@@ -14,7 +14,7 @@ from scipy import special
 from .peaks import Peaks
 from .register import WavefieldTransformRegistry
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("swprocess.wavefieldtransforms")
 
 
 class AbstractWavefieldTransform(ABC):
@@ -40,6 +40,7 @@ class AbstractWavefieldTransform(ABC):
 
     @staticmethod
     def _create_vector(pmin, pmax, pn, pspace):
+        logger.info("Howdy from _create_vector")
         samplers = {"linear": linspace, "lin": linspace,
                     "log": geomspace, "logarithmic": geomspace}
         sampler = samplers[pspace]
@@ -71,7 +72,7 @@ class AbstractWavefieldTransform(ABC):
 
     @classmethod
     @abstractclassmethod
-    def transform(cls, array, velocities, settings):
+    def transform(cls, array, velocities, settings): # pragma: no cover
         pass
 
     @staticmethod
