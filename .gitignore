@@ -12,3 +12,6 @@ test/.coverage
 test/.tmp_profiler_run
 examples/active.json
 test/data/mspac/c0
+binout*
+vis_traces.ipynb
+set*.csv
