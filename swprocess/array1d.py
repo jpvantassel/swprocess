@@ -331,7 +331,8 @@ class Array1D():
             spacing_txt = f"Sensor spacing is {self.spacing}m."
         except ValueError:
             spacing_txt = "Sensor spacing is not constant."
-        ax.text(0.03, 0.95, f"{number_txt}\n{spacing_txt}",
+        source_txt = f"Source @ {round(self.source.x, 2)}m."
+        ax.text(0.03, 0.95, f"{number_txt}\n{spacing_txt}\n{source_txt}",
                 transform=ax.transAxes, va="top", ha="left")
 
         # Plot source.
