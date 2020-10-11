@@ -540,6 +540,17 @@ class Array1D():
             self.sensors[i].amp *= window
             window *= 0
 
+    def _flipped_tseries_and_offsets(self):
+        """TimeSeriesMatrix and Offsets, flipped from near to far."""
+        if self._flip_required:
+            offsets = self.offsets[::-1]
+            tmatrix = np.flipud(self.timeseriesmatrix())
+        else:
+            offsets = self.offsets
+            tmatrix = self.timeseriesmatrix()
+        offsets = np.array(offsets)
+        return (tmatrix, offsets)
+
     @classmethod
     def from_files(cls, fnames, map_x=lambda x: x, map_y=lambda y: y):
         """Initialize an `Array1D` object from one or more data files.

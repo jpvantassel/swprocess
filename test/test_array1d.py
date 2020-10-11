@@ -443,6 +443,30 @@ class Test_Array1D(TestCase):
                              [0]*12 + [1]*6 + [0]*82], dtype=float)
         self.assertArrayEqual(expected, returned)
 
+    def test_flipped_tseries_and_offsets(self):
+        # Near source offset -> No flip required
+        near_array = self.dummy_array(amp=[0, 0, 0, 0], dt=1, nstacks=1,
+                                      delay=0, nsensors=5, spacing=2,
+                                      source_x=-5)
+        for index, sensor in enumerate(near_array):
+            sensor.amp += index
+
+        expected_tmatrix = np.array([[0]*4, [1]*4, [2]*4, [3]*4, [4]*4])
+        expected_offsets = np.array([5, 7, 9, 11, 13])
+        returned_tmatrix, returned_offsets = near_array._flipped_tseries_and_offsets()
+        self.assertArrayEqual(expected_tmatrix, returned_tmatrix)        
+        self.assertArrayEqual(expected_offsets, returned_offsets)
+
+        # Far source offset -> Flip required
+        far_array = swprocess.Array1D.from_array1d(near_array)
+        far_array.source._x = 18
+
+        expected_tmatrix = np.array([[4]*4, [3]*4, [2]*4, [1]*4, [0]*4])
+        expected_offsets = np.array([10, 12, 14, 16, 18])
+        returned_tmatrix, returned_offsets = far_array._flipped_tseries_and_offsets()
+        self.assertArrayEqual(expected_tmatrix, returned_tmatrix)        
+        self.assertArrayEqual(expected_offsets, returned_offsets)
+
     def test_from_files(self):
         # Single File : SEG2
         fname = self.wghs_path + "1.dat"

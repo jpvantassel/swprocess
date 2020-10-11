@@ -46,18 +46,6 @@ class AbstractWavefieldTransform(ABC):
         sampler = samplers[pspace]
         return sampler(pmin, pmax, pn)
 
-    @staticmethod
-    def _flip_if_required(array):
-        """Flip array and offsets if required by source location."""
-        if array._flip_required:
-            offsets = array.offsets[::-1]
-            tmatrix = np.flipud(array.timeseriesmatrix())
-        else:
-            offsets = array.offsets
-            tmatrix = array.timeseriesmatrix()
-        offsets = np.array(offsets)
-        return (tmatrix, offsets)
-
     @classmethod
     def from_array(cls, array, settings):
         # Create velocity vector.
@@ -430,7 +418,7 @@ class SlantStack(AbstractWavefieldTransform):
             slant-stacked waveforms.
 
         """
-        tmatrix, position = cls._flip_if_required(array)
+        tmatrix, position = array._flipped_tseries_and_offsets()
 
         position = np.array(position)
         position -= np.min(position)
@@ -523,7 +511,7 @@ class PhaseShift(AbstractWavefieldTransform):
 
         """
         # Flip reference frame (if required).
-        tmatrix, offsets = cls._flip_if_required(array)
+        tmatrix, offsets = array._flipped_tseries_and_offsets()
 
         # u(x,t) -> FFT -> U(x,f).
         fft = np.fft.fft(tmatrix)
@@ -576,7 +564,7 @@ class FDBF(AbstractWavefieldTransform):
 
         """
         # Flip reference frame (if required).
-        tmatrix, offsets = cls._flip_if_required(array)
+        tmatrix, offsets = array._flipped_tseries_and_offsets()
 
         # Reshape to 3D array, for calculating sscm.
         sensor = array.sensors[0]
