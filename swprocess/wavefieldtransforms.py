@@ -32,7 +32,7 @@ class AbstractWavefieldTransform(ABC):
         self.power = power
 
         # Pre-define internal state attributes
-        self._to_unnormalized = 1.
+        self._to_abs = 1.
 
         # Pre-define optional attributes
         self.snr = None
@@ -88,7 +88,7 @@ class AbstractWavefieldTransform(ABC):
 
         """
         # Return power to unnormalized state.
-        self.power *= self._to_unnormalized
+        self.power *= self._to_abs
 
         # Normalize power
         register = {"none": (lambda x: np.abs(x),
@@ -98,9 +98,8 @@ class AbstractWavefieldTransform(ABC):
                     "frequency-maximum": (lambda x: np.abs(x)/np.max(np.abs(x), axis=0),
                                           lambda x: np.max(np.abs(x), axis=0))
                     }
-        norm_func, norm_val = register[by]
-        self.power, self._to_unnormalized = (norm_func(self.power),
-                                             norm_val(self.power))
+        to_norm, to_abs = register[by]
+        self.power, self._to_abs = (to_norm(self.power), to_abs(self.power))
 
     def find_peak_power(self, by="frequency-maximum"):
         """Find maximum `WavefieldTransform` power.

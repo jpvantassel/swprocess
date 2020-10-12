@@ -200,7 +200,8 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
                                             map_x=self.map_x,
                                             map_y=self.map_y)
             if not self.array.is_similar(example_array):
-                msg = f"Can only stack arrays which are similar, first dissimilar file is {fname}."
+                msg = "Can only stack arrays which are similar, "
+                msg += f"first dissimilar file is {fname}."
                 raise ValueError(msg)
             self.check()
             self.detrend()
@@ -214,6 +215,7 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
             transform = Transform.from_array(array=self.array,
                                              settings=proc)
             running_stack.stack(transform)
+            print(np.min(running_stack.power), np.max(running_stack.power))
         running_stack.array = self.array
         if self.settings["signal-to-noise"]["perform"]:
             self.calculate_snr()
