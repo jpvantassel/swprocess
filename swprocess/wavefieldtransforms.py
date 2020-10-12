@@ -65,6 +65,7 @@ class AbstractWavefieldTransform(ABC):
 
     @staticmethod
     def _frequency_keep_ids(frequencies, fmin, fmax, multiple):
+        """Ids to keep between [fmin, fmax] (inclusive) by multiple."""
         fmin_ids = np.argmin(np.abs(frequencies-fmin))
         fmax_ids = np.argmin(np.abs(frequencies-fmax))
         keep_ids = range(fmin_ids, (fmax_ids+1), multiple)
@@ -117,25 +118,8 @@ class AbstractWavefieldTransform(ABC):
         """
         return self.velocities[np.argmax(self.power, axis=0)]
 
-    def plot_waterfall(self, *args, **kwargs):
-        # Only proceed if array is not None:
-        if self.array is None:
-            warnings.warn("array is not defined, therefore cannot be plotted.")
-            return
-
-        return self.array.waterfall(*args, **kwargs)
-
-    def plot_array(self, *args, **kwargs):
-        # Only proceed if array is not None:
-        if self.array is None:
-            warnings.warn("array is not defined, therefore cannot be plotted.")
-            return
-
-        return self.array.plot(*args, **kwargs)
-
     def plot_snr(self, ax=None, plot_kwargs=None):
-
-        # Only proceed if snr is not None:
+        # Only proceed if snr is not None.
         if self.snr is None:
             warnings.warn("snr is not defined, therefore cannot be plotted.")
             return
@@ -195,10 +179,13 @@ class AbstractWavefieldTransform(ABC):
 
         """
         # Construct fig and ax (if necessary).
-        ax_was_none = False
         if ax is None:
             ax_was_none = True
             fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
+        else:
+            ax_was_none = False
+            if fig is None:
+                raise ValueError("Both `fig` and `ax` must be defined.")
 
         # Perform normalization.
         self.normalize(by=normalization)
@@ -236,65 +223,65 @@ class AbstractWavefieldTransform(ABC):
             fig.tight_layout()
             return (fig, ax)
 
-    def plot_slices(self, frequencies, axs=None, plot_kwargs=None):
-        """Plot frequency-velocity slices of the `WavefieldTransform`.
+    # def plot_slices(self, frequencies, axs=None, plot_kwargs=None):
+    #     """Plot frequency-velocity slices of the `WavefieldTransform`.
 
-        Parameters
-        ----------
-        frequencies : iterable of floats
-            Select frequencies at which the slices are to be plotted.
-            Note the plotted frequencies may not match these exactly
-            depending upon the frequency discretization used during
-            processing. To ensure the two match exactly first reprocess
-            the data using frequency domain padding to ensure a known
-            `df` then select only slice frequencies which are multiples
-            of `df`.
-        axs : ndarray of Axes, optional
-            `ndarray` of `Axes` objects on which to plot the
-            frequency-velocity slices, default is `None` indicating
-            the appropriate `Axes` will be generated on-the-fly.
-        plot_kwargs : dict, optional
-            Keyword arguments to the plot command, default is `None`
-            so the default settings will be used.
+    #     Parameters
+    #     ----------
+    #     frequencies : iterable of floats
+    #         Select frequencies at which the slices are to be plotted.
+    #         Note the plotted frequencies may not match these exactly
+    #         depending upon the frequency discretization used during
+    #         processing. To ensure the two match exactly first reprocess
+    #         the data using frequency domain padding to ensure a known
+    #         `df` then select only slice frequencies which are multiples
+    #         of `df`.
+    #     axs : ndarray of Axes, optional
+    #         `ndarray` of `Axes` objects on which to plot the
+    #         frequency-velocity slices, default is `None` indicating
+    #         the appropriate `Axes` will be generated on-the-fly.
+    #     plot_kwargs : dict, optional
+    #         Keyword arguments to the plot command, default is `None`
+    #         so the default settings will be used.
 
 
-        Returns
-        -------
-        tuple or None
-            `tuple` of the form `(fig, axs)` if `axs=None`, and `None`
-            otherwise.
+    #     Returns
+    #     -------
+    #     tuple or None
+    #         `tuple` of the form `(fig, axs)` if `axs=None`, and `None`
+    #         otherwise.
 
-        """
-        # Construct fig and axs (if necessary).
-        axs_was_none = False
-        if axs is None:
-            axs_was_none = True
-            npanels = len(frequencies)
-            cols = 4
-            rows = ceil(npanels/cols)
-            blanks = cols*rows - npanels
-            fig, axs = plt.subplots(nrows=rows, ncols=cols,
-                                    figsize=(1.5*cols, 1.5*rows), dpi=150)
-            axs[-1, -blanks:] = None
+    #     """
+    #     # Construct fig and axs (if necessary).
+    #     axs_was_none = False
+    #     if axs is None:
+    #         axs_was_none = True
+    #         npanels = len(frequencies)
+    #         cols = 4
+    #         rows = ceil(npanels/cols)
+    #         blanks = cols*rows - npanels
+    #         fig, axs = plt.subplots(nrows=rows, ncols=cols,
+    #                                 figsize=(1.5*cols, 1.5*rows), dpi=150)
+    #         axs[-1, -blanks:] = None
 
-        # Allow user to customize the slice's appearance.
-        plot_kwarags = {} if plot_kwargs is None else plot_kwargs
-        default_kwargs = dict(linewidth=0.75, color="#000000")
-        plot_kwargs = {**default_kwargs, **plot_kwarags}
+    #     # Allow user to customize the slice's appearance.
+    #     plot_kwarags = {} if plot_kwargs is None else plot_kwargs
+    #     default_kwargs = dict(linewidth=0.75, color="#000000")
+    #     plot_kwargs = {**default_kwargs, **plot_kwarags}
 
-        # Plot the slices.
-        for ax, requested in zip(axs.flatten(), frequencies):
-            fid = np.argmin(np.abs(self.frequencies - requested))
-            ax.plot(self.velocities, self.power[:, fid], **plot_kwargs)
-            ax.text(0.95, 0.95, f"@{np.round(self.frequencies[fid])}Hz",
-                    ha="right", va="top", transform=ax.transAxes)
-            # ax.set_xlabel("Velocity (m/s)")
-            # ax.set_ylabel("Power")
+    #     # Plot the slices.
+    #     for ax, requested in zip(axs.flatten(), frequencies):
+    #         fid = np.argmin(np.abs(self.frequencies - requested))
+    #         ax.plot(self.velocities, self.power[:, fid], **plot_kwargs)
+    #         ax.text(0.95, 0.95, f"@{np.round(self.frequencies[fid])}Hz",
+    #                 ha="right", va="top", transform=ax.transAxes)
+    #         # ax.set_xlabel("Velocity (m/s)")
+    #         # ax.set_ylabel("Power")
 
-        # Return fig and ax (if necessary).
-        if axs_was_none:
-            fig.tight_layout()
-            return (fig, axs)
+    #     # Return fig and ax (if necessary).
+    #     if axs_was_none:
+    #         fig.tight_layout()
+    #         return (fig, axs)
 
 
 @WavefieldTransformRegistry.register('empty')
@@ -327,7 +314,7 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
         self.n += other.n
 
     @classmethod
-    def transform(cls, array, velocities, settings):
+    def transform(cls, array, velocities, settings): # pragma: no cover
         pass
 
 
