@@ -26,6 +26,7 @@ class AbstractWavefieldTransform(ABC):
     """
 
     def __init__(self, frequencies, velocities, power):
+        self.n = 1
         self.frequencies = frequencies
         self.velocities = velocities
         self.power = power
@@ -288,20 +289,26 @@ class AbstractWavefieldTransform(ABC):
 class EmptyWavefieldTransform(AbstractWavefieldTransform):
 
     def __init__(self, frequencies, velocities, power):
-        self.n = 0
         super().__init__(frequencies, velocities, power)
+        self.n = 0
 
     @classmethod
     def from_array(cls, array, settings):
+        # Create frequency vector.
         sensor = array[0]
         frqs = np.arange(sensor.nsamples)*sensor._df
         keep_ids = cls._frequency_keep_ids(frqs, settings["fmin"],
                                            settings["fmax"], sensor.multiple)
-        nvel, nfrq = settings["nvel"], len(keep_ids)
         frequencies = frqs[keep_ids]
+
+        # Create velocity vector.
         velocities = cls._create_vector(settings["vmin"], settings["vmax"],
                                         settings["nvel"], settings["vspace"])
+        
+        # Instantiate empty power tensor.
+        nvel, nfrq = settings["nvel"], len(keep_ids)
         power = np.empty((nvel, nfrq), dtype=complex)
+
         return cls(frequencies, velocities, power)
 
     def stack(self, other):

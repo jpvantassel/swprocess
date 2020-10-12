@@ -15,12 +15,7 @@ logger = logging.getLogger("swprocess.wavefieldtransforms")
 logger.setLevel(logging.WARNING)
 
 
-class Test_WavefieldTransforms(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.full_path = get_full_path(__file__)
-        cls.wghs_path = cls.full_path + "../examples/sample_data/wghs/"
+class Test_AbstractWavefieldTransform(TestCase):
 
     def test_create_vector(self):
         pmin, pmax, pn = 100, 400, 100
@@ -152,6 +147,60 @@ class Test_WavefieldTransforms(TestCase):
         self.assertRaises(ValueError, transform.plot, ax=ax)
 
         plt.show(block=False)
+
+
+class test_EmptyWavefieldTransform(TestCase):
+
+    def test_init(self):
+        f = np.arange(5, 50, 1)
+        v = np.linspace(100, 500, 100)
+        p = np.random.random((len(v), len(v)))
+        empty = swprocess.wavefieldtransforms.EmptyWavefieldTransform(f, v, p)
+        self.assertArrayEqual(empty.frequencies, f)
+        self.assertArrayEqual(empty.velocities, v)
+        self.assertArrayEqual(empty.power, p)
+        self.assertEqual(0, empty.n)
+
+    def test_from_array(self):
+        class SubEmpty(swprocess.wavefieldtransforms.EmptyWavefieldTransform):
+
+            @classmethod
+            def _create_vector(cls, *args, **kwargs):
+                cls._create_vector_args = args
+                cls._create_vector_kwargs = kwargs
+
+        sensors = [swprocess.Sensor1C([0]*100, 0.01, 2*n, 0, 0)
+                   for n in range(5)]
+        source = swprocess.Source(-5, 0, 0)
+        array = swprocess.Array1D(sensors, source)
+        settings = dict(fmin=5, fmax=50, vmin=75,
+                        vmax=300, nvel=30, vspace="lin")
+        empty = SubEmpty.from_array(array, settings)
+
+        self.assertArrayEqual(np.arange(5., 50+1, 1), empty.frequencies)
+        expected = (settings["vmin"], settings["vmax"], settings["nvel"], settings["vspace"])
+        returned = empty._create_vector_args
+        self.assertTupleEqual(expected, returned)
+        self.assertDictEqual({}, empty._create_vector_kwargs)
+        
+    def test_stack(self):
+        f = np.array([5., 10.])
+        v = np.array([100., 200])
+        p = np.array([[3., 5.], [7., 9.]])
+        a = swprocess.wavefieldtransforms.EmptyWavefieldTransform(f, v, p)
+        self.assertEqual(0, a.n)
+
+        p = np.array([[1., 2.], [3., 4.]])
+        b = swprocess.wavefieldtransforms.EmptyWavefieldTransform(f, v, p)
+        b.n = 1
+
+        # Stack b on a.
+        a.stack(b)
+        self.assertArrayEqual(p, a.power)
+
+        # Missing power attribute
+        delattr(b, "power")
+        self.assertRaises(AttributeError, a.stack, b)
 
 
 if __name__ == "__main__":
