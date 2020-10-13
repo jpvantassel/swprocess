@@ -1,10 +1,6 @@
-"""A setuptools based setup module.
+"""A setuptools based setup module."""
 
-See:
-https://packaging.python.org/guides/distributing-packages-using-setuptools/
-https://github.com/pypa/sampleproject
-"""
-
+from swprocess.__init__ import __version__
 from setuptools import setup, find_packages
 
 with open('README.md', encoding="utf8") as f:
@@ -12,7 +8,7 @@ with open('README.md', encoding="utf8") as f:
 
 setup(
     name='swprocess',
-    version='0.1.0',
+    version=__version__,
     description='Package for Surface-Wave Processing',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -35,12 +31,12 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
-    keywords='surface-wave processing geopsy active passive',
+    keywords='surface-wave dispersion processing geopsy active passive masw mam',
     packages=find_packages(),
     python_requires = '>3.6',
     install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy", "pandas", "xlrd"],
     extras_require={
-        'dev': [],
+        'dev': ['sphinx', 'sphinx_rtd_theme'],
     },
     package_data={
     },
@@ -49,5 +45,8 @@ setup(
     entry_points={  
     },
     project_urls={
+        'Bug Reports': 'https://github.com/jpvantassel/swprocess/issues',
+        'Source': 'https://github.com/jpvantassel/swprocess',
+        # 'Docs': 'https://swprocess.readthedocs.io/en/latest/?badge=latest',
     },
 )

@@ -7,6 +7,7 @@ from .array1d import Array1D
 from .masw import Masw
 
 from .peaks import Peaks
-from .peaks_suite import PeaksSuite
+from .peakssuite import PeaksSuite
 
 logging.getLogger('swprocess').addHandler(logging.NullHandler())
+__version__ = "0.1.0a0"
