@@ -16,3 +16,5 @@ vis_traces.ipynb
 set*.csv
 masw.k
 docs/html
+examples/masw/peaks_masw.json
+debug.log
