@@ -19,3 +19,4 @@ docs/html
 examples/masw/peaks_masw.json
 debug.log
 *.target
+tmp.json
