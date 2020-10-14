@@ -20,7 +20,7 @@ class Test_Array1D(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.full_path = get_full_path(__file__)
-        cls.wghs_path = cls.full_path + "../examples/sample_data/wghs/"
+        cls.wghs_path = cls.full_path + "../examples/masw/data/wghs/"
 
         cls.sensor_0 = swprocess.Sensor1C(amplitude=[-.1]*9 + [-0.11] + [-.1]*9,
                                           dt=1, x=0, y=0, z=0, nstacks=1,

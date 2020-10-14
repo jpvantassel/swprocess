@@ -215,7 +215,6 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
             transform = Transform.from_array(array=self.array,
                                              settings=proc)
             running_stack.stack(transform)
-            print(np.min(running_stack.power), np.max(running_stack.power))
         running_stack.array = self.array
         if self.settings["signal-to-noise"]["perform"]:
             self.calculate_snr()

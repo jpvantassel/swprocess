@@ -16,7 +16,7 @@ class Test_Masw(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.full_path = get_full_path(__file__)
-        cls.wghs_path = cls.full_path + "../examples/sample_data/wghs/"
+        cls.wghs_path = cls.full_path + "../examples/masw/data/wghs/"
 
     def test_run(self):
         @swprocess.register.MaswWorkflowRegistry.register("dummy")

@@ -18,6 +18,7 @@ class Test_Sensor1C(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.full_path = get_full_path(__file__)
+        cls.wghs_path = cls.full_path + "../examples/masw/data/wghs/"
 
         cls.a_amp = np.array([0, 1, 2, 1, 0, 1], dtype=np.double)
         cls.a_dt = 1.
@@ -42,7 +43,7 @@ class Test_Sensor1C(TestCase):
         # seg2
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            traces = obspy.read(self.full_path+"../examples/sample_data/wghs/6.dat")
+            traces = obspy.read(self.wghs_path+"6.dat")
         trace = traces[0]
         sensor = Sensor1C.from_trace(trace)
         self.assertArrayEqual(trace.data, sensor.amp)
@@ -71,10 +72,10 @@ class Test_Sensor1C(TestCase):
         self.assertEqual(int(header[nstack_key])+1, sensor.nstacks)
 
         # read_header=False
-        for cpath in ["../../examples/sample_data/wghs/11.dat", "denise/v1.2_x.su.shot1"]:
+        for cpath in [self.wghs_path+"11.dat", self.full_path+"data/denise/v1.2_x.su.shot1"]:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                traces = obspy.read(self.full_path+"data/"+cpath)
+                traces = obspy.read(cpath)
             sensor = Sensor1C.from_trace(
                 trace, read_header=False, nstacks=15, delay=-2, x=3, y=6, z=12)
             self.assertArrayEqual(trace.data, sensor.amp)

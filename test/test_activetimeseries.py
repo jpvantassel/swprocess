@@ -19,7 +19,7 @@ class Test_ActiveTimeSeries(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.full_path = get_full_path(__file__)
-        cls.wghs_path = cls.full_path + "../examples/sample_data/wghs/"
+        cls.wghs_path = cls.full_path + "../examples/masw/data/wghs/"
 
     def test_check(self):
         good_nstacks = 1
