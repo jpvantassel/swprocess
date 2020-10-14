@@ -6,22 +6,22 @@ import json
 
 import numpy as np
 
-import swprocess
+from swprocess.masw import Masw, MaswWorkflowRegistry
 from testtools import get_full_path
 
 full_path = get_full_path(__file__)
 
+
 def main():
-    method = "fdbf"
-    settings=full_path+"settings/settings_performance.json"
-    with open(settings, "r") as f:
-        data = json.load(f)
-    data["method"] = method
-    with open(settings, "w") as f:    
-        json.dump(data, f)
-    fname = full_path+"../examples/sample_data/wghs/6.dat"
-    array = swprocess.Array1D.from_files(fnames=fname)
-    transform = swprocess.WavefieldTransform1D(array=array, settings=settings)
+    fname = full_path+"../examples/masw/data/wghs/6.dat"
+    settings_fname = full_path+"data/settings/settings_performance.json"
+    Masw.create_settings_file(fname=settings_fname, workflow="single", 
+                              trim=False, mute=False, pad=True, df=1.0,
+                              transform="fk", fmin=5, fmax=100, vmin=100,
+                              vmax=400, nvel=200, vspace="linear", snr=False,
+                              weighting="sqrt", steering="cylindrical",
+                              )
+    transform = Masw.run(fnames=fname, settings_fname=settings_fname)
 
 fname = full_path+".tmp_profiler_run"
 data = cProfile.run('main()', filename=fname)
@@ -33,13 +33,15 @@ stat.print_stats(0.01)
 # YEAR - MO - DY : TIME UNIT
 # -------------------------
 # 2020 - 08 - 27 : 0.132 s -> Baseline
+# 2020 - 10 - 14 : 0.479 s -> New baseline after workflow rewrite.
 
 # phase-shift
 # YEAR - MO - DY : TIME UNIT
 # -------------------------
 # 2020 - 08 - 27 : 0.510 s -> Baseline
+# 2020 - 10 - 14 : 0.551 s -> New baseline after workflow rewrite.
 
-# slant-stack
+# slantstack
 # YEAR - MO - DY : TIME UNIT
 # -------------------------
 # 2020 - 08 - 27 : 7.238 s -> Baseline
@@ -47,6 +49,7 @@ stat.print_stats(0.01)
 # 2020 - 08 - 27 : 8.063 s -> Functional implementation sans jit
 # 2020 - 08 - 27 : 9.096 s -> Functional implementation with jit
 # 2020 - 08 - 28 : 0.325 s -> Revert to earlier slant-stack implementation
+# 2020 - 10 - 14 : 0.363 s -> New baseline after workflow rewrite.
 
 # fdbf w/ weight=sqrt and steer=cylindrical
 # YEAR - MO - DY : TIME UNIT
@@ -54,3 +57,4 @@ stat.print_stats(0.01)
 # 2020 - 08 - 30 : 0.816 s -> Baseline
 # 2020 - 09 - 01 : 0.733 s -> Remove excessive transposes in scm
 # 2020 - 09 - 01 : 0.883 s -> Change problem to sqrt and cylindrical
+# 2020 - 10 - 14 : 0.872 s -> New baseline after workflow rewrite.
