@@ -663,3 +663,13 @@ class FDBF(AbstractWavefieldTransform):
             spatiospectral[:, :, i] = scm[:]
 
         return spatiospectral
+
+@WavefieldTransformRegistry.register('fk')
+class FK(FDBF):
+
+    @classmethod
+    def from_array(cls, array, settings):
+        settings["fdbf-specific"]["weighting"] = "none"
+        settings["fdbf-specific"]["steering"] = "plane"
+
+        return super().from_array(array, settings)    
