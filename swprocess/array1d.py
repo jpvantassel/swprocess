@@ -328,10 +328,10 @@ class Array1D():
         # List number of sensors and their spacing.
         number_txt = f"Number of sensors: {self.nchannels}"
         try:
-            spacing_txt = f"Sensor spacing is {self.spacing}m."
+            spacing_txt = f"Sensor spacing: {self.spacing} m."
         except ValueError:
             spacing_txt = "Sensor spacing is not constant."
-        source_txt = f"Source @ {round(self.source.x, 2)}m."
+        source_txt = f"Source @ {round(self.source.x, 2)} m."
         ax.text(0.03, 0.95, f"{number_txt}\n{spacing_txt}\n{source_txt}",
                 transform=ax.transAxes, va="top", ha="left")
 
