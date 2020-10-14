@@ -8,13 +8,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import swprocess
+from swprocess.peaks import Peaks
 from testtools import unittest, TestCase, get_full_path
 
-# mpl_logger = logging.getLogger("matplotlib")
-# mpl_logger.setLevel(logging.ERROR)
-
-# logging.basicConfig(level=logging.WARNING)
-
+logger = logging.getLogger("swprocess")
+logger.setLevel(logging.ERROR)
 
 class Test_PeaksSuite(TestCase):
 
@@ -24,8 +22,8 @@ class Test_PeaksSuite(TestCase):
 
     def test_init(self):
         # Basic
-        p0 = swprocess.Peaks([1, 2, 3], [4, 5, 6], "p0")
-        p1 = swprocess.Peaks([7, 8, 9], [10, 11, 12], "p1")
+        p0 = Peaks([1, 2, 3], [4, 5, 6], "p0")
+        p1 = Peaks([7, 8, 9], [10, 11, 12], "p1")
         suite = swprocess.PeaksSuite(p0)
         suite.append(p1)
 
@@ -38,6 +36,13 @@ class Test_PeaksSuite(TestCase):
         # Bad: append non-Peaks object
         self.assertRaises(TypeError, suite.append, "not a Peaks object")
 
+    def test_from_dicts(self):
+        # Simple Case: Single dictionary
+        data = {"test": {"frequency": [1, 2, 3], "velocity": [4, 5, 6]}}
+        suite = swprocess.PeaksSuite.from_dicts(data)
+        peaks = Peaks.from_dict(data["test"], "test")
+        self.assertEqual(peaks, suite[0])
+
     def test_from_jsons(self):
         # Advanced Case: Two keyword arguements
         frequency = [100., 50, 30, 10, 5, 3]
@@ -49,7 +54,7 @@ class Test_PeaksSuite(TestCase):
         fnames = []
         for num in range(0, 3):
             fname = f"{self.full_path}data/tmp_id{num}.json"
-            peaks = swprocess.Peaks(
+            peaks = Peaks(
                 frequency, velocity, str(num), azi=azi, pwr=pwr)
             peaks.to_json(fname)
             fnames.append(fname)
@@ -61,13 +66,6 @@ class Test_PeaksSuite(TestCase):
 
         for fname in fnames:
             os.remove(fname)
-
-    def test_from_dicts(self):
-        # Simple Case: Single dictionary
-        data = {"test": {"frequency": [1, 2, 3], "velocity": [4, 5, 6]}}
-        suite = swprocess.PeaksSuite.from_dicts(data)
-        peaks = swprocess.Peaks.from_dict(data["test"], "test")
-        self.assertEqual(peaks, suite[0])
 
     def test_from_maxs(self):
         # Check Rayleigh (2 files, 2 lines per file)
@@ -163,7 +161,7 @@ class Test_PeaksSuite(TestCase):
                            [4, 5, 7, 8, 9],
                            [4, 3, 6, 4, 2]])
         frq = [1, 2, 3, 4, 5]
-        peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(3)]
+        peaks = [Peaks(frq, values[k], str(k)) for k in range(3)]
         suite = swprocess.PeaksSuite.from_iter(peaks)
         rfrq, rmean, rstd, rcorr = suite.statistics(frq,
                                                     xtype="frequency",
@@ -184,7 +182,7 @@ class Test_PeaksSuite(TestCase):
                           [4, 5, 7, 8, 9],
                           [4, 3, 6, 4, 2]])
         valid_frq = frq[1:]
-        peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(4)]
+        peaks = [Peaks(frq, values[k], str(k)) for k in range(4)]
         suite = swprocess.PeaksSuite.from_iter(peaks)
         rfrq, rmean, rstd, rcorr = suite.statistics(frq,
                                                     xtype="frequency",
@@ -196,9 +194,9 @@ class Test_PeaksSuite(TestCase):
         self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
 
     def test_eq(self):
-        p0 = swprocess.Peaks([1, 2, 3], [4, 5, 6], "0")
-        p1 = swprocess.Peaks([1, 2, 3], [7, 8, 9], "1")
-        p2 = swprocess.Peaks([1, 2, 3], [0, 1, 2], "2")
+        p0 = Peaks([1, 2, 3], [4, 5, 6], "0")
+        p1 = Peaks([1, 2, 3], [7, 8, 9], "1")
+        p2 = Peaks([1, 2, 3], [0, 1, 2], "2")
 
         suite_a = swprocess.PeaksSuite.from_iter([p0, p1, p2])
         suite_b = "I am not a PeakSuite"

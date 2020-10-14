@@ -7,10 +7,9 @@ import logging
 
 import numpy as np
 
+from swprocess.peaks import Peaks
 import swprocess
 from testtools import unittest, TestCase, get_full_path
-
-logging.basicConfig(level=logging.WARN)
 
 
 class Test_Peaks(TestCase):
@@ -28,22 +27,22 @@ class Test_Peaks(TestCase):
 
     def test_init(self):
         # Basic Case: No keyword arguments
-        peaks = swprocess.Peaks(frequency=self.frq,
-                                velocity=self.vel,
-                                identifier=self._id)
+        peaks = Peaks(frequency=self.frq,
+                      velocity=self.vel,
+                      identifier=self._id)
         self.assertArrayEqual(np.array(self.frq), peaks.frequency)
         self.assertArrayEqual(np.array(self.vel), peaks.velocity)
         self.assertEqual(self._id, peaks.identifier)
 
         # Advanced Case: Four keyword arguments
         identifier = "-5m"
-        my_peaks = swprocess.Peaks(frequency=self.frq,
-                                   velocity=self.vel,
-                                   identifier=self._id,
-                                   azi=self.azi,
-                                   ell=self.ell,
-                                   noi=self.noi,
-                                   pwr=self.pwr)
+        my_peaks = Peaks(frequency=self.frq,
+                         velocity=self.vel,
+                         identifier=self._id,
+                         azi=self.azi,
+                         ell=self.ell,
+                         noi=self.noi,
+                         pwr=self.pwr)
         self.assertArrayEqual(np.array(self.azi), my_peaks.azi)
         self.assertArrayEqual(np.array(self.ell), my_peaks.ell)
         self.assertArrayEqual(np.array(self.noi), my_peaks.noi)
@@ -52,7 +51,7 @@ class Test_Peaks(TestCase):
     def test_from_dict(self):
         # Basic Case: No keyword arguments
         data = {"frequency": self.frq, "velocity": self.vel}
-        peaks = swprocess.Peaks.from_dict(data, identifier=self._id)
+        peaks = Peaks.from_dict(data, identifier=self._id)
         self.assertArrayEqual(np.array(self.frq), peaks.frequency)
         self.assertArrayEqual(np.array(self.vel), peaks.velocity)
         self.assertEqual(self._id, peaks.identifier)
@@ -61,7 +60,7 @@ class Test_Peaks(TestCase):
         data = {"frequency": self.frq, "velocity": self.vel,
                 "azi": self.azi, "ell": self.ell, "noi": self.noi,
                 "pwr": self.pwr}
-        peaks = swprocess.Peaks.from_dict(data, identifier=self._id)
+        peaks = Peaks.from_dict(data, identifier=self._id)
         self.assertArrayEqual(np.array(self.azi), peaks.azi)
         self.assertArrayEqual(np.array(self.ell), peaks.ell)
         self.assertArrayEqual(np.array(self.noi), peaks.noi)
@@ -70,41 +69,41 @@ class Test_Peaks(TestCase):
         # Advanced Case: Two keyword arguments
         data = {"frequency": self.frq, "velocity": self.vel,
                 "azi": self.azi, "pwr": self.pwr}
-        peaks = swprocess.Peaks.from_dict(data, identifier=self._id)
+        peaks = Peaks.from_dict(data, identifier=self._id)
         self.assertArrayEqual(np.array(self.azi), peaks.azi)
         self.assertArrayEqual(np.array(self.pwr), peaks.pwr)
 
         # Bad: reference to deprecated from_dicts
-        self.assertRaises(DeprecationWarning, swprocess.Peaks.from_dicts)
+        self.assertRaises(DeprecationWarning, Peaks.from_dicts)
 
         # Bad: missing frequency or velocity
         del data["frequency"]
-        self.assertRaises(ValueError, swprocess.Peaks.from_dict, data)
+        self.assertRaises(TypeError, Peaks.from_dict, data)
 
     def test_to_and_from_jsons(self):
         # Standard to_json and from_json
         fname = "test.json"
-        expected = swprocess.Peaks(self.frq, self.vel, self._id,
-                                   azi=self.azi, pwr=self.pwr)
+        expected = Peaks(self.frq, self.vel, self._id,
+                         azi=self.azi, pwr=self.pwr)
         expected.to_json(fname)
-        returned = swprocess.Peaks.from_json(fname)
+        returned = Peaks.from_json(fname)
         self.assertEqual(expected, returned)
         os.remove(fname)
 
         # Deprecated write_peak_json
-        expected = swprocess.Peaks(self.frq, self.vel, self._id,
-                                   azi=self.azi, pwr=self.pwr)
+        expected = Peaks(self.frq, self.vel, self._id,
+                         azi=self.azi, pwr=self.pwr)
         fname = "test_1.json"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             expected.write_peak_json(fname)
-        returned = swprocess.Peaks.from_json(fname)
+        returned = Peaks.from_json(fname)
         self.assertEqual(expected, returned)
         os.remove(fname)
 
         # to_json append data does not exist
         fname = "test_2.json"
-        peaks = swprocess.Peaks(self.frq, self.vel, "org")
+        peaks = Peaks(self.frq, self.vel, "org")
         peaks.to_json(fname)
         peaks.identifier = "app"
         peaks.to_json(fname, append=True)
@@ -119,11 +118,11 @@ class Test_Peaks(TestCase):
 
         # to_json overwrite
         fname = "test_3.json"
-        peaks = swprocess.Peaks(self.frq, self.vel, "org")
+        peaks = Peaks(self.frq, self.vel, "org")
         peaks.to_json(fname)
         peaks.identifier = "app"
         peaks.to_json(fname, append=False)
-        returned = swprocess.Peaks.from_json(fname)
+        returned = Peaks.from_json(fname)
         self.assertEqual(peaks, returned)
         os.remove(fname)
 
@@ -132,17 +131,17 @@ class Test_Peaks(TestCase):
         peak_suite = swprocess.PeaksSuite.from_jsons(fname)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            returned = swprocess.Peaks.from_json(fname)
+            returned = Peaks.from_json(fname)
         expected = peak_suite[peak_suite.ids.index(returned.identifier)]
         self.assertEqual(expected, returned)
 
         # Bad: reference to deprecated from_jsons
-        self.assertRaises(DeprecationWarning, swprocess.Peaks.from_jsons)
+        self.assertRaises(DeprecationWarning, Peaks.from_jsons)
 
     def test_from_max(self):
         # Check rayleigh (2 lines)
         fname = self.full_path + "data/mm/test_hfk_line2_0.max"
-        peaks = swprocess.Peaks.from_max(fname=fname, wavetype="rayleigh")
+        peaks = Peaks.from_max(fname=fname, wavetype="rayleigh")
         self.assertArrayEqual(peaks.frequency, np.array([20.000000000000106581,
                                                          19.282217609815102577]))
         self.assertArrayEqual(peaks.velocity, 1/np.array([0.0068859013683322750979,
@@ -159,7 +158,7 @@ class Test_Peaks(TestCase):
 
         # Check love (2 lines)
         fname = self.full_path+"data/mm/test_hfk_line2_0.max"
-        peaks = swprocess.Peaks.from_max(fname=fname, wavetype="love")
+        peaks = Peaks.from_max(fname=fname, wavetype="love")
         self.assertArrayEqual(peaks.frequency, np.array([20.000000000000106581,
                                                          19.282217609815102577]))
         self.assertArrayEqual(peaks.velocity, np.array([1/0.0088200863560403078983,
@@ -173,10 +172,10 @@ class Test_Peaks(TestCase):
         self.assertEqual("16200", peaks.identifier)
 
         # Bad reference to deprecated from_maxs
-        self.assertRaises(DeprecationWarning, swprocess.Peaks.from_maxs)
+        self.assertRaises(DeprecationWarning, Peaks.from_maxs)
 
         # Bad wavetype
-        self.assertRaises(ValueError, swprocess.Peaks.from_max,
+        self.assertRaises(ValueError, Peaks.from_max,
                           fname, wavetype="incorrect")
 
     def test_reject(self):
@@ -189,14 +188,14 @@ class Test_Peaks(TestCase):
         ymin, ymax = ylims
 
         # Helper function
-        returned = swprocess.Peaks._reject_inside_ids(xs, xmin, xmax,
+        returned = Peaks._reject_inside_ids(xs, xmin, xmax,
                                                       ys, ymin, ymax)
         expected = np.array([3, 6])
         self.assertArrayEqual(expected, returned)
 
         # Method -> Reject on frequency and velocity
         other = np.arange(10)
-        peaks = swprocess.Peaks(xs, ys, other=other)
+        peaks = Peaks(xs, ys, other=other)
         peaks.reject(xtype="frequency", xlims=xlims,
                      ytype="velocity", ylims=ylims)
 
@@ -207,7 +206,7 @@ class Test_Peaks(TestCase):
 
         # Method -> Reject on frequency and other
         other = np.arange(10)
-        peaks = swprocess.Peaks(xs, ys, other=other)
+        peaks = Peaks(xs, ys, other=other)
         peaks.reject(xtype="frequency", xlims=xlims,
                      ytype="other", ylims=ylims)
 
@@ -220,7 +219,7 @@ class Test_Peaks(TestCase):
         xs = np.array([1, 5, 8, 6, 4, 7, 7, 1, 3, 5])
         ys = 1/np.array([1, 5, 9, 4, 5, 6, 7, 8, 1, 7])
 
-        peaks = swprocess.Peaks(xs, ys)
+        peaks = Peaks(xs, ys)
         peaks.reject(xtype="frequency", xlims=(0, 10),
                      ytype="slowness", ylims=(4.5, 7.5))
 
@@ -238,19 +237,19 @@ class Test_Peaks(TestCase):
         # Remove all above 4.5
         _min, _max = None, 4.5
         expected = np.array([1, 2, 4, 5, 7, 9])
-        returned = swprocess.Peaks._reject_outside_ids(xs, _min, _max)
+        returned = Peaks._reject_outside_ids(xs, _min, _max)
         self.assertArrayEqual(expected, returned)
 
         # Remove all below 4.5
         _min, _max = 4.5, None
         expected = np.array([0, 3, 6, 8])
-        returned = swprocess.Peaks._reject_outside_ids(xs, _min, _max)
+        returned = Peaks._reject_outside_ids(xs, _min, _max)
         self.assertArrayEqual(expected, returned)
 
         # Remove all below 1.5 and above 6.5
         _min, _max = 1.5, 6.5
         expected = np.array([0, 2, 5, 9])
-        returned = swprocess.Peaks._reject_outside_ids(xs, _min, _max)
+        returned = Peaks._reject_outside_ids(xs, _min, _max)
         self.assertArrayEqual(expected, returned)
 
         # None
@@ -258,7 +257,7 @@ class Test_Peaks(TestCase):
         expected = np.array([])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            returned = swprocess.Peaks._reject_outside_ids(xs, _min, _max)
+            returned = Peaks._reject_outside_ids(xs, _min, _max)
         self.assertArrayEqual(expected, returned)
 
         # Method
@@ -267,7 +266,7 @@ class Test_Peaks(TestCase):
         limits = (0.5, 6.5)
 
         other = np.arange(10)
-        peaks = swprocess.Peaks(frequency=xs, velocity=ys, other=other)
+        peaks = Peaks(frequency=xs, velocity=ys, other=other)
         peaks.blitz("frequency", limits)
 
         keep_ids = [0, 1, 3, 4, 6, 7, 8]
@@ -278,14 +277,14 @@ class Test_Peaks(TestCase):
     # def test_plot(self):
     #     import matplotlib.pyplot as plt
     #     fname = self.full_path + "data/mm/test_hfk_full.max"
-    #     peaks = swprocess.Peaks.from_max(fname)
+    #     peaks = Peaks.from_max(fname)
     #     fig, ax = peaks.plot(xtype=["frequency", "wavelength", "azimuth"],
     #                          ytype=["velocity", "velocity", "velocity"],
     #                          plot_kwargs=dict(color="g"))
     #     plt.close()
 
     def test_properties(self):
-        peaks = swprocess.Peaks(self.frq, self.vel, self._id, azi=self.azi)
+        peaks = Peaks(self.frq, self.vel, self._id, azi=self.azi)
 
         # Deprecated properties
         with warnings.catch_warnings():
@@ -305,22 +304,22 @@ class Test_Peaks(TestCase):
         self.assertListEqual(expected, returned)
 
     def test__eq__(self):
-        peaks_a = swprocess.Peaks(self.frq, self.vel, self._id,
-                                  azimuth=self.azi)
+        peaks_a = Peaks(self.frq, self.vel, self._id,
+                        azimuth=self.azi)
         peaks_b = "I am not even a Peaks object"
-        peaks_c = swprocess.Peaks(self.frq, self.vel, "diff", azimuth=self.azi)
-        peaks_d = swprocess.Peaks(self.frq[:-2], self.vel[:-2], self._id,
-                                  azimuth=self.azi[:-2])
-        peaks_e = swprocess.Peaks(np.zeros_like(self.frq), self.vel, self._id,
-                                  azimuth=self.azi)
-        peaks_f = swprocess.Peaks(np.zeros_like(self.frq), self.vel, self._id)
-        peaks_g = swprocess.Peaks(self.frq, self.vel, self._id,
-                                  azimuth=self.azi)
+        peaks_c = Peaks(self.frq, self.vel, "diff", azimuth=self.azi)
+        peaks_d = Peaks(self.frq[:-2], self.vel[:-2], self._id,
+                        azimuth=self.azi[:-2])
+        peaks_e = Peaks(np.zeros_like(self.frq), self.vel, self._id,
+                        azimuth=self.azi)
+        peaks_f = Peaks(np.zeros_like(self.frq), self.vel, self._id)
+        peaks_g = Peaks(self.frq, self.vel, self._id,
+                        azimuth=self.azi)
         del peaks_g.identifier
-        peaks_h = swprocess.Peaks(self.frq, self.vel, self._id,
-                                  noise=self.noi)
-        peaks_i = swprocess.Peaks(self.frq, self.vel, self._id,
-                                  azimuth=self.azi)
+        peaks_h = Peaks(self.frq, self.vel, self._id,
+                        noise=self.noi)
+        peaks_i = Peaks(self.frq, self.vel, self._id,
+                        azimuth=self.azi)
 
         self.assertTrue(peaks_a == peaks_a)
         self.assertFalse(peaks_a == peaks_b)

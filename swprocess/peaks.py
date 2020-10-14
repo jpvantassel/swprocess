@@ -9,9 +9,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
-from swprocess.regex import get_peak_from_max, get_all
+from .regex import get_peak_from_max, get_all
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("swprocess.peaks")
 
 
 class Peaks():
@@ -19,26 +19,32 @@ class Peaks():
 
     Attributes
     ----------
-        TODO (jpv): Finish documentation.
+    frequency : ndarray
+        Frequency associate with each peak.
+    velocity : ndarray
+        Velocity associate with each peak.
+    identifier : str
+        Used to uniquely identify the `Peaks` object.
+    attrs : list
+        List of strings describing Peak attributes.
 
     """
 
     def __init__(self, frequency, velocity, identifier="0", **kwargs):
-        """Initialize an instance of Peaks from a list of frequency
-        and velocity values.
+        """Create `Peaks` from a interable of frequency and velocity.
 
         Parameters
         ----------
-        frequency, velocity : list
+        frequency, velocity : interable
             Frequency and velocity (one per peak), respectively.
-        identifiers : str
+        identifiers : str, optional
             String to uniquely identify the provided frequency-velocity
-            pair.
+            pair, default is "0:.
         **kwargs : kwargs
             Optional keyword argument(s) these may include
             additional details about the dispersion peaks such as:
             azimuth (azi), ellipticity (ell), power (pwr), and noise
-            (pwr). Will generally not be used directly.
+            (pwr). Will generally not be entered directly.
 
         Returns
         -------
@@ -49,20 +55,20 @@ class Peaks():
         self.frequency = np.array(frequency, dtype=float)
         self.velocity = np.array(velocity, dtype=float)
         self.identifier = str(identifier)
-        logging.debug(f"**kwargs = {kwargs}")
+        logger.debug(f"**kwargs = {kwargs}")
         self.attrs = ["frequency", "velocity"] + list(kwargs.keys())
         for key, val in kwargs.items():
             setattr(self, key, np.array(val, dtype=float))
 
     @property
     def ids(self):
-        msg = f"ids is deprecated use, `identifier` instead"
+        msg = f"ids is deprecated use, identifier instead."
         warnings.warn(msg, DeprecationWarning)
         return self.identifier
 
     @property
     def wav(self):
-        msg = "Use of wav is deprecated use wavelength instead."
+        msg = "wav is deprecated use wavelength instead."
         warnings.warn(msg, DeprecationWarning)
         return self.wavelength
 
@@ -72,6 +78,7 @@ class Peaks():
 
     @property
     def extended_attrs(self):
+        """List of available Peaks attributes, including calculated."""
         others = ["wavelength", "slowness"]
         return self.attrs + others
 
@@ -81,7 +88,8 @@ class Peaks():
 
     @classmethod
     def from_dicts(cls, *args, **kwargs):
-        msg = "Peaks.from_dicts has been deprecated, use Peaks.from_dict or PeaksSuite.from_dicts() instead."
+        msg = "Peaks.from_dicts has been deprecated, use "
+        msg += "Peaks.from_dict or PeaksSuite.from_dicts() instead."
         raise DeprecationWarning(msg)
 
     @classmethod
@@ -95,11 +103,10 @@ class Peaks():
             `{"frequency":freq, "velocity":vel, "kwarg1": kwarg1}`
             where `freq` is a list of floats denoting frequency values.
             `vel` is a list of floats denoting velocity values.
-            `kwarg1` is an optional keyword argument, may include as
-            many or none.
+            `kwarg1` is an optional keyword argument denoting some
+            additional parameter (may include more than one).
         identifiers : str
-            String to uniquely identify the provided frequency-velocity
-            pair.
+            String to uniquely identify the provided `Peaks` object.
 
         Returns
         -------
@@ -107,16 +114,12 @@ class Peaks():
             Initialized `Peaks` instance.
 
         """
-        for key in ["frequency", "velocity"]:
-            if key not in data_dict.keys():
-                msg = f"`frequency` and `velocity` keys are not optional."
-                raise ValueError(msg)
-
         return cls(identifier=identifier, **data_dict)
 
     @classmethod
     def from_jsons(self, *args, **kwargs):
-        msg = "Peaks.from_jsons has been deprecated, use Peaks.from_json() or PeaksSuite.from_jsons() instead."
+        msg = "Peaks.from_jsons has been deprecated, use "
+        msg += "Peaks.from_json() or PeaksSuite.from_jsons() instead."
         raise DeprecationWarning(msg)
 
     @classmethod
@@ -126,14 +129,16 @@ class Peaks():
 
         key_list = list(data.keys())
         if len(key_list) > 1:
-            msg = f"More than one dataset in {fname}, taking only the first! If you want all see `PeaksSuite.from_jsons`."
+            msg = f"More than one dataset in {fname}, taking only the first! "
+            msg += "If you want all see `PeaksSuite.from_jsons`."
             warnings.warn(msg)
 
         return cls.from_dict(data[key_list[0]], identifier=key_list[0])
 
     @classmethod
     def from_maxs(cls, *args, **kwargs):
-        msg = "Peaks.from_maxs has been deprecated, use PeaksPassive.from_max() or PeaksSuite.from_maxs() instead."
+        msg = "Peaks.from_maxs has been deprecated, use "
+        msg += "PeaksPassive.from_max() or PeaksSuite.from_maxs() instead."
         raise DeprecationWarning(msg)
 
     @classmethod
@@ -159,7 +164,7 @@ class Peaks():
         # Include for "belt and suspenders".
         getall = get_all(time=start_time, wavetype=wavetype)
         count = len(getall.findall(peak_data))
-        if len(frqs) != count:
+        if len(frqs) != count: # pragma: no cover
             msg = f"Missing {count- len(frqs)} dispersion peaks."
             raise ValueError(msg)
 
@@ -433,7 +438,8 @@ class Peaks():
             with open(fname, "r") as f:
                 data_to_update = json.load(f)
             if self.identifier in data_to_update.keys():
-                msg = f"Data already exists in file with identifier {self.identifier}, file left unmodified."
+                msg = "Data already exists in file with identifier "
+                msg += f"{self.identifier}, file left unmodified."
                 raise KeyError(msg)
             else:
                 data_to_update[self.identifier] = data
