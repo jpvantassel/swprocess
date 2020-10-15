@@ -15,7 +15,7 @@ logger = logging.getLogger("swprocess.peaks")
 
 
 class Peaks():
-    """Class for handling peak dispersion data.
+    """Class for handling dispersion peaks.
 
     Attributes
     ----------
@@ -31,16 +31,16 @@ class Peaks():
     """
 
     def __init__(self, frequency, velocity, identifier="0", **kwargs):
-        """Create `Peaks` from a interable of frequency and velocity.
+        """Create `Peaks` from a iterable of frequency and velocity.
 
         Parameters
         ----------
-        frequency, velocity : interable
+        frequency, velocity : iterable of floats
             Frequency and velocity (one per peak), respectively.
         identifiers : str, optional
             String to uniquely identify the provided frequency-velocity
-            pair, default is "0:.
-        **kwargs : kwargs
+            pair, default is "0".
+        **kwargs : iterable of floats
             Optional keyword argument(s) these may include
             additional details about the dispersion peaks such as:
             azimuth (azi), ellipticity (ell), power (pwr), and noise
@@ -55,22 +55,13 @@ class Peaks():
         self.frequency = np.array(frequency, dtype=float)
         self.velocity = np.array(velocity, dtype=float)
         self.identifier = str(identifier)
-        logger.debug(f"**kwargs = {kwargs}")
         self.attrs = ["frequency", "velocity"] + list(kwargs.keys())
+        
+        logger.debug(f"Creating {self}")
+        logger.debug(f"  {self}.attrs={self.attrs}")
+
         for key, val in kwargs.items():
             setattr(self, key, np.array(val, dtype=float))
-
-    @property
-    def ids(self):
-        msg = f"ids is deprecated use, identifier instead."
-        warnings.warn(msg, DeprecationWarning)
-        return self.identifier
-
-    @property
-    def wav(self):
-        msg = "wav is deprecated use wavelength instead."
-        warnings.warn(msg, DeprecationWarning)
-        return self.wavelength
 
     @property
     def wavelength(self):
@@ -89,12 +80,6 @@ class Peaks():
     @property
     def slowness(self):
         return 1/self.velocity
-
-    @classmethod
-    def from_dicts(cls, *args, **kwargs):
-        msg = "Peaks.from_dicts has been deprecated, use "
-        msg += "Peaks.from_dict or PeaksSuite.from_dicts() instead."
-        raise DeprecationWarning(msg)
 
     @classmethod
     def from_dict(cls, data_dict, identifier="0"):
@@ -121,12 +106,6 @@ class Peaks():
         return cls(identifier=identifier, **data_dict)
 
     @classmethod
-    def from_jsons(self, *args, **kwargs):
-        msg = "Peaks.from_jsons has been deprecated, use "
-        msg += "Peaks.from_json() or PeaksSuite.from_jsons() instead."
-        raise DeprecationWarning(msg)
-
-    @classmethod
     def from_json(cls, fname):
         with open(fname, "r") as f:
             data = json.load(f)
@@ -134,16 +113,10 @@ class Peaks():
         key_list = list(data.keys())
         if len(key_list) > 1:
             msg = f"More than one dataset in {fname}, taking only the first! "
-            msg += "If you want all see `PeaksSuite.from_jsons`."
+            msg += "If you want all see `PeaksSuite.from_json`."
             warnings.warn(msg)
 
         return cls.from_dict(data[key_list[0]], identifier=key_list[0])
-
-    @classmethod
-    def from_maxs(cls, *args, **kwargs):
-        msg = "Peaks.from_maxs has been deprecated, use "
-        msg += "PeaksPassive.from_max() or PeaksSuite.from_maxs() instead."
-        raise DeprecationWarning(msg)
 
     @classmethod
     def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None):
@@ -261,9 +234,9 @@ class Peaks():
             Pass an `Axes` on which to plot, default is `None` meaning
             a `Axes` will be generated on-the-fly.
         plot_kwargs : dict, optional
-            Optional keyword arguements to pass to plot.
+            Optional keyword arguments to pass to plot.
         ax_kwargs : dict, optional
-            Optional keyword arguements to control plotting `Axes`.
+            Optional keyword arguments to control plotting `Axes`.
 
         Returns
         -------
@@ -484,3 +457,7 @@ class Peaks():
                         return False
 
         return True
+
+    def __str__(self):
+        """Human-readable representation of the `Peaks` object."""
+        return f"Peaks with identifier={self.identifier}"

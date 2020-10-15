@@ -36,14 +36,14 @@ class Test_PeaksSuite(TestCase):
         # Bad: append non-Peaks object
         self.assertRaises(TypeError, suite.append, "not a Peaks object")
 
-    def test_from_dicts(self):
+    def test_from_dict(self):
         # Simple Case: Single dictionary
         data = {"test": {"frequency": [1, 2, 3], "velocity": [4, 5, 6]}}
-        suite = swprocess.PeaksSuite.from_dicts(data)
+        suite = swprocess.PeaksSuite.from_dict(data)
         peaks = Peaks.from_dict(data["test"], "test")
         self.assertEqual(peaks, suite[0])
 
-    def test_from_jsons(self):
+    def test_from_json(self):
         # Advanced Case: Two keyword arguements
         frequency = [100., 50, 30, 10, 5, 3]
         velocity = [100., 120, 130, 140, 145, 150]
@@ -60,18 +60,18 @@ class Test_PeaksSuite(TestCase):
             fnames.append(fname)
             peak_list.append(peaks)
 
-        returned = swprocess.PeaksSuite.from_jsons(fnames=fnames)
+        returned = swprocess.PeaksSuite.from_json(fnames=fnames)
         expected = swprocess.PeaksSuite.from_iter(peak_list)
         self.assertEqual(expected, returned)
 
         for fname in fnames:
             os.remove(fname)
 
-    def test_from_maxs(self):
+    def test_from_max(self):
         # Check Rayleigh (2 files, 2 lines per file)
         fnames = [self.full_path +
                   f"data/mm/test_hfk_line2_{x}.max" for x in range(2)]
-        returned = swprocess.PeaksSuite.from_maxs(fnames=fnames,
+        returned = swprocess.PeaksSuite.from_max(fnames=fnames,
                                                   wavetype="rayleigh")
 
         r0 = {"16200": {"frequency": [20.000000000000106581, 19.282217609815102577],
@@ -99,14 +99,14 @@ class Test_PeaksSuite(TestCase):
                                         }}
 
         ray_dicts = [r0, r1, r2]
-        expected = swprocess.PeaksSuite.from_dicts(ray_dicts)
+        expected = swprocess.PeaksSuite.from_dict(ray_dicts)
 
         self.assertEqual(expected, returned)
 
         # Check Love (2 files, 2 lines per file)
         fnames = [self.full_path +
                   f"data/mm/test_hfk_line2_{x}.max" for x in range(2)]
-        returned = swprocess.PeaksSuite.from_maxs(fnames=fnames,
+        returned = swprocess.PeaksSuite.from_max(fnames=fnames,
                                                   wavetype="love")
 
         l0 = {"16200": {"frequency": [20.000000000000106581, 19.282217609815102577],
@@ -134,13 +134,13 @@ class Test_PeaksSuite(TestCase):
                                         }}
 
         lov_dicts = [l0, l1, l2]
-        expected = swprocess.PeaksSuite.from_dicts(lov_dicts)
+        expected = swprocess.PeaksSuite.from_dict(lov_dicts)
 
         self.assertEqual(expected, returned)
 
     def test_plot(self):
         fname = self.full_path + "data/peak/suite_raw.json"
-        suite = swprocess.PeaksSuite.from_jsons(fname)
+        suite = swprocess.PeaksSuite.from_json(fname)
         suite.blitz("velocity", (None, 500))
         fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
                              ytype=["velocity", "velocity", "slowness"])
@@ -150,7 +150,7 @@ class Test_PeaksSuite(TestCase):
 
     # def test_interactive_trimming(self):
     #     fname = self.full_path + "data/peak/suite_raw.json"
-    #     suite = swprocess.PeaksSuite.from_jsons(fname)
+    #     suite = swprocess.PeaksSuite.from_json(fname)
     #     suite.blitz("velocity", (None, 500))
     #     settings = self.full_path + "settings/settings_post.json"
     #     suite.interactive_trimming(settings)

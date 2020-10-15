@@ -73,14 +73,11 @@ class Test_Peaks(TestCase):
         self.assertArrayEqual(np.array(self.azi), peaks.azi)
         self.assertArrayEqual(np.array(self.pwr), peaks.pwr)
 
-        # Bad: reference to deprecated from_dicts
-        self.assertRaises(DeprecationWarning, Peaks.from_dicts)
-
         # Bad: missing frequency or velocity
         del data["frequency"]
         self.assertRaises(TypeError, Peaks.from_dict, data)
 
-    def test_to_and_from_jsons(self):
+    def test_to_and_from_json(self):
         # Standard to_json and from_json
         fname = "test.json"
         expected = Peaks(self.frq, self.vel, self._id,
@@ -107,7 +104,7 @@ class Test_Peaks(TestCase):
         peaks.to_json(fname)
         peaks.identifier = "app"
         peaks.to_json(fname, append=True)
-        suite = swprocess.PeaksSuite.from_jsons(fname)
+        suite = swprocess.PeaksSuite.from_json(fname)
         for _peaks, _id in zip(suite, suite.ids):
             peaks.identifier = _id
             self.assertEqual(peaks, _peaks)
@@ -128,15 +125,12 @@ class Test_Peaks(TestCase):
 
         # from_json ignore multiple data
         fname = self.full_path + "data/peak/peaks_c2.json"
-        peak_suite = swprocess.PeaksSuite.from_jsons(fname)
+        peak_suite = swprocess.PeaksSuite.from_json(fname)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             returned = Peaks.from_json(fname)
         expected = peak_suite[peak_suite.ids.index(returned.identifier)]
         self.assertEqual(expected, returned)
-
-        # Bad: reference to deprecated from_jsons
-        self.assertRaises(DeprecationWarning, Peaks.from_jsons)
 
     def test_from_max(self):
         # Check rayleigh (2 lines)
@@ -170,9 +164,6 @@ class Test_Peaks(TestCase):
         self.assertArrayEqual(peaks.power, np.array([3832630.8840260845609,
                                                      4039408.6602126094513]))
         self.assertEqual("16200", peaks.identifier)
-
-        # Bad reference to deprecated from_maxs
-        self.assertRaises(DeprecationWarning, Peaks.from_maxs)
 
         # Bad wavetype
         self.assertRaises(ValueError, Peaks.from_max,
@@ -274,32 +265,15 @@ class Test_Peaks(TestCase):
         for attr, value in attrs.items():
             self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
 
-    # def test_plot(self):
-    #     import matplotlib.pyplot as plt
-    #     fname = self.full_path + "data/mm/test_hfk_full.max"
-    #     peaks = Peaks.from_max(fname)
-    #     fig, ax = peaks.plot(xtype=["frequency", "wavelength", "azimuth"],
-    #                          ytype=["velocity", "velocity", "velocity"],
-    #                          plot_kwargs=dict(color="g"))
-    #     plt.close()
-
     def test_properties(self):
         peaks = Peaks(self.frq, self.vel, self._id, azi=self.azi)
-
-        # Deprecated properties
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            ids = peaks.ids
-            wav = peaks.wav
-        self.assertEqual(self._id, ids)
-        self.assertArrayEqual(np.array(self.vel)/np.array(self.frq), wav)
 
         # Wavelength
         self.assertArrayEqual(np.array(self.vel)/np.array(self.frq),
                               peaks.wavelength)
 
         # Extended Attrs
-        expected = ["frequency", "velocity", "azi", "wavelength", "slowness"]
+        expected = ["frequency", "velocity", "azi", "wavelength", "slowness", "wavenumber"]
         returned = peaks.extended_attrs
         self.assertListEqual(expected, returned)
 

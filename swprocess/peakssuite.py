@@ -15,7 +15,7 @@ from .regex import get_all
 
 logger = logging.getLogger("swprocess.peakssuite")
 
-_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*5
+_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*100
 
 
 class PeaksSuite():
@@ -41,6 +41,8 @@ class PeaksSuite():
 
         """
         self._check_input(peaks)
+
+        # TODO (jpv): Dict?
         self.peaks = [peaks]
         self.ids = [peaks.identifier]
 
@@ -66,7 +68,7 @@ class PeaksSuite():
         self.ids.append(peaks.identifier)
 
     @classmethod
-    def from_dicts(cls, dicts):
+    def from_dict(cls, dicts):
         """Instantiate `PeaksSuite` from `list` of `dict`s.
 
         Parameters
@@ -91,8 +93,28 @@ class PeaksSuite():
 
         return cls.from_iter(iterable)
 
+    def to_json(self, fname):
+        """Write `PeaksSuite` to json file.
+
+        Parameters
+        ----------
+        fnames : str
+            Name of the output file, may contain a relative or the full
+            path.
+
+        Returns
+        -------
+        None
+            Write `json` to disk.
+
+        """
+        append = False
+        for peak in self.peaks:
+            peak.to_json(fname, append=append)
+            append = True
+ 
     @classmethod
-    def from_jsons(cls, fnames):
+    def from_json(cls, fnames):
         """Instantiate `PeaksSuite` from json file(s).
 
         Parameters
@@ -114,10 +136,10 @@ class PeaksSuite():
         for fname in fnames:
             with open(fname, "r") as f:
                 dicts.append(json.load(f))
-        return cls.from_dicts(dicts)
+        return cls.from_dict(dicts)
 
     @classmethod
-    def from_maxs(cls, fnames, wavetype="rayleigh"):
+    def from_max(cls, fnames, wavetype="rayleigh"):
         iterable = []
         for fname in fnames:
             with open(fname, "r") as f:
@@ -193,10 +215,10 @@ class PeaksSuite():
             _peak._reject(_reject_ids)
 
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
-             plot_kwargs=None, ax_kwargs=None):  # pragma: no cover
+             plot_kwargs=None, ax_kwargs=None):
         """Create plot of dispersion data.
 
-        TODO (jpv): Refence Peaks.plot for more information.
+        TODO (jpv): Reference Peaks.plot for more information.
 
         plot_kwargs = {"key":value}
         plot_kwargs = {"key":[value1, value2, value3 ... ]}
@@ -230,7 +252,7 @@ class PeaksSuite():
         if ax_was_none:
             return (fig, ax)
 
-    def plot_subset(self, ax, xtype, ytype, indices, plot_kwargs=None):  # pragma: no cover
+    def plot_subset(self, ax, xtype, ytype, indices, plot_kwargs=None):
         if isinstance(xtype, str):
             ax = [ax]
             xtype = [xtype]
@@ -252,7 +274,7 @@ class PeaksSuite():
                          **plot_kwargs)
 
     @staticmethod
-    def _prepare_kwargs(kwargs, index):  # pragma: no cover
+    def _prepare_kwargs(kwargs, index):
         new_kwargs = {}
         for key, value in kwargs.items():
             if isinstance(value, (str, int, float)):
@@ -353,7 +375,7 @@ class PeaksSuite():
         with open(fname, "w") as f:
             json.dump(settings, f)
 
-    def interactive_trimming(self, settings_file):  # pragma: no cover
+    def interactive_trimming(self, settings_file):
         with open(settings_file, "r") as f:
             settings = json.load(f)
 
@@ -503,8 +525,8 @@ class PeaksSuite():
         custom = {} if custom is None else custom
         return {**default, **custom}
 
-    def plot_statistics(self, statistics=None, ax=None, statistics_kwargs=None,
-                        plot_kwargs=None):  # pragma: no cover
+    def plot_statistics(self, statistics=None, ax=None,
+                        statistics_kwargs=None, plot_kwargs=None):
         if ax is None:
             raise NotImplementedError
 
@@ -512,8 +534,8 @@ class PeaksSuite():
             raise NotImplementedError
 
         default_plot_kwargs = dict(linestyle="", color="k", label=None,
-                                   marker="o", markerfacecolor="k", markersize=0.5,
-                                   capsize=2, zorder=20)
+                                   marker="o", markerfacecolor="k",
+                                   markersize=0.5, capsize=2, zorder=20)
         plot_kwargs = self._merge_kwargs(default_plot_kwargs, plot_kwargs)
         xx, mean, stddev, corr = statistics
         ax.errorbar(xx, mean, yerr=stddev, **plot_kwargs)
@@ -537,7 +559,7 @@ class PeaksSuite():
 
         return (xx, data_matrix)
 
-    def _draw_box(self, fig):  # pragma: no cover
+    def _draw_box(self, fig):
         """Prompt user to define a rectangular box on figure.
 
         Parameters
