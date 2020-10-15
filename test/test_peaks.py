@@ -4,8 +4,10 @@ import json
 import os
 import warnings
 import logging
+from unittest.mock import MagicMock
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from swprocess.peaks import Peaks
 import swprocess
@@ -47,6 +49,175 @@ class Test_Peaks(TestCase):
         self.assertArrayEqual(np.array(self.ell), my_peaks.ell)
         self.assertArrayEqual(np.array(self.noi), my_peaks.noi)
         self.assertArrayEqual(np.array(self.pwr), my_peaks.pwr)
+
+    def test_properties(self):
+        peaks = Peaks(self.frq, self.vel, self._id, azimuth=self.azi)
+
+        # Wavelength
+        self.assertArrayEqual(np.array(self.vel)/np.array(self.frq),
+                              peaks.wavelength)
+
+        # Extended Attrs
+        expected = ["frequency", "velocity", "azimuth",
+                    "wavelength", "slowness", "wavenumber"]
+        returned = peaks.extended_attrs
+        self.assertListEqual(expected, returned)
+
+        # Wavenumber
+        self.assertArrayEqual(2*np.pi/peaks.wavelength,
+                              peaks.wavenumber)
+
+    def test_prepare_types(self):
+        # Acceptable (will cast)
+        kwargs = dict(xtype="frequency", ytype="velocity")
+        returned_xtype, returned_ytype = Peaks._prepare_types(**kwargs)
+        self.assertListEqual(["frequency"], returned_xtype)
+        self.assertListEqual(["velocity"], returned_ytype)
+
+        # Acceptable (no cast)
+        kwargs = dict(xtype=["frequency"], ytype=["velocity"])
+        returned_xtype, returned_ytype = Peaks._prepare_types(**kwargs)
+        self.assertListEqual(["frequency"], returned_xtype)
+        self.assertListEqual(["velocity"], returned_ytype)
+
+        # Unacceptable (raise TypeError)
+        kwargs = dict(xtype=5, ytype="velocity")
+        self.assertRaises(TypeError, Peaks._prepare_types, **kwargs)
+
+        # Unacceptable (raise IndexError)
+        kwargs = dict(xtype=["frequency", "wavelength"], ytype="velocity")
+        self.assertRaises(IndexError, Peaks._prepare_types, **kwargs)
+
+    def test__plot(self):
+        peaks = Peaks(self.frq, self.vel, self._id)
+
+        # Standard
+        fig, ax = plt.subplots()
+        peaks._plot(ax=ax, xtype="frequency", ytype="velocity")        
+
+        # Bad Attribute
+        fig, ax = plt.subplots()
+        self.assertRaises(AttributeError, peaks._plot, ax=ax,
+                          xtype="magic", ytype="size_of_unicorn")        
+
+        plt.show(block=False)
+        plt.close("all")
+
+    def test_configure_axes(self):
+        peaks = Peaks(self.frq, self.vel, self._id)
+        defaults = {"frequency": {"label": "frq",
+                                  "scale": "linear"},
+                    "velocity": {"label": "vel",
+                                 "scale": "log"}}
+
+        # Standard calls.
+        ax = MagicMock()
+        peaks._configure_axes(ax, xtype="frequency", ytype="velocity",
+                              defaults=defaults)
+        ax.set_xlabel.assert_called_with("frq")
+        ax.set_xscale.assert_called_with("linear")
+        ax.set_ylabel.assert_called_with("vel")
+        ax.set_yscale.assert_called_with("log")
+
+        # Non-standard calls to unknown attribute.
+        ax = MagicMock()
+        peaks._configure_axes(ax, xtype="frequency", ytype="azimuth",
+                              defaults=defaults)
+        ax.set_xlabel.assert_called_with("frq")
+        ax.set_xscale.assert_called_with("linear")
+        ax.set_ylabel.assert_not_called()
+        ax.set_yscale.assert_not_called()
+
+    def test_blitz(self):
+        xs = np.array([1, 5, 9, 3, 5, 7, 4, 6, 2, 8])
+        ys = np.array([1, 9, 4, 5, 6, 8, 5, 2, 1, 4])
+
+        # Remove all above 4.5
+        _min, _max = None, 4.5
+        expected = np.array([1, 2, 4, 5, 7, 9])
+        returned = Peaks._reject_outside_ids(xs, _min, _max)
+        self.assertArrayEqual(expected, returned)
+
+        # Remove all below 4.5
+        _min, _max = 4.5, None
+        expected = np.array([0, 3, 6, 8])
+        returned = Peaks._reject_outside_ids(xs, _min, _max)
+        self.assertArrayEqual(expected, returned)
+
+        # Remove all below 1.5 and above 6.5
+        _min, _max = 1.5, 6.5
+        expected = np.array([0, 2, 5, 9])
+        returned = Peaks._reject_outside_ids(xs, _min, _max)
+        self.assertArrayEqual(expected, returned)
+
+        # None
+        _min, _max = None, None
+        expected = np.array([])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            returned = Peaks._reject_outside_ids(xs, _min, _max)
+        self.assertArrayEqual(expected, returned)
+
+        # Remove all below 0.5 and above 6.5
+        limits = (0.5, 6.5)
+
+        other = np.arange(10)
+        peaks = Peaks(frequency=xs, velocity=ys, other=other)
+        peaks.blitz("frequency", limits)
+
+        keep_ids = [0, 1, 3, 4, 6, 7, 8]
+        attrs = dict(frequency=xs, velocity=ys, other=other)
+        for attr, value in attrs.items():
+            self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
+
+    def test_reject(self):
+        xs = np.array([1, 2, 4, 5, 1, 2, 6, 4, 9, 4])
+        ys = np.array([1, 5, 8, 6, 4, 7, 7, 1, 3, 5])
+
+        xlims = (4.5, 7.5)
+        xmin, xmax = xlims
+        ylims = (3.5, 8.5)
+        ymin, ymax = ylims
+
+        # test_reject_inside_ids
+        returned = Peaks._reject_inside_ids(xs, xmin, xmax, ys, ymin, ymax)
+        expected = np.array([3, 6])
+        self.assertArrayEqual(expected, returned)
+
+        # Method -> Reject on frequency and velocity
+        other = np.arange(10)
+        peaks = Peaks(xs, ys, other=other)
+        peaks.reject(xtype="frequency", xlims=xlims,
+                     ytype="velocity", ylims=ylims)
+
+        keep_ids = [0, 1, 2, 4, 5, 7, 8, 9]
+        attrs = dict(frequency=xs, velocity=ys, other=other)
+        for attr, value in attrs.items():
+            self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
+
+        # Method -> Reject on frequency and other
+        other = np.arange(10)
+        peaks = Peaks(xs, ys, other=other)
+        peaks.reject(xtype="frequency", xlims=xlims,
+                     ytype="other", ylims=ylims)
+
+        keep_ids = [0, 1, 2, 3, 4, 5, 7, 8, 9]
+        attrs = dict(frequency=xs, velocity=ys, other=other)
+        for attr, value in attrs.items():
+            self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
+
+        # Method -> Reject on slowness and velocity
+        xs = np.array([1, 5, 8, 6, 4, 7, 7, 1, 3, 5])
+        ys = 1/np.array([1, 5, 9, 4, 5, 6, 7, 8, 1, 7])
+
+        peaks = Peaks(xs, ys)
+        peaks.reject(xtype="frequency", xlims=(0, 10),
+                     ytype="slowness", ylims=(4.5, 7.5))
+
+        keep_ids = [0, 2, 3, 7, 8]
+        attrs = dict(frequency=xs, velocity=ys)
+        for attr, value in attrs.items():
+            self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
 
     def test_from_dict(self):
         # Basic Case: No keyword arguments
@@ -168,135 +339,6 @@ class Test_Peaks(TestCase):
         # Bad wavetype
         self.assertRaises(ValueError, Peaks.from_max,
                           fname, wavetype="incorrect")
-
-    def test_reject(self):
-        xs = np.array([1, 2, 4, 5, 1, 2, 6, 4, 9, 4])
-        ys = np.array([1, 5, 8, 6, 4, 7, 7, 1, 3, 5])
-
-        xlims = (4.5, 7.5)
-        xmin, xmax = xlims
-        ylims = (3.5, 8.5)
-        ymin, ymax = ylims
-
-        # Helper function
-        returned = Peaks._reject_inside_ids(xs, xmin, xmax, ys, ymin, ymax)
-        expected = np.array([3, 6])
-        self.assertArrayEqual(expected, returned)
-
-        # Method -> Reject on frequency and velocity
-        other = np.arange(10)
-        peaks = Peaks(xs, ys, other=other)
-        peaks.reject(xtype="frequency", xlims=xlims,
-                     ytype="velocity", ylims=ylims)
-
-        keep_ids = [0, 1, 2, 4, 5, 7, 8, 9]
-        attrs = dict(frequency=xs, velocity=ys, other=other)
-        for attr, value in attrs.items():
-            self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
-
-        # Method -> Reject on frequency and other
-        other = np.arange(10)
-        peaks = Peaks(xs, ys, other=other)
-        peaks.reject(xtype="frequency", xlims=xlims,
-                     ytype="other", ylims=ylims)
-
-        keep_ids = [0, 1, 2, 3, 4, 5, 7, 8, 9]
-        attrs = dict(frequency=xs, velocity=ys, other=other)
-        for attr, value in attrs.items():
-            self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
-
-        # Method -> Reject on slowness and velocity
-        xs = np.array([1, 5, 8, 6, 4, 7, 7, 1, 3, 5])
-        ys = 1/np.array([1, 5, 9, 4, 5, 6, 7, 8, 1, 7])
-
-        peaks = Peaks(xs, ys)
-        peaks.reject(xtype="frequency", xlims=(0, 10),
-                     ytype="slowness", ylims=(4.5, 7.5))
-
-        keep_ids = [0, 2, 3, 7, 8]
-        attrs = dict(frequency=xs, velocity=ys)
-        for attr, value in attrs.items():
-            self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
-
-    def test_prepare_types(self):
-        # Acceptable (will cast)
-        kwargs = dict(xtype="frequency", ytype="velocity")
-        returned_xtype, returned_ytype = Peaks._prepare_types(**kwargs)
-        self.assertListEqual(["frequency"], returned_xtype)
-        self.assertListEqual(["velocity"], returned_ytype)
-
-        # Acceptable (no cast)
-        kwargs = dict(xtype=["frequency"], ytype=["velocity"])
-        returned_xtype, returned_ytype = Peaks._prepare_types(**kwargs)
-        self.assertListEqual(["frequency"], returned_xtype)
-        self.assertListEqual(["velocity"], returned_ytype)
-
-        # Unacceptable (raise TypeError)
-        kwargs = dict(xtype=5, ytype="velocity")
-        self.assertRaises(TypeError, Peaks._prepare_types, **kwargs)
-
-        # Unacceptable (raise IndexError)
-        kwargs = dict(xtype=["frequency", "wavelength"], ytype="velocity")
-        self.assertRaises(IndexError, Peaks._prepare_types, **kwargs)
-
-    def test_blitz(self):
-        xs = np.array([1, 5, 9, 3, 5, 7, 4, 6, 2, 8])
-        ys = np.array([1, 9, 4, 5, 6, 8, 5, 2, 1, 4])
-
-        # Helper function
-
-        # Remove all above 4.5
-        _min, _max = None, 4.5
-        expected = np.array([1, 2, 4, 5, 7, 9])
-        returned = Peaks._reject_outside_ids(xs, _min, _max)
-        self.assertArrayEqual(expected, returned)
-
-        # Remove all below 4.5
-        _min, _max = 4.5, None
-        expected = np.array([0, 3, 6, 8])
-        returned = Peaks._reject_outside_ids(xs, _min, _max)
-        self.assertArrayEqual(expected, returned)
-
-        # Remove all below 1.5 and above 6.5
-        _min, _max = 1.5, 6.5
-        expected = np.array([0, 2, 5, 9])
-        returned = Peaks._reject_outside_ids(xs, _min, _max)
-        self.assertArrayEqual(expected, returned)
-
-        # None
-        _min, _max = None, None
-        expected = np.array([])
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            returned = Peaks._reject_outside_ids(xs, _min, _max)
-        self.assertArrayEqual(expected, returned)
-
-        # Method
-
-        # Remove all below 0.5 and above 6.5
-        limits = (0.5, 6.5)
-
-        other = np.arange(10)
-        peaks = Peaks(frequency=xs, velocity=ys, other=other)
-        peaks.blitz("frequency", limits)
-
-        keep_ids = [0, 1, 3, 4, 6, 7, 8]
-        attrs = dict(frequency=xs, velocity=ys, other=other)
-        for attr, value in attrs.items():
-            self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
-
-    def test_properties(self):
-        peaks = Peaks(self.frq, self.vel, self._id, azi=self.azi)
-
-        # Wavelength
-        self.assertArrayEqual(np.array(self.vel)/np.array(self.frq),
-                              peaks.wavelength)
-
-        # Extended Attrs
-        expected = ["frequency", "velocity", "azi",
-                    "wavelength", "slowness", "wavenumber"]
-        returned = peaks.extended_attrs
-        self.assertListEqual(expected, returned)
 
     def test__eq__(self):
         peaks_a = Peaks(self.frq, self.vel, self._id,

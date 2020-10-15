@@ -92,43 +92,6 @@ class Peaks():
         return 1/self.velocity
 
     @classmethod
-    def from_dict(cls, data_dict, identifier="0"):
-        """Initialize `Peaks` from `dict`.
-
-        Parameters
-        ----------
-        data_dict: dict
-            Of the form
-            `{"frequency":freq, "velocity":vel, "kwarg1": kwarg1}`
-            where `freq` is a list of floats denoting frequency values.
-            `vel` is a list of floats denoting velocity values.
-            `kwarg1` is an optional keyword argument denoting some
-            additional parameter (may include more than one).
-        identifiers : str
-            String to uniquely identify the provided `Peaks` object.
-
-        Returns
-        -------
-        Peaks
-            Initialized `Peaks` instance.
-
-        """
-        return cls(identifier=identifier, **data_dict)
-
-    @classmethod
-    def from_json(cls, fname):
-        with open(fname, "r") as f:
-            data = json.load(f)
-
-        key_list = list(data.keys())
-        if len(key_list) > 1:
-            msg = f"More than one dataset in {fname}, taking only the first! "
-            msg += "If you want all see `PeaksSuite.from_json`."
-            warnings.warn(msg)
-
-        return cls.from_dict(data[key_list[0]], identifier=key_list[0])
-
-    @classmethod
     def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None):
         """Parse data for a given time block."""
         if start_time is None:
@@ -158,33 +121,6 @@ class Peaks():
         args = (frqs, vels, start_time)
         kwargs = dict(azimuth=azis, ellipticity=ells, noise=nois, power=pwrs)
         return cls(*args, **kwargs)
-
-    @classmethod
-    def from_max(cls, fname, wavetype="rayleigh"):
-        """Initialize a `Peaks` object from a `.max` file.
-
-        If the results from multiple time windows are in the same .max
-        file, as is most often the case, this method ignores all but the
-        first instance found.
-
-        Parameters
-        ----------
-        fname : str
-            Denotes the filename for the .max file, may include a
-            relative or the full path.
-        wavetype : {'rayleigh', 'love'}, optional
-            Wavetype to extract from file, default is 'rayleigh'.
-
-        Returns
-        -------
-        Peaks
-            Initialized `Peaks` object.
-
-        """
-        with open(fname, "r") as f:
-            peak_data = f.read()
-
-        return cls._parse_peaks(peak_data, wavetype=wavetype, start_time=None)
 
     def plot(self, xtype="frequency", ytype="velocity", plot_kwargs=None):
         """Plot dispersion data in `Peaks` object.
@@ -318,11 +254,11 @@ class Peaks():
     def _configure_axes(ax, xtype, ytype, defaults):
         """Prepare `Axes` with user-friendly defaults."""
         # x-axis
-        for key, value in defaults[xtype].items():
+        for key, value in defaults.get(xtype, {}).items():
             getattr(ax, f"set_x{key}")(value)
 
         # y-axis
-        for key, value in defaults[ytype].items():
+        for key, value in defaults.get(ytype, {}).items():
             getattr(ax, f"set_y{key}")(value)
 
     def blitz(self, attr, limits):
@@ -349,25 +285,8 @@ class Peaks():
         """
         values = getattr(self, attr)
         _min, _max = limits
-
         reject_ids = self._reject_outside_ids(values, _min, _max)
-
         self._reject(reject_ids)
-
-    @staticmethod
-    def _reject_outside_ids(values, _min, _max):
-        if _min is None and _max is None:
-            msg = "blitz called, but limits are `None`, so no values rejected."
-            warnings.warn(msg)
-            condition = np.zeros_like(values, dtype=int)
-        elif _min is None:
-            condition = values > _max
-        elif _max is None:
-            condition = values < _min
-        else:
-            condition = np.logical_or(values > _max,
-                                      values < _min)
-        return np.flatnonzero(condition)
 
     def reject(self, xtype, xlims, ytype, ylims):
         """Reject peaks inside the stated boundaries.
@@ -401,20 +320,51 @@ class Peaks():
 
     @staticmethod
     def _reject_inside_ids(d1, d1_min, d1_max, d2, d2_min, d2_max):
-        condition1 = np.logical_and(d1 > d1_min,
-                                    d1 < d1_max)
-        condition2 = np.logical_and(d2 > d2_min,
-                                    d2 < d2_max)
+        condition1 = np.logical_and(d1 > d1_min, d1 < d1_max)
+        condition2 = np.logical_and(d2 > d2_min, d2 < d2_max)
         return np.flatnonzero(np.logical_and(condition1, condition2))
+    
+    @staticmethod
+    def _reject_outside_ids(values, _min, _max):
+        if _min is None and _max is None:
+            msg = "blitz called, but limits are `None`, so no values rejected."
+            warnings.warn(msg)
+            condition = np.zeros_like(values, dtype=int)
+        elif _min is None:
+            condition = values > _max
+        elif _max is None:
+            condition = values < _min
+        else:
+            condition = np.logical_or(values > _max, values < _min)
+        return np.flatnonzero(condition)
 
     def _reject(self, reject_ids):
         for attr in self.attrs:
             setattr(self, attr, np.delete(getattr(self, attr), reject_ids))
 
-    def write_peak_json(self, fname):
-        msg = ".write_peak_json is deprecated use .to_json instead."
-        warnings.warn(msg, DeprecationWarning)
-        self.to_json(fname)
+    @classmethod
+    def from_dict(cls, data_dict, identifier="0"):
+        """Initialize `Peaks` from `dict`.
+
+        Parameters
+        ----------
+        data_dict: dict
+            Of the form
+            `{"frequency":freq, "velocity":vel, "kwarg1": kwarg1}`
+            where `freq` is a list of floats denoting frequency values.
+            `vel` is a list of floats denoting velocity values.
+            `kwarg1` is an optional keyword argument denoting some
+            additional parameter (may include more than one).
+        identifiers : str
+            String to uniquely identify the provided `Peaks` object.
+
+        Returns
+        -------
+        Peaks
+            Initialized `Peaks` instance.
+
+        """
+        return cls(identifier=identifier, **data_dict)
 
     def to_json(self, fname, append=False):
         """Write `Peaks` to json file.
@@ -454,6 +404,51 @@ class Peaks():
             data = {self.identifier: data}
             with open(fname, "w") as f:
                 json.dump(data, f)
+
+    def write_peak_json(self, fname):
+        msg = ".write_peak_json is deprecated use .to_json instead."
+        warnings.warn(msg, DeprecationWarning)
+        self.to_json(fname)
+
+    @classmethod
+    def from_json(cls, fname):
+        with open(fname, "r") as f:
+            data = json.load(f)
+
+        key_list = list(data.keys())
+        if len(key_list) > 1:
+            msg = f"More than one dataset in {fname}, taking only the first! "
+            msg += "If you want all see `PeaksSuite.from_json`."
+            warnings.warn(msg)
+
+        return cls.from_dict(data[key_list[0]], identifier=key_list[0])
+
+    @classmethod
+    def from_max(cls, fname, wavetype="rayleigh"):
+        """Initialize a `Peaks` object from a `.max` file.
+
+        If the results from multiple time windows are in the same .max
+        file, as is most often the case, this method ignores all but the
+        first instance found.
+
+        Parameters
+        ----------
+        fname : str
+            Denotes the filename for the .max file, may include a
+            relative or the full path.
+        wavetype : {'rayleigh', 'love'}, optional
+            Wavetype to extract from file, default is 'rayleigh'.
+
+        Returns
+        -------
+        Peaks
+            Initialized `Peaks` object.
+
+        """
+        with open(fname, "r") as f:
+            peak_data = f.read()
+
+        return cls._parse_peaks(peak_data, wavetype=wavetype, start_time=None)
 
     def __eq__(self, other):
         if not isinstance(other, Peaks):
