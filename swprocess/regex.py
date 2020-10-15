@@ -22,9 +22,7 @@ def get_peak_from_max(wavetype="rayleigh", time="(\d+\.?\d*)"):
         To extract peaks from a `.max` file.
 
     """
-    if wavetype in ["rayleigh", "love", "vertical", "radial", "transverse"]:
-        wavetype = wavetype.capitalize()
-
+    wavetype = validate_wavetypes(wavetype)
     number = "-?\d+.?\d*[eE]?[+-]?\d*"
     pattern = f"{time} (\d+\.?\d*) {wavetype} ({number}) ({number}) ({number}) (\d+\.?\d*|-?inf|nan) (\d+\.?\d*) 1"
     return re.compile(pattern)
@@ -47,5 +45,13 @@ def get_all(wavetype="rayleigh", time="(\d+\.?\d*)"):
         To identify peaks from a `.max` file.
 
     """
-    pattern = f"{time} .* {wavetype.capitalize()} .* 1"
+    wavetype = validate_wavetypes(wavetype)
+    pattern = f"{time} .* {wavetype} .* 1"
     return re.compile(pattern)
+
+
+def validate_wavetypes(wavetype):
+    if wavetype in ("rayleigh", "love", "vertical", "radial", "transverse"):
+        return wavetype.capitalize()
+    else:
+        raise ValueError(f"wavetype={wavetype}, not recognized.")

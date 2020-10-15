@@ -179,8 +179,7 @@ class Test_Peaks(TestCase):
         ymin, ymax = ylims
 
         # Helper function
-        returned = Peaks._reject_inside_ids(xs, xmin, xmax,
-                                                      ys, ymin, ymax)
+        returned = Peaks._reject_inside_ids(xs, xmin, xmax, ys, ymin, ymax)
         expected = np.array([3, 6])
         self.assertArrayEqual(expected, returned)
 
@@ -218,6 +217,27 @@ class Test_Peaks(TestCase):
         attrs = dict(frequency=xs, velocity=ys)
         for attr, value in attrs.items():
             self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
+
+    def test_prepare_types(self):
+        # Acceptable (will cast)
+        kwargs = dict(xtype="frequency", ytype="velocity")
+        returned_xtype, returned_ytype = Peaks._prepare_types(**kwargs)
+        self.assertListEqual(["frequency"], returned_xtype)
+        self.assertListEqual(["velocity"], returned_ytype)
+
+        # Acceptable (no cast)
+        kwargs = dict(xtype=["frequency"], ytype=["velocity"])
+        returned_xtype, returned_ytype = Peaks._prepare_types(**kwargs)
+        self.assertListEqual(["frequency"], returned_xtype)
+        self.assertListEqual(["velocity"], returned_ytype)
+
+        # Unacceptable (raise TypeError)
+        kwargs = dict(xtype=5, ytype="velocity")
+        self.assertRaises(TypeError, Peaks._prepare_types, **kwargs)
+
+        # Unacceptable (raise IndexError)
+        kwargs = dict(xtype=["frequency", "wavelength"], ytype="velocity")
+        self.assertRaises(IndexError, Peaks._prepare_types, **kwargs)
 
     def test_blitz(self):
         xs = np.array([1, 5, 9, 3, 5, 7, 4, 6, 2, 8])
@@ -273,7 +293,8 @@ class Test_Peaks(TestCase):
                               peaks.wavelength)
 
         # Extended Attrs
-        expected = ["frequency", "velocity", "azi", "wavelength", "slowness", "wavenumber"]
+        expected = ["frequency", "velocity", "azi",
+                    "wavelength", "slowness", "wavenumber"]
         returned = peaks.extended_attrs
         self.assertListEqual(expected, returned)
 

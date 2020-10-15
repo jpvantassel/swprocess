@@ -15,8 +15,6 @@ from .regex import get_all
 
 logger = logging.getLogger("swprocess.peakssuite")
 
-_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']*100
-
 
 class PeaksSuite():
 
@@ -41,8 +39,6 @@ class PeaksSuite():
 
         """
         self._check_input(peaks)
-
-        # TODO (jpv): Dict?
         self.peaks = [peaks]
         self.ids = [peaks.identifier]
 
@@ -62,10 +58,31 @@ class PeaksSuite():
         """
         self._check_input(peaks)
         if peaks.identifier in self.ids:
-            msg = f"There already exists a member object with identifiers = {peaks.identifier}."
+            msg = "There already exists a member object with an "
+            msg += f"identifier = {peaks.identifier}."
             raise KeyError(msg)
         self.peaks.append(peaks)
         self.ids.append(peaks.identifier)
+
+    def to_json(self, fname):
+        """Write `PeaksSuite` to json file.
+
+        Parameters
+        ----------
+        fnames : str
+            Name of the output file, may contain a relative or the full
+            path.
+
+        Returns
+        -------
+        None
+            Write `json` to disk.
+
+        """
+        append = False
+        for peak in self.peaks:
+            peak.to_json(fname, append=append)
+            append = True
 
     @classmethod
     def from_dict(cls, dicts):
@@ -93,26 +110,6 @@ class PeaksSuite():
 
         return cls.from_iter(iterable)
 
-    def to_json(self, fname):
-        """Write `PeaksSuite` to json file.
-
-        Parameters
-        ----------
-        fnames : str
-            Name of the output file, may contain a relative or the full
-            path.
-
-        Returns
-        -------
-        None
-            Write `json` to disk.
-
-        """
-        append = False
-        for peak in self.peaks:
-            peak.to_json(fname, append=append)
-            append = True
- 
     @classmethod
     def from_json(cls, fnames):
         """Instantiate `PeaksSuite` from json file(s).
@@ -120,7 +117,7 @@ class PeaksSuite():
         Parameters
         ----------
         fnames : list of str or str
-            List of or a single file name containing dispersion data.
+            File name or list of file names containing dispersion data.
             Names may contain a relative or the full path.
 
         Returns
@@ -181,14 +178,14 @@ class PeaksSuite():
 
         return obj
 
-    def blitz(self, attr, limits):
+    def blitz(self, attribute, limits):
         """Reject peaks outside the stated boundary.
 
-        TODO (jpv): Refence Peaks.blitz for more information.
+        TODO (jpv): Reference Peaks.blitz for more information.
 
         """
         for peak in self.peaks:
-            peak.blitz(attr, limits)
+            peak.blitz(attribute, limits)
 
     def reject(self, xtype, xlims, ytype, ylims):
         """Reject peaks inside the stated boundary.
@@ -202,7 +199,7 @@ class PeaksSuite():
     def reject_ids(self, xtype, xlims, ytype, ylims):
         """Reject peaks inside the stated boundary.
 
-        TODO (jpv): Refence Peaks.reject for more information.
+        TODO (jpv): Reference Peaks.reject for more information.
 
         """
         rejection = []
@@ -215,44 +212,106 @@ class PeaksSuite():
             _peak._reject(_reject_ids)
 
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
-             plot_kwargs=None, ax_kwargs=None):
-        """Create plot of dispersion data.
+             plot_kwargs=None):
+        """Plot dispersion data in `Peaks` object.
 
-        TODO (jpv): Reference Peaks.plot for more information.
+        Parameters
+        ----------
+        xtype : {'frequency', 'wavelength'}, optional
+            Denote whether the x-axis should be either `frequency` or
+            `wavelength`, default is `frequency`.
+        ytype : {'velocity', 'slowness'}, optional
+            Denote whether the y-axis should be either `velocity` or
+            `slowness`, default is `velocity`.
+        ax : Axes, optional
+            `Axes` object on which to plot the disperison peaks,
+            default is `None` so `Axes` will be generated on-the-fly.
+        plot_kwargs : dict, optional
+            Keyword arguments to pass along to `ax.plot` can be in the
+            form `plot_kwargs = {"key":value_allpeaks}` or
+            `plot_kwargs = {"key":[value_peaks0, value_peaks1, ... ]}`,
+            default is `None` indicating the predefined settings should
+            be used.
 
-        plot_kwargs = {"key":value}
-        plot_kwargs = {"key":[value1, value2, value3 ... ]}
+        Returns
+        -------
+        None or tuple
+            `None` if `ax` is provided, otherwise `tuple` of the form
+            `(fig, ax)` where `fig` is the figure handle and `ax` is
+            the axes handle.
+
 
         """
-        if plot_kwargs is None:
-            plot_kwargs = {}
+        # Prepare xtype, ytype.
+        xtype, ytype = Peaks._prepare_types(xtype=xtype, ytype=ytype)
 
-        if ax_kwargs is None:
-            ax_kwargs = {}
+        # Prepare keyword arguments.
+        plot_kwargs = {} if plot_kwargs is None else plot_kwargs
+        plot_kwargs = self._prepare_plot_kwargs(plot_kwargs, len(self))
 
-        if "color" not in plot_kwargs:
-            plot_kwargs["color"] = _colors
-
-        _plot_kwargs = self._prepare_kwargs(plot_kwargs, 0)
-        _ax_kwargs = self._prepare_kwargs(ax_kwargs, 1)
-        result = self.peaks[0].plot(xtype, ytype, ax, _plot_kwargs, _ax_kwargs)
-
+        # Plot the first Peaks object from the suite.
         if ax is None:
             ax_was_none = True
-            fig, ax = result
+            fig, ax = self.peaks[0].plot(xtype=xtype, ytype=ytype,
+                                         plot_kwargs=plot_kwargs[0])
         else:
             ax_was_none = False
+            for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
+                self.peaks[0]._plot(ax=ax, xtype=xtype, ytpe=ytype,
+                                    plot_kwargs=plot_kwargs[0])
 
+        # Plot the remaining Peaks from the PeaksSuite (if they exist).
         if len(self.peaks) > 1:
-            for index, peak in enumerate(self.peaks[1:], 1):
-                _plot_kwargs = self._prepare_kwargs(plot_kwargs, index)
-                _ax_kwargs = self._prepare_kwargs(ax_kwargs, index)
-                peak.plot(xtype, ytype, ax, _plot_kwargs, _ax_kwargs)
+            for _peak, _plot_kwargs in zip(self.peaks[1:], plot_kwargs[1:]):
 
+                # If label is provided, only use it once.
+                if _plot_kwargs.get("label", None) is not None:
+                    _plot_kwargs["label"] = None
+
+                for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
+                    _peak._plot(xtype=_xtype, ytype=_ytype, ax=_ax,
+                               plot_kwargs=_plot_kwargs)
+
+        # Return fig, ax if generated on-the-fly.
         if ax_was_none:
             return (fig, ax)
 
+    @staticmethod
+    def _prepare_plot_kwargs(plot_kwargs, ncols):
+        """Prepare keyword arguments for easy looping.
+
+        Parameters
+        ----------
+        plot_kwargs : dict
+            Keyword arguments to pass along to `ax.plot` can be in the
+            form `plot_kwargs = {"key":value_allpeaks}` or
+            `plot_kwargs = {"key":[value_peaks0, value_peaks1, ... ]}`,
+            default is `None` indicating the predefined settings should
+            be used.
+
+        Returns
+        -------
+        list of dict
+            Expands `plot_kwargs` to a `list` of `dict` rather than a
+            `dict` of `list`.
+
+        """
+        expanded_kwargs = []
+        for index in range(ncols):
+            new_dict = {}
+            for key, value in plot_kwargs.items():
+                if isinstance(value, str):
+                    new_dict[key] = value
+                elif isinstance(value, (list, tuple)):
+                    new_dict[key] = value[index]
+                else:
+                    msg = f"kwarg must be a `str` or `iterable` not {type(value)}."
+                    raise NotImplementedError(msg)
+            expanded_kwargs.append(new_dict)
+        return expanded_kwargs
+
     def plot_subset(self, ax, xtype, ytype, indices, plot_kwargs=None):
+        # Prepare inputs and check inputs.
         if isinstance(xtype, str):
             ax = [ax]
             xtype = [xtype]
@@ -262,28 +321,19 @@ class PeaksSuite():
             msg = f"`ax`, `xtype`, and `ytype` must all be the same size, not {len(ax)}, {len(xtype)}, {len(ytype)}s."
             raise IndexError(msg)
 
+        # Prepare keyword arguments.
+        plot_kwargs = {} if plot_kwargs is None else plot_kwargs
         default_plot_kwargs = dict(linestyle="", marker="x", color="#ababab",
                                    markersize=1, markerfacecolor="none",
                                    label=None)
-        plot_kwargs = self._merge_kwargs(default_plot_kwargs, plot_kwargs)
+        plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
 
+        # Plot subset on each axes.
         for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
             for _peaks, _indices in zip(self.peaks, indices):
                 _ax.plot(getattr(_peaks, _xtype)[_indices],
                          getattr(_peaks, _ytype)[_indices],
                          **plot_kwargs)
-
-    @staticmethod
-    def _prepare_kwargs(kwargs, index):
-        new_kwargs = {}
-        for key, value in kwargs.items():
-            if isinstance(value, (str, int, float)):
-                new_kwargs[key] = value
-            # elif len(value) == 1:
-            #     new_kwargs[key] = value[0]
-            else:
-                new_kwargs[key] = value[index]
-        return new_kwargs
 
     @staticmethod
     def create_settings_dict(domains, xdomain="wavelength", ydomain="velocity",
@@ -520,25 +570,22 @@ class PeaksSuite():
 
         return (xx, mean, std, corr)
 
-    @staticmethod
-    def _merge_kwargs(default, custom):
-        custom = {} if custom is None else custom
-        return {**default, **custom}
-
     def plot_statistics(self, statistics=None, ax=None,
-                        statistics_kwargs=None, plot_kwargs=None):
+                        statistics_kwargs=None, errorbar_kwargs=None):
         if ax is None:
             raise NotImplementedError
 
         if statistics is None:
             raise NotImplementedError
 
-        default_plot_kwargs = dict(linestyle="", color="k", label=None,
-                                   marker="o", markerfacecolor="k",
-                                   markersize=0.5, capsize=2, zorder=20)
-        plot_kwargs = self._merge_kwargs(default_plot_kwargs, plot_kwargs)
+        errorbar_kwargs = {} if errorbar_kwargs is None else errorbar_kwargs
+        default_kwargs = dict(linestyle="", color="k", label=None,
+                              marker="o", markerfacecolor="k",
+                              markersize=0.5, capsize=2, zorder=20)
+        errorbar_kwargs = {**default_kwargs, **errorbar_kwargs}
+        # TODO (jpv): This is broken!
         xx, mean, stddev, corr = statistics
-        ax.errorbar(xx, mean, yerr=stddev, **plot_kwargs)
+        ax.errorbar(xx, mean, yerr=stddev, **errorbar_kwargs)
 
     @staticmethod
     def _drop(xx, data_matrix):

@@ -143,17 +143,11 @@ class Test_PeaksSuite(TestCase):
         suite = swprocess.PeaksSuite.from_json(fname)
         suite.blitz("velocity", (None, 500))
         fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
-                             ytype=["velocity", "velocity", "slowness"])
+                             ytype=["velocity", "velocity", "slowness"],
+                             )
         plt.show(block=False)
         plt.pause(0.5)
         plt.close("all")
-
-    # def test_interactive_trimming(self):
-    #     fname = self.full_path + "data/peak/suite_raw.json"
-    #     suite = swprocess.PeaksSuite.from_json(fname)
-    #     suite.blitz("velocity", (None, 500))
-    #     settings = self.full_path + "settings/settings_post.json"
-    #     suite.interactive_trimming(settings)
 
     def test_statistics(self):
         # No missing data

@@ -56,12 +56,22 @@ class Peaks():
         self.velocity = np.array(velocity, dtype=float)
         self.identifier = str(identifier)
         self.attrs = ["frequency", "velocity"] + list(kwargs.keys())
-        
+
         logger.debug(f"Creating {self}")
         logger.debug(f"  {self}.attrs={self.attrs}")
 
         for key, val in kwargs.items():
             setattr(self, key, np.array(val, dtype=float))
+
+        self.axes_defaults = {"frequency": {"label": "Frequency (Hz)",
+                                            "scale": "log"},
+                              "wavelength": {"label": "Wavelength (m)",
+                                             "scale": "log"},
+                              "velocity": {"label": "Velocity (m/s)",
+                                           "scale": "linear"},
+                              "slowness": {"label": "Slowness (s/m)",
+                                           "scale": "log"}
+                              }
 
     @property
     def wavelength(self):
@@ -141,7 +151,7 @@ class Peaks():
         # Include for "belt and suspenders".
         getall = get_all(time=start_time, wavetype=wavetype)
         count = len(getall.findall(peak_data))
-        if len(frqs) != count: # pragma: no cover
+        if len(frqs) != count:  # pragma: no cover
             msg = f"Missing {count- len(frqs)} dispersion peaks."
             raise ValueError(msg)
 
@@ -151,18 +161,18 @@ class Peaks():
 
     @classmethod
     def from_max(cls, fname, wavetype="rayleigh"):
-        """Initialize `Peaks` from `.max` file(s).
+        """Initialize a `Peaks` object from a `.max` file.
 
-        If the results from multiple time windows are in the same file,
-        as is most often the case, this method ignores all but the
+        If the results from multiple time windows are in the same .max
+        file, as is most often the case, this method ignores all but the
         first instance found.
 
         Parameters
         ----------
-        fnames : str
-            Denotes the filename(s) for the .max file, may include a
+        fname : str
+            Denotes the filename for the .max file, may include a
             relative or the full path.
-        wavetype : {'rayleigh','love'}, optional
+        wavetype : {'rayleigh', 'love'}, optional
             Wavetype to extract from file, default is 'rayleigh'.
 
         Returns
@@ -170,57 +180,14 @@ class Peaks():
         Peaks
             Initialized `Peaks` object.
 
-        Raises
-        ------
-        ValueError
-            If `wavetype` does not belong to the options available.
-
         """
-        if wavetype not in ["rayleigh", "love"]:
-            msg = f"wavetype must be 'rayleigh' or 'love', not {wavetype}."
-            raise ValueError(msg)
-
         with open(fname, "r") as f:
             peak_data = f.read()
 
         return cls._parse_peaks(peak_data, wavetype=wavetype, start_time=None)
 
-    def _plot(self, xtype, ytype, ax, plot_kwargs=None, ax_kwargs=None):
-        """Plot requested `Peaks` data to provided `Axes`."""
-        for _type, value in zip(["xtype", "ytype"], [xtype, ytype]):
-            if value not in self.extended_attrs:
-                msg = f"{_type} = {value} is not an attribute. Attributes are: {self.attrs}"
-                raise ValueError(msg)
-
-        default_plot_kwargs = dict(linestyle="", marker="o", color="b",
-                                   markersize=1, markerfacecolor="none",
-                                   label=self.identifier)
-        plot_kwargs = {} if plot_kwargs is None else plot_kwargs
-        plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
-
-        # TODO (jpv): I don't need this information here, this get run
-        # on each loop iteration.
-        pot_ax_kwargs = {"frequency": {"set_xlabel": "Frequency (Hz)",
-                                       "set_xscale": "log"},
-                         "wavelength": {"set_xlabel": "Wavelength (m)",
-                                        "set_xscale": "log"},
-                         "velocity": {"set_ylabel": "Velocity (m/s)",
-                                      "set_yscale": "linear"},
-                         "slowness": {"set_ylabel": "Slowness (s/m)",
-                                      "set_yscale": "log"}
-                         }
-        ax_kwargs = {} if ax_kwargs is None else ax_kwargs
-        ax_kwargs = {**pot_ax_kwargs.get(xtype, {}),
-                     **pot_ax_kwargs.get(ytype, {}),
-                     **ax_kwargs}
-
-        ax.plot(getattr(self, xtype), getattr(self, ytype), **plot_kwargs)
-        for key, value in ax_kwargs.items():
-            getattr(ax, key)(value)
-
-    def plot(self, xtype="frequency", ytype="velocity", ax=None,
-             plot_kwargs=None, ax_kwargs=None):
-        """Create plot of dispersion data.
+    def plot(self, xtype="frequency", ytype="velocity", plot_kwargs=None):
+        """Plot dispersion data in `Peaks` object.
 
         Parameters
         ----------
@@ -230,71 +197,133 @@ class Peaks():
         ytype : {'velocity', 'slowness'}, optional
             Denote whether the y-axis should be either `velocity` or
             `slowness`, default is `velocity`.
-        ax : Axes, optional
-            Pass an `Axes` on which to plot, default is `None` meaning
-            a `Axes` will be generated on-the-fly.
         plot_kwargs : dict, optional
-            Optional keyword arguments to pass to plot.
-        ax_kwargs : dict, optional
-            Optional keyword arguments to control plotting `Axes`.
+            Keyword arguments to pass along to `ax.plot`, default is
+            `None` indicating the predefined settings should be used.
 
         Returns
         -------
-        None or tuple
-            `None` if `ax` is provided, otherwise `tuple` of the form
-            `(fig, ax)` where `fig` is the figure handle and `ax` is
-            the axes handle.
+        tuple
+            Of the form `(fig, ax)` where `fig` and `ax` are the
+            `Figure` and `Axes` objects which were generated on-the-fly.
 
         """
-        values = self._check_plot(xtype, ytype, ax, plot_kwargs, ax_kwargs)
-        xtype, ytype, plot_kwargs, ax_kwargs, ax_was_none = values
+        # Prepare xtype, ytype.
+        xtype, ytype = self._prepare_types(xtype=xtype, ytype=ytype)
 
-        if ax_was_none:
-            ncols = len(xtype)
-            fig, ax = plt.subplots(nrows=1, ncols=ncols,
-                                   figsize=(3*ncols, 3), dpi=150)
-            if ncols == 1:
-                ax = [ax]
-
-        for _ax, _xtype, _ytype, _plot_kwargs, _ax_kwargs in zip(ax, xtype, ytype, plot_kwargs, ax_kwargs):
-            self._plot(xtype=_xtype, ytype=_ytype, ax=_ax,
-                       plot_kwargs=_plot_kwargs, ax_kwargs=_ax_kwargs)
-        _ax.legend()
-
-        if ax_was_none:
-            fig.tight_layout()
-            return (fig, ax)
-
-    @staticmethod
-    def _check_plot(xtype, ytype, ax, plot_kwargs, ax_kwargs):
-        if isinstance(xtype, str):
-            xtype = [xtype]
-        if isinstance(ytype, str):
-            ytype = [ytype]
+        # Generate fig, ax on-the-fly.
         ncols = len(xtype)
+        fig, ax = plt.subplots(ncols=ncols, figsize=(3*ncols, 3), dpi=150)
+        ax = [ax] if ncols == 1 else ax
 
-        plot_kwargs = Peaks._check_kwargs(plot_kwargs, ncols)
-        ax_kwargs = Peaks._check_kwargs(ax_kwargs, ncols)
+        # Loop across Axes(s).
+        for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
+            # Plot Peaks.
+            self._plot(ax=_ax, xtype=_xtype, ytype=_ytype,
+                       plot_kwargs=plot_kwargs)
+            # Configure Axes
+            self._configure_axes(ax=_ax, xtype=_xtype, ytype=_ytype,
+                                 defaults=self.axes_defaults)
 
-        if ax is None:
-            ax_was_none = True
-        else:
-            ax_was_none = False
-            if len(xtype) != len(ax):
-                msg = f"len(xtype) must equal len(ax), {len(xtype)} != {len(ax)}"
-                raise ValueError(msg)
-
-        return (xtype, ytype, plot_kwargs, ax_kwargs, ax_was_none)
+        # Return fig, ax.
+        fig.tight_layout()
+        return (fig, ax)
 
     @staticmethod
-    def _check_kwargs(kwargs, ncols):
-        if kwargs is None or isinstance(kwargs, dict):
-            return [kwargs]*ncols
-        elif isinstance(kwargs, list) and len(kwargs) == ncols:
-            return kwargs
-        else:
-            msg = f"`kwargs` must be `None` or `dict`, not {type(kwargs)}."
-            raise TypeError(msg)
+    def _prepare_types(**kwargs):
+        """Handle `xtype` and `ytype` to ensure they are acceptable.
+
+        Accept xtype and ytype as kwargs. If any is `str` cast to
+        `list`, if `list` or `tuple` pass, otherwise raise `TypeError`.
+
+        Parameters
+        ----------
+        **kwargs : kwargs
+            `dict` of the form `dict(xtype=xtype, ytype=ytype)`.
+
+        Returns
+        -------
+        dict_values
+            Containing the handles `kwargs` in the order in which they
+            were provided.
+
+        Raises
+        ------
+        TypeError
+            If any in `kwargs.values()` is not `str`, `list`, or
+            `tuple`.
+
+        """
+        # Check type, cast if necessary.
+        for key, value in kwargs.items():
+            if isinstance(value, str):
+                kwargs[key] = [value]
+            elif isinstance(value, (list, tuple)):
+                pass
+            else:
+                msg = f"{key} must be a str or iterable not, {type(key)}."
+                raise TypeError(msg)
+
+        # Ensure lengths are consistant.
+        reference_key = key
+        reference_length = len(kwargs[reference_key])
+        for key, value in kwargs.items():
+            if len(value) != reference_length:
+                msg = f"len({reference_key}) != len({key}). "
+                msg += "All entries must have consistent length."
+                raise IndexError(msg)
+
+        return kwargs.values()
+
+    def _plot(self, ax, xtype, ytype, plot_kwargs=None):
+        """Plot `Peaks` data to provided `Axes`.
+
+        Parameters
+        ----------
+        ax : Axes
+            `Axes` on which to plot the `Peaks` data.
+        xtype : {"frequency", "wavelength"}
+            Attribute to plot along the x-axis.        
+        ytype : {"velocity", "slowness"}
+            Attribute to plot along the y-axis.
+        plot_kwargs : kwargs, optional
+            Keyword arguments to pass along to `ax.plot`, default is
+            `None` indicating the predefined settings should be used.
+
+        Returns
+        -------
+        None
+            Updates `Axes` object with the data from `Peaks`.
+
+        Raises
+        ------
+        AttributeError
+            If `xtype` and/or `ytype` are invalid attributes.
+
+        """
+        default_plot_kwargs = dict(linestyle="", marker="o", color="b",
+                                   markersize=1, markerfacecolor="none",
+                                   label=self.identifier)
+        plot_kwargs = {} if plot_kwargs is None else plot_kwargs
+        plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
+
+        try:
+            ax.plot(getattr(self, xtype), getattr(self, ytype), **plot_kwargs)
+        except AttributeError as e:
+            msg = f"{xtype} and/or {ytype} is/are not attribute(s). "
+            msg += f"Available attributes are: {self.extended_attrs}"
+            raise AttributeError(msg) from e
+
+    @staticmethod
+    def _configure_axes(ax, xtype, ytype, defaults):
+        """Prepare `Axes` with user-friendly defaults."""
+        # x-axis
+        for key, value in defaults[xtype].items():
+            getattr(ax, f"set_x{key}")(value)
+
+        # y-axis
+        for key, value in defaults[ytype].items():
+            getattr(ax, f"set_y{key}")(value)
 
     def blitz(self, attr, limits):
         """Reject peaks outside the stated boundary.
