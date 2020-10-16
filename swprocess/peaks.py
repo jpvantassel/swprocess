@@ -29,6 +29,15 @@ class Peaks():
         List of strings describing Peak attributes.
 
     """
+    axes_defaults = {"frequency": {"label": "Frequency (Hz)",
+                                   "scale": "log"},
+                     "wavelength": {"label": "Wavelength (m)",
+                                    "scale": "log"},
+                     "velocity": {"label": "Velocity (m/s)",
+                                  "scale": "linear"},
+                     "slowness": {"label": "Slowness (s/m)",
+                                  "scale": "log"}
+                     }
 
     def __init__(self, frequency, velocity, identifier="0", **kwargs):
         """Create `Peaks` from a iterable of frequency and velocity.
@@ -62,16 +71,6 @@ class Peaks():
 
         for key, val in kwargs.items():
             setattr(self, key, np.array(val, dtype=float))
-
-        self.axes_defaults = {"frequency": {"label": "Frequency (Hz)",
-                                            "scale": "log"},
-                              "wavelength": {"label": "Wavelength (m)",
-                                             "scale": "log"},
-                              "velocity": {"label": "Velocity (m/s)",
-                                           "scale": "linear"},
-                              "slowness": {"label": "Slowness (s/m)",
-                                           "scale": "log"}
-                              }
 
     @property
     def wavelength(self):
@@ -122,7 +121,8 @@ class Peaks():
         kwargs = dict(azimuth=azis, ellipticity=ells, noise=nois, power=pwrs)
         return cls(*args, **kwargs)
 
-    def plot(self, xtype="frequency", ytype="velocity", plot_kwargs=None):
+    def plot(self, xtype="frequency", ytype="velocity", plot_kwargs=None,
+             indices=None):
         """Plot dispersion data in `Peaks` object.
 
         Parameters
@@ -136,6 +136,9 @@ class Peaks():
         plot_kwargs : dict, optional
             Keyword arguments to pass along to `ax.plot`, default is
             `None` indicating the predefined settings should be used.
+        indices : ndarray, optional
+            Indices to plot, default is `None` so all points will be
+            plotted.
 
         Returns
         -------
@@ -156,7 +159,7 @@ class Peaks():
         for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
             # Plot Peaks.
             self._plot(ax=_ax, xtype=_xtype, ytype=_ytype,
-                       plot_kwargs=plot_kwargs)
+                       plot_kwargs=plot_kwargs, indices=indices)
             # Configure Axes
             self._configure_axes(ax=_ax, xtype=_xtype, ytype=_ytype,
                                  defaults=self.axes_defaults)
@@ -211,7 +214,7 @@ class Peaks():
 
         return kwargs.values()
 
-    def _plot(self, ax, xtype, ytype, plot_kwargs=None):
+    def _plot(self, ax, xtype, ytype, plot_kwargs=None, indices=None):
         """Plot `Peaks` data to provided `Axes`.
 
         Parameters
@@ -225,6 +228,9 @@ class Peaks():
         plot_kwargs : kwargs, optional
             Keyword arguments to pass along to `ax.plot`, default is
             `None` indicating the predefined settings should be used.
+        indices : ndarray, optional
+            Indices to plot, default is `None` so all points will be
+            plotted.
 
         Returns
         -------
@@ -243,8 +249,12 @@ class Peaks():
         plot_kwargs = {} if plot_kwargs is None else plot_kwargs
         plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
 
+        indices = Ellipsis if indices is None else indices
+
         try:
-            ax.plot(getattr(self, xtype), getattr(self, ytype), **plot_kwargs)
+            ax.plot(getattr(self, xtype)[indices],
+                    getattr(self, ytype)[indices],
+                    **plot_kwargs)
         except AttributeError as e:
             msg = f"{xtype} and/or {ytype} is/are not attribute(s). "
             msg += f"Available attributes are: {self.extended_attrs}"
@@ -323,7 +333,7 @@ class Peaks():
         condition1 = np.logical_and(d1 > d1_min, d1 < d1_max)
         condition2 = np.logical_and(d2 > d2_min, d2 < d2_max)
         return np.flatnonzero(np.logical_and(condition1, condition2))
-    
+
     @staticmethod
     def _reject_outside_ids(values, _min, _max):
         if _min is None and _max is None:

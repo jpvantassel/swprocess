@@ -18,12 +18,6 @@ logger = logging.getLogger("swprocess.peakssuite")
 
 class PeaksSuite():
 
-    @staticmethod
-    def _check_input(peaks):
-        if not isinstance(peaks, Peaks):
-            msg = f"peaks must be an instance of `Peaks`, not {type(peaks)}."
-            raise TypeError(msg)
-
     def __init__(self, peaks):
         """Instantiate a `PeaksSuite` object from a `Peaks` object.
 
@@ -41,6 +35,12 @@ class PeaksSuite():
         self._check_input(peaks)
         self.peaks = [peaks]
         self.ids = [peaks.identifier]
+
+    @staticmethod
+    def _check_input(peaks):
+        if not isinstance(peaks, Peaks):
+            msg = f"peaks must be an instance of `Peaks`, not {type(peaks)}."
+            raise TypeError(msg)
 
     def append(self, peaks):
         """Append a `Peaks` object.
@@ -63,120 +63,6 @@ class PeaksSuite():
             raise KeyError(msg)
         self.peaks.append(peaks)
         self.ids.append(peaks.identifier)
-
-    def to_json(self, fname):
-        """Write `PeaksSuite` to json file.
-
-        Parameters
-        ----------
-        fnames : str
-            Name of the output file, may contain a relative or the full
-            path.
-
-        Returns
-        -------
-        None
-            Write `json` to disk.
-
-        """
-        append = False
-        for peak in self.peaks:
-            peak.to_json(fname, append=append)
-            append = True
-
-    @classmethod
-    def from_dict(cls, dicts):
-        """Instantiate `PeaksSuite` from `list` of `dict`s.
-
-        Parameters
-        ----------
-        dicts : list of dict or dict
-            List of `dict` or a single `dict` containing dispersion
-            data.
-
-        Returns
-        -------
-        PeaksSuite
-            Instantiated `PeaksSuite` object.
-
-        """
-        if isinstance(dicts, dict):
-            dicts = [dicts]
-
-        iterable = []
-        for _dict in dicts:
-            for identifier, data in _dict.items():
-                iterable.append(Peaks.from_dict(data, identifier=identifier))
-
-        return cls.from_iter(iterable)
-
-    @classmethod
-    def from_json(cls, fnames):
-        """Instantiate `PeaksSuite` from json file(s).
-
-        Parameters
-        ----------
-        fnames : list of str or str
-            File name or list of file names containing dispersion data.
-            Names may contain a relative or the full path.
-
-        Returns
-        -------
-        PeaksSuite
-            Instantiated `PeaksSuite` object.
-
-        """
-        if isinstance(fnames, str):
-            fnames = [fnames]
-
-        dicts = []
-        for fname in fnames:
-            with open(fname, "r") as f:
-                dicts.append(json.load(f))
-        return cls.from_dict(dicts)
-
-    @classmethod
-    def from_max(cls, fnames, wavetype="rayleigh"):
-        iterable = []
-        for fname in fnames:
-            with open(fname, "r") as f:
-                peak_data = f.read()
-
-            regex = get_all(wavetype=wavetype)
-            found_times = []
-            for found in regex.finditer(peak_data):
-                start_time = found.groups()[0]
-                if start_time in found_times:
-                    continue
-                found_times.append(start_time)
-                peak = Peaks._parse_peaks(peak_data, wavetype=wavetype,
-                                          start_time=start_time)
-                iterable.append(peak)
-
-        return cls.from_iter(iterable)
-
-    @classmethod
-    def from_iter(cls, iterable):
-        """Instantiate `PeaksSuite` from iterable object.
-
-        Parameters
-        ----------
-        iterable : iterable
-            Iterable containing `Peaks` objects.
-
-        Returns
-        -------
-        PeaksSuite
-            Instantiated `PeaksSuite` object.
-
-        """
-        obj = cls(iterable[0])
-
-        if len(iterable) >= 1:
-            for _iter in iterable[1:]:
-                obj.append(_iter)
-
-        return obj
 
     def blitz(self, attribute, limits):
         """Reject peaks outside the stated boundary.
@@ -202,17 +88,52 @@ class PeaksSuite():
         TODO (jpv): Reference Peaks.reject for more information.
 
         """
-        rejection = []
+        rejection_ids = []
         for peak in self.peaks:
-            rejection.append(peak.reject_ids(xtype, xlims, ytype, ylims))
-        return rejection
+            rejection_ids.append(peak.reject_ids(xtype, xlims, ytype, ylims))
+        return rejection_ids
 
     def _reject(self, reject_ids):
         for _peak, _reject_ids in zip(self.peaks, reject_ids):
             _peak._reject(_reject_ids)
 
+    @staticmethod
+    def plot_resolution_limits(ax, xtype, ytype, attribute, limits):
+        xs = np.linspace(*ax.get_xlim(), 20)
+        ys = np.linspace(*ax.get_ylim(), 20)
+
+        # Get x to frequency and y to velocity.
+        if xtype == "frequency":
+            if ytype == "velocity":
+                pass
+            elif ytype == "slowness":
+                ys = 1/ys
+            elif ytype == "wavenumber":
+                ys = 2*np.pi/ys
+            else:
+                raise NotImplementedError
+        elif xtype == "wavelength":
+            if ytype == "velocity":
+                xs = xs/ys
+            elif ytype == "slowness":
+                xs = xs*ys
+                ys = 1/ys
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
+
+        
+
+        
+            
+            
+            
+
+
+
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
-             plot_kwargs=None):
+             plot_kwargs=None, indices=None):
         """Plot dispersion data in `Peaks` object.
 
         Parameters
@@ -232,6 +153,9 @@ class PeaksSuite():
             `plot_kwargs = {"key":[value_peaks0, value_peaks1, ... ]}`,
             default is `None` indicating the predefined settings should
             be used.
+        indices : list of ndarray, optional
+            Indices to plot from each `Peaks` object in the `PeaksSuite`
+            , default is `None` so all points will be plotted.
 
         Returns
         -------
@@ -249,28 +173,53 @@ class PeaksSuite():
         plot_kwargs = {} if plot_kwargs is None else plot_kwargs
         plot_kwargs = self._prepare_plot_kwargs(plot_kwargs, len(self))
 
+        # Prepare indices argument.
+        if indices is None:
+            indices = [None]*len(self)
+        else:
+            if len(indices) != len(self):
+                msg = f"len(indices)={len(indices)} must equal "
+                msg += f"len(self)={len(self)}."
+                raise IndexError(msg)
+
         # Plot the first Peaks object from the suite.
         if ax is None:
             ax_was_none = True
             fig, ax = self.peaks[0].plot(xtype=xtype, ytype=ytype,
-                                         plot_kwargs=plot_kwargs[0])
+                                         plot_kwargs=plot_kwargs[0],
+                                         indices=indices[0])
         else:
             ax_was_none = False
+
+            if not isinstance(ax, (list, tuple, np.ndarray)):
+                ax = [ax]
+            if len(ax) != len(xtype):
+                msg = f"len(ax)={len(ax)} must equal len(xtype)={len(xtype)}."
+                raise IndexError(msg)
+
             for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
-                self.peaks[0]._plot(ax=ax, xtype=xtype, ytpe=ytype,
-                                    plot_kwargs=plot_kwargs[0])
+                self.peaks[0]._plot(ax=_ax, xtype=_xtype, ytype=_ytype,
+                                    plot_kwargs=plot_kwargs[0],
+                                    indices=indices[0])
 
         # Plot the remaining Peaks from the PeaksSuite (if they exist).
         if len(self.peaks) > 1:
-            for _peak, _plot_kwargs in zip(self.peaks[1:], plot_kwargs[1:]):
-
-                # If label is provided, only use it once.
-                if _plot_kwargs.get("label", None) is not None:
-                    _plot_kwargs["label"] = None
-
+            for _peak, _plot_kwargs, _indices in zip(self.peaks[1:], plot_kwargs[1:], indices[1:]):
+                label = _plot_kwargs.get("label", None)
                 for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
+                    
+                    # Only label unique data sets.
+                    _, labels = _ax.get_legend_handles_labels()
+                    if label in labels:
+                        _plot_kwargs["label"] = None
+
                     _peak._plot(xtype=_xtype, ytype=_ytype, ax=_ax,
-                               plot_kwargs=_plot_kwargs)
+                                plot_kwargs=_plot_kwargs, indices=_indices)
+
+        # Configure Axes.
+        for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
+            Peaks._configure_axes(ax=_ax, xtype=_xtype, ytype=_ytype,
+                                  defaults=Peaks.axes_defaults)
 
         # Return fig, ax if generated on-the-fly.
         if ax_was_none:
@@ -300,7 +249,7 @@ class PeaksSuite():
         for index in range(ncols):
             new_dict = {}
             for key, value in plot_kwargs.items():
-                if isinstance(value, str):
+                if isinstance(value, str) or value is None:
                     new_dict[key] = value
                 elif isinstance(value, (list, tuple)):
                     new_dict[key] = value[index]
@@ -310,156 +259,131 @@ class PeaksSuite():
             expanded_kwargs.append(new_dict)
         return expanded_kwargs
 
-    def plot_subset(self, ax, xtype, ytype, indices, plot_kwargs=None):
-        # Prepare inputs and check inputs.
-        if isinstance(xtype, str):
-            ax = [ax]
-            xtype = [xtype]
-            ytype = [ytype]
-            indices = [indices]
-        elif len(ax) != len(xtype) or len(ax) != len(ytype):
-            msg = f"`ax`, `xtype`, and `ytype` must all be the same size, not {len(ax)}, {len(xtype)}, {len(ytype)}s."
-            raise IndexError(msg)
+    # @staticmethod
+    # def create_settings_dict(domains, stat_xdomain="wavelength", ydomain="velocity",
+    #                          xmin=3, xmax=100, nx=30, xspace="log",
+    #                          stat_kwargs=None, limits=None):
+    #     """Helper to define settings for `interactive_trimming`.
 
-        # Prepare keyword arguments.
-        plot_kwargs = {} if plot_kwargs is None else plot_kwargs
-        default_plot_kwargs = dict(linestyle="", marker="x", color="#ababab",
-                                   markersize=1, markerfacecolor="none",
-                                   label=None)
-        plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
+    #     Parameters
+    #     ----------
+    #     domains : list of lists
+    #         Define the domains on which to plot the dispersion data, of
+    #         the form `[ [x0, y0], [x1, y1] ... ]`.
+    #     xdomain, ydomain : {"frequency", "velocity", "wavelength", "slowness"}, optional
+    #         X and Y on which to calculate statistics, default is
+    #         "wavelength" and "velocity", respectively.
+    #     xmin, xmax : float, optional
+    #         Minimum and maximum values in the xdomain for statistical
+    #         calculations, default is 3 and 100, respectively.
+    #     nx : int, optional
+    #         Number of samples between `xmin` and `xmax` for statistical
+    #         calculations, default is 30.
+    #     xspace : {"log", "linear"}, optional
+    #         Space along which `nx` points are selected, default is
+    #         "log".
+    #     limits : dict
+    #         Define upper and lower limits in any domain of the form:
+    #         `{"domain1": [d1min, d1max], "domain2":[d2min, d2max]}`.
 
-        # Plot subset on each axes.
-        for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
-            for _peaks, _indices in zip(self.peaks, indices):
-                _ax.plot(getattr(_peaks, _xtype)[_indices],
-                         getattr(_peaks, _ytype)[_indices],
-                         **plot_kwargs)
+    #     Returns
+    #     -------
+    #     dict
+    #         Formatted correctly to be accepted by
+    #         `interactive_trimming`.
 
-    @staticmethod
-    def create_settings_dict(domains, xdomain="wavelength", ydomain="velocity",
-                             xmin=3, xmax=100, nx=30, xspace="log",
-                             stat_kwargs=None, limits=None):
-        """Helper to define settings for `interactive_trimming`.
+    #     """
+    #     stat_kwargs = {} if stat_kwargs is None else stat_kwargs
+    #     settings = {
+    #         "domains": domains,
+    #         "statistics": {
+    #             "xtype": xdomain,
+    #             "ytype": ydomain,
+    #             "type": xspace,
+    #             "start": xmin,
+    #             "stop": xmax,
+    #             "num": nx,
+    #             **stat_kwargs
+    #         },
+    #         "limits": limits
+    #     }
+    #     return settings
 
-        Parameters
-        ----------
-        domains : list of lists
-            Define the domains on which to plot the dispersion data, of
-            the form `[ [x0, y0], [x1, y1] ... ]`.
-        xdomain, ydomain : {"frequency", "velocity", "wavelength", "slowness"}, optional
-            X and Y on which to calculate statistics, default is
-            "wavelength" and "velocity", respectively.
-        xmin, xmax : float, optional
-            Minimum and maximum values in the xdomain for statistical
-            calculations, default is 3 and 100, respectively.
-        nx : int, optional
-            Number of samples between `xmin` and `xmax` for statistical
-            calculations, default is 30.
-        xspace : {"log", "linear"}, optional
-            Space along which `nx` points are selected, default is
-            "log".
-        limits : dict
-            Define upper and lower limits in any domain of the form:
-            `{"domain1": [d1min, d1max], "domain2":[d2min, d2max]}`.
+    # @staticmethod
+    # def create_setting_file(fname, domains, xdomain="wavelength",
+    #                         ydomain="velocity", xmin=3, xmax=100, nx=30,
+    #                         xspace="log", stat_kwargs=None, limits=None):
+    #     """Write settings file for `interactive_trimming` to disk.
 
-        Returns
-        -------
-        dict
-            Formatted correctly to be accepted by
-            `interactive_trimming`.
+    #     Parameters
+    #     ----------
+    #     domains : list of lists
+    #         Define the domains on which to plot the dispersion data, of
+    #         the form `[ [x0, y0], [x1, y1] ... ]`.
+    #     xdomain, ydomain : {"frequency", "velocity", "wavelength", "slowness"}, optional
+    #         X and Y on which to calculate statistics, default is
+    #         "wavelength" and "velocity", respectively.
+    #     xmin, xmax : float, optional
+    #         Minimum and maximum values in the xdomain for statistical
+    #         calculations, default is 3 and 100, respectively.
+    #     nx : int, optional
+    #         Number of samples between `xmin` and `xmax` for statistical
+    #         calculations, default is 30.
+    #     xspace : {"log", "linear"}, optional
+    #         Space along which `nx` points are selected, default is
+    #         "log".
+    #     limits : dict
+    #         Define upper and lower limits in any domain of the form:
+    #         `{"domain1": [d1min, d1max], "domain2":[d2min, d2max]}`.
 
-        """
-        stat_kwargs = {} if stat_kwargs is None else stat_kwargs
-        settings = {
-            "domains": domains,
-            "statistics": {
-                "xtype": xdomain,
-                "ytype": ydomain,
-                "type": xspace,
-                "start": xmin,
-                "stop": xmax,
-                "num": nx,
-                **stat_kwargs
-            },
-            "limits": limits
-        }
-        return settings
+    #     Returns
+    #     -------
+    #     None
+    #         Writes settings file for `interactive_trimming` to disk.
 
-    @staticmethod
-    def create_setting_file(fname, domains, xdomain="wavelength",
-                            ydomain="velocity", xmin=3, xmax=100, nx=30,
-                            xspace="log", stat_kwargs=None, limits=None):
-        """Write settings file for `interactive_trimming` to disk.
+    #     """
+    #     settings = PeaksSuite.create_settings_dict(
+    #         domains=domains, xdomain=xdomain, ydomain=ydomain, xmin=xmin,
+    #         xmax=xmax, nx=nx, xspace=xspace, stat_kwargs=stat_kwargs,
+    #         limits=limits)
+    #     with open(fname, "w") as f:
+    #         json.dump(settings, f)
 
-        Parameters
-        ----------
-        domains : list of lists
-            Define the domains on which to plot the dispersion data, of
-            the form `[ [x0, y0], [x1, y1] ... ]`.
-        xdomain, ydomain : {"frequency", "velocity", "wavelength", "slowness"}, optional
-            X and Y on which to calculate statistics, default is
-            "wavelength" and "velocity", respectively.
-        xmin, xmax : float, optional
-            Minimum and maximum values in the xdomain for statistical
-            calculations, default is 3 and 100, respectively.
-        nx : int, optional
-            Number of samples between `xmin` and `xmax` for statistical
-            calculations, default is 30.
-        xspace : {"log", "linear"}, optional
-            Space along which `nx` points are selected, default is
-            "log".
-        limits : dict
-            Define upper and lower limits in any domain of the form:
-            `{"domain1": [d1min, d1max], "domain2":[d2min, d2max]}`.
+    def interactive_trimming(self, xtype="wavelength", ytype="velocity",
+                             plot_kwargs=None):
 
-        Returns
-        -------
-        None
-            Writes settings file for `interactive_trimming` to disk.
+        # xtype, ytype = Peaks._prepare_types(xtype=xtype, ytype=ytype)
 
-        """
-        settings = PeaksSuite.create_settings_dict(
-            domains=domains, xdomain=xdomain, ydomain=ydomain, xmin=xmin,
-            xmax=xmax, nx=nx, xspace=xspace, stat_kwargs=stat_kwargs,
-            limits=limits)
-        with open(fname, "w") as f:
-            json.dump(settings, f)
+        # stat_settings = settings.get("statistics")
+        # if stat_settings is not None:
+        #     if stat_settings["type"] == "log":
+        #         stat_settings["xx"] = np.geomspace(stat_settings["start"],
+        #                                            stat_settings["stop"],
+        #                                            stat_settings["num"])
+        #     elif stat_settings["type"] == "linear":
+        #         stat_settings["xx"] = np.linspace(stat_settings["start"],
+        #                                           stat_settings["stop"],
+        #                                           stat_settings["num"])
+        #     else:
+        #         raise NotImplementedError
+        #     keys = ["xtype", "ytype", "xx"]
+        #     stat_settings = {key: stat_settings[key] for key in keys}
 
-    def interactive_trimming(self, settings_file):
-        with open(settings_file, "r") as f:
-            settings = json.load(f)
+        #     for stat_ax_index, (_xtype, _ytype) in enumerate(zip(xtype, ytype)):
+        #         if _xtype == stat_settings["xtype"] and _ytype == stat_settings["ytype"]:
+        #             break
+        #     else:
+        #         msg = f"Can only calculate statistics on a displayed domain."
+        #         raise ValueError(msg)
 
-        for key, value in settings.get("limits", {}).items():
-            self.blitz(key, value)
+        fig, ax = self.plot(xtype=xtype, ytype=ytype, plot_kwargs=plot_kwargs)
 
-        xtype = [pair[0] for pair in settings["domains"]]
-        ytype = [pair[1] for pair in settings["domains"]]
-
-        stat_settings = settings.get("statistics")
-        if stat_settings is not None:
-            if stat_settings["type"] == "log":
-                stat_settings["xx"] = np.geomspace(stat_settings["start"],
-                                                   stat_settings["stop"],
-                                                   stat_settings["num"])
-            elif stat_settings["type"] == "linear":
-                stat_settings["xx"] = np.linspace(stat_settings["start"],
-                                                  stat_settings["stop"],
-                                                  stat_settings["num"])
-            else:
-                raise NotImplementedError
-            keys = ["xtype", "ytype", "xx"]
-            stat_settings = {key: stat_settings[key] for key in keys}
-
-            for stat_ax_index, (_xtype, _ytype) in enumerate(zip(xtype, ytype)):
-                if _xtype == stat_settings["xtype"] and _ytype == stat_settings["ytype"]:
-                    break
-            else:
-                msg = f"Can only calculate statistics on a displayed domain."
-                raise ValueError(msg)
-
-        fig, ax = self.plot(xtype, ytype)
+        pxlims, pylims = [], []
         for _ax in ax:
-            _ax.autoscale(False)
+            _ax.autoscale(enable=False)
+            pxlims.append(_ax.get_xlim())
+            pylims.append(_ax.get_ylim())
+
         fig.show()
 
         _continue = 1
@@ -482,7 +406,9 @@ class PeaksSuite():
             logging.debug(f"\trejection_count = {rejection_count}")
 
             if rejection_count > 0:
-                self.plot_subset(ax, xtype, ytype, rejection_ids)
+                self.plot(xtype=xtype, ytype=ytype, ax=ax,
+                          plot_kwargs=dict(color="#bbbbbb", label=None),
+                          indices=rejection_ids)
 
                 master_indices = [np.union1d(master, slave) for master, slave in zip(
                     master_indices, rejection_ids)]
@@ -500,12 +426,14 @@ class PeaksSuite():
                             self._reject(master_indices)
                             master_indices = [np.array([]) for _ in self.peaks]
 
-                        for _ax in ax:
+                        for _ax, pxlim, pylim in zip(ax, pxlims, pylims):
                             _ax.clear()
-                        self.plot(xtype, ytype, ax=ax)
+                            _ax.set_xlim(pxlim)
+                            _ax.set_ylim(pylim)
 
-                        for _ax in ax:
-                            _ax.autoscale(False)
+                        self.plot(xtype=xtype, ytype=ytype, ax=ax,
+                                  plot_kwargs=plot_kwargs)
+
                         break
 
     def statistics(self, xx, xtype, ytype, missing_data_procedure="drop",
@@ -649,6 +577,146 @@ class PeaksSuite():
             else:
                 msg = "Both clicks must be on the same axes. Please try again."
                 warnings.warn(msg)
+
+    def to_json(self, fname):
+        """Write `PeaksSuite` to json file.
+
+        Parameters
+        ----------
+        fnames : str
+            Name of the output file, may contain a relative or the full
+            path.
+
+        Returns
+        -------
+        None
+            Write `json` to disk.
+
+        """
+        append = False
+        for peak in self.peaks:
+            peak.to_json(fname, append=append)
+            append = True
+
+    @classmethod
+    def from_dict(cls, dicts):
+        """Instantiate `PeaksSuite` from `list` of `dict`s.
+
+        Parameters
+        ----------
+        dicts : list of dict or dict
+            List of `dict` or a single `dict` containing dispersion
+            data.
+
+        Returns
+        -------
+        PeaksSuite
+            Instantiated `PeaksSuite` object.
+
+        """
+        if isinstance(dicts, dict):
+            dicts = [dicts]
+
+        peaks = []
+        for _dict in dicts:
+            for identifier, data in _dict.items():
+                peaks.append(Peaks.from_dict(data, identifier=identifier))
+
+        return cls.from_peaks(peaks)
+
+    @classmethod
+    def from_json(cls, fnames):
+        """Instantiate `PeaksSuite` from json file(s).
+
+        Parameters
+        ----------
+        fnames : list of str or str
+            File name or list of file names containing dispersion data.
+            Names may contain a relative or the full path.
+
+        Returns
+        -------
+        PeaksSuite
+            Instantiated `PeaksSuite` object.
+
+        """
+        if isinstance(fnames, str):
+            fnames = [fnames]
+
+        dicts = []
+        for fname in fnames:
+            with open(fname, "r") as f:
+                dicts.append(json.load(f))
+        return cls.from_dict(dicts)
+
+    @classmethod
+    def from_max(cls, fnames, wavetype="rayleigh"):
+        peaks = []
+        for fname in fnames:
+            with open(fname, "r") as f:
+                peak_data = f.read()
+
+            regex = get_all(wavetype=wavetype)
+            found_times = []
+            for found in regex.finditer(peak_data):
+                start_time = found.groups()[0]
+                if start_time in found_times:
+                    continue
+                found_times.append(start_time)
+                peak = Peaks._parse_peaks(peak_data, wavetype=wavetype,
+                                          start_time=start_time)
+                peaks.append(peak)
+
+        return cls.from_peaks(peaks)
+
+    @classmethod
+    def from_peaks(cls, peaks):
+        """Instantiate `PeaksSuite` from iterable of `Peaks`.
+
+        Parameters
+        ----------
+        peaks : iterable
+            Iterable containing `Peaks` objects.
+
+        Returns
+        -------
+        PeaksSuite
+            Instantiated `PeaksSuite` object.
+
+        """
+        obj = cls(peaks[0])
+
+        if len(peaks) >= 1:
+            for peak in peaks[1:]:
+                obj.append(peak)
+
+        return obj
+
+    @classmethod
+    def from_peaksuite(cls, peakssuites):
+        """Instantiate `PeaksSuite` from iterable of `PeaksSuite`.
+
+        Parameters
+        ----------
+        peakssuites : iterable
+            Iterable containing `PeaksSuite` objects.
+
+        Returns
+        -------
+        PeaksSuite
+            Instantiated `PeaksSuite` object.
+
+        """
+        if isinstance(peakssuites, PeaksSuite):
+            peakssuites = [peakssuites]
+
+        obj = cls.from_peaks(peakssuites[0].peaks)
+
+        for peaksuite in peakssuites[1:]:
+            for peak in peaksuite:
+                obj.append(peak)
+
+        return obj
 
     def __getitem__(self, index):
         return self.peaks[index]
