@@ -3,7 +3,8 @@
 import json
 import os
 import logging
-from unittest.mock import MagicMock
+import warnings
+from unittest.mock import patch, MagicMock, call
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -129,11 +130,11 @@ class Test_PeaksSuite(TestCase):
         #     ytype == other -> NotImplementedError
         for _ytype in ["frequency", "wavelength"]:
             self.assertRaises(NotImplementedError, calc_res_limits, xtype,
-                attribute, _ytype, limits, xs, ys)
+                              attribute, _ytype, limits, xs, ys)
 
         #   attribute == "wavenumber"
         attribute, limits = "wavenumber", (2*np.pi/2., 2*np.pi/50.)
-        
+
         #     ytype == velocity -> v=2*pi*f/k
         ytype, ys = "velocity", np.array([0, 0])
         (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
@@ -164,7 +165,12 @@ class Test_PeaksSuite(TestCase):
         #     ytype == other -> NotImplementedError
         for _ytype in ["frequency", "wavelength"]:
             self.assertRaises(NotImplementedError, calc_res_limits, xtype,
-                attribute, _ytype, limits, xs, ys)
+                              attribute, _ytype, limits, xs, ys)
+
+        #     attribute == other -> NotImplementedError
+        for _attribute in ["frequency", "slowness"]:
+            self.assertRaises(NotImplementedError, calc_res_limits, xtype,
+                              _attribute, ytype, limits, xs, ys)
 
         # xtype == wavelength
         xtype, xs = "wavelength", np.array([2., 50.])
@@ -193,12 +199,12 @@ class Test_PeaksSuite(TestCase):
         #     ytype == other -> NotImplementedError
         for _ytype in ["frequency", "wavelength"]:
             self.assertRaises(NotImplementedError, calc_res_limits, xtype,
-                attribute, _ytype, limits, xs, ys)
+                              attribute, _ytype, limits, xs, ys)
 
         #   attribute == other -> NotImplementedError
         for _attribute in ["velocity", "frequency"]:
             self.assertRaises(NotImplementedError, calc_res_limits, xtype,
-                _attribute, ytype, limits, xs, ys)
+                              _attribute, ytype, limits, xs, ys)
 
         #   attribute == wavenumber
         attribute, limits = "wavenumber", (2*np.pi/2., 2*np.pi/50.)
@@ -224,34 +230,68 @@ class Test_PeaksSuite(TestCase):
         #     ytype == other -> NotImplementedError
         for _ytype in ["frequency", "wavelength"]:
             self.assertRaises(NotImplementedError, calc_res_limits, xtype,
-                attribute, _ytype, limits, xs, ys)
+                              attribute, _ytype, limits, xs, ys)
 
         #   attribute == other -> NotImplementedError
         for _attribute in ["velocity", "frequency"]:
             self.assertRaises(NotImplementedError, calc_res_limits, xtype,
-                _attribute, ytype, limits, xs, ys)
+                              _attribute, ytype, limits, xs, ys)
 
         # xtype == other -> NotImplementedError
         for _xtype in ["wavenumber", "slowness"]:
             self.assertRaises(NotImplementedError, calc_res_limits, _xtype,
-                attribute, ytype, limits, xs, ys)
+                              attribute, ytype, limits, xs, ys)
+
+    def test_plot_resolution_limits(self):
+        ax = MagicMock(spec=plt.Axes)
+        ax.get_xlim.return_value = (1, 10)
+        ax.get_xscale.return_value = "log"
+        ax.get_ylim.return_value = (100, 500)
+        ax.get_yscale.return_value = "linear"
+
+        default_kwargs = dict(color="#000000", linestyle="--",
+                              linewidth=0.75, label="limit")
+
+        # Standard plot.
+        ret_val = (([1, 2, 3], [4, 5, 6]), ([0, 1, 2], [3, 4, 5]))
+        with patch("swprocess.peakssuite.PeaksSuite.calc_resolution_limits", return_value=ret_val):
+            swprocess.PeaksSuite.plot_resolution_limits(ax=ax, xtype="frequency",
+                                                        ytype="velocity",
+                                                        attribute="wavelength",
+                                                        limits=(5, 100))
+            calls = [call(*limit_pair, **default_kwargs)
+                     for limit_pair in ret_val]
+            ax.plot.has_calls(calls, any_order=False)
+
+        # No plot.
+        def side_effect(*args, **kwargs):
+            raise NotImplementedError
+
+        with patch("swprocess.peakssuite.PeaksSuite.calc_resolution_limits", side_effect=side_effect):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                swprocess.PeaksSuite.plot_resolution_limits(ax=ax,
+                                                            xtype="frequency",
+                                                            ytype="velocity",
+                                                            attribute="wavelength",
+                                                            limits=(5, 100))
 
     def test_plot(self):
         # Default
-        fname=self.full_path + "data/peak/suite_raw.json"
-        suite=swprocess.PeaksSuite.from_json(fname)
-        fig, ax=suite.plot(xtype = ["frequency", "wavelength", "frequency"],
-                             ytype = ["velocity", "velocity", "slowness"],
+        fname = self.full_path + "data/peak/suite_raw.json"
+        suite = swprocess.PeaksSuite.from_json(fname)
+        fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
+                             ytype=["velocity", "velocity", "slowness"],
                              )
 
         # With a provided Axes.
-        fig, ax=plt.subplots()
-        result=suite.plot(ax = ax, xtype = "frequency", ytype = "velocity")
+        fig, ax = plt.subplots()
+        result = suite.plot(ax=ax, xtype="frequency", ytype="velocity")
         self.assertTrue(result is None)
 
         # With a provided Axes (wrong size).
-        fig, ax=plt.subplots(ncols = 3)
-        self.assertRaises(IndexError, suite.plot, ax = ax, xtype = "frequency",
+        fig, ax = plt.subplots(ncols=3)
+        self.assertRaises(IndexError, suite.plot, ax=ax, xtype="frequency",
                           ytype="velocity")
 
         # With a provided indices (wrong size).
@@ -290,6 +330,102 @@ class Test_PeaksSuite(TestCase):
         self.assertRaises(NotImplementedError,
                           swprocess.PeaksSuite._prepare_plot_kwargs,
                           plot_kwargs, ncols=3)
+
+    def test_interactive_trimming(self):
+        # Create simple suite, composed of two Peaks.
+        peaks_a = Peaks(frequency=[0.5, 0.5], velocity=[0.5, 1.5],
+                        identifier="a")
+        peaks_b = Peaks(frequency=[1.5, 1.5], velocity=[0.5, 1.5],
+                        identifier="b")
+        suite = swprocess.PeaksSuite(peaks_a)
+        suite.append(peaks_b)
+
+        # Create a response generator.
+        def response_generator(responses):
+            index = 0
+            while index < len(responses):
+                yield responses[index]
+                index += 1
+
+        # Use a closure to wrap generator.
+        def wrap_generator(generator):
+            def wrapper(*args, **kwargs):
+                return next(generator)
+            return wrapper
+
+        # Define generator to replace _draw_box()
+        xlims, ylims, axclicked = (1., 2.), (0., 1.), 0
+        response_0 = (xlims, ylims, axclicked)
+        xlims, ylims, axclicked = (1., 1.), (1., 1.), 0
+        response_1 = (xlims, ylims, axclicked)
+        pick_generator = response_generator([response_0, response_1])
+        _draw_box_responses = wrap_generator(generator=pick_generator)
+
+        with patch("swprocess.peakssuite.PeaksSuite._draw_box", side_effect=_draw_box_responses):
+            with patch('builtins.input', return_value="0"):
+                suite.interactive_trimming(xtype="frequency", ytype="velocity")
+        self.assertArrayEqual(np.array([0.5, 0.5]), peaks_a.frequency)
+        self.assertArrayEqual(np.array([0.5, 1.5]), peaks_a.velocity)
+        self.assertArrayEqual(np.array([1.5]), peaks_b.frequency)
+        self.assertArrayEqual(np.array([1.5]), peaks_b.velocity)
+
+        # Redefine generator for _draw_box()
+        pick_generator = response_generator([response_0, response_1])
+        _draw_box_responses = wrap_generator(generator=pick_generator)
+
+        # Define generator to replace input()
+        input_generator = response_generator(["5", "0"])
+        _input_responses = wrap_generator(generator=input_generator)
+
+        # Check with bad user entry at input().
+        with patch("swprocess.peakssuite.PeaksSuite._draw_box", side_effect=_draw_box_responses):
+            with patch("builtins.input", side_effect=_input_responses):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    suite.interactive_trimming(
+                        xtype="frequency", ytype="velocity")
+
+        # Redefine generator for _draw_box()
+        pick_generator = response_generator([response_1])
+        _draw_box_responses = wrap_generator(generator=pick_generator)
+        mock = MagicMock()
+
+        # Check with bad user entry at input().
+        with patch("swprocess.peakssuite.PeaksSuite._draw_box", side_effect=_draw_box_responses):
+            with patch("builtins.input", return_value="0"):
+                with patch("swprocess.peakssuite.PeaksSuite.plot_resolution_limits", side_effect=mock):
+                    suite.interactive_trimming(xtype="frequency", ytype="velocity",
+                                            resolution_limits=["wavelength", (1, 10)])
+                    mock.assert_called()
+
+    # TODO (jpv): Draw box needs to be refactored.
+    # def test_draw_box(self):
+    #     # Create a response generator.
+    #     def response_generator(responses):
+    #         index = 0
+    #         while index < len(responses):
+    #             yield responses[index]
+    #             index += 1
+
+    #     # Use a closure to wrap generator.
+    #     def wrap_generator(generator):
+    #         def wrapper(*args, **kwargs):
+    #             return next(generator)
+    #         return wrapper
+
+    #     # Create PeakSuite object.
+    #     peaks = Peaks(frequency=[0,1,2], velocity=[0,1,2])
+    #     suite = swprocess.PeaksSuite(peaks)
+
+    #     # Patch ginput
+    #     fig, ax = plt.subplots()
+    #     # fig.canvas.mpl_connect = MagicMock()
+    #     # fig.canvas.mpl_diconnect = MagicMock()
+
+    #     click_generator = response_generator([((0, 0), (1, 1))])
+    #     ginput_response = wrap_generator(generator=click_generator)
+    #     fig.ginput = MagicMock(side_effect=[ginput_response, on_click])
+    #     suite._draw_box(fig=fig)
 
     def test_statistics(self):
         # No missing data

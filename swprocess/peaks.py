@@ -333,6 +333,13 @@ class Peaks():
         condition1 = np.logical_and(d1 > d1_min, d1 < d1_max)
         condition2 = np.logical_and(d2 > d2_min, d2 < d2_max)
         return np.flatnonzero(np.logical_and(condition1, condition2))
+        # print(a)
+        # print(type(a))
+        # try:
+        #     print(type(a[0]))
+        # except IndexError:
+        #     pass
+        # return a
 
     @staticmethod
     def _reject_outside_ids(values, _min, _max):

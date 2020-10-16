@@ -180,7 +180,7 @@ class PeaksSuite():
             limits = PeaksSuite.calc_resolution_limits(xtype, attribute,
                                                        ytype, limits, xs, ys)
         except NotImplementedError:
-            warning.warn("Could not calculate resolution limits.")
+            warnings.warn("Could not calculate resolution limits.")
         else:
             plot_kwargs = {} if plot_kwargs is None else plot_kwargs
             default_kwargs = dict(color="#000000", linestyle="--",
@@ -318,161 +318,84 @@ class PeaksSuite():
             expanded_kwargs.append(new_dict)
         return expanded_kwargs
 
-    # @staticmethod
-    # def create_settings_dict(domains, stat_xdomain="wavelength", ydomain="velocity",
-    #                          xmin=3, xmax=100, nx=30, xspace="log",
-    #                          stat_kwargs=None, limits=None):
-    #     """Helper to define settings for `interactive_trimming`.
-
-    #     Parameters
-    #     ----------
-    #     domains : list of lists
-    #         Define the domains on which to plot the dispersion data, of
-    #         the form `[ [x0, y0], [x1, y1] ... ]`.
-    #     xdomain, ydomain : {"frequency", "velocity", "wavelength", "slowness"}, optional
-    #         X and Y on which to calculate statistics, default is
-    #         "wavelength" and "velocity", respectively.
-    #     xmin, xmax : float, optional
-    #         Minimum and maximum values in the xdomain for statistical
-    #         calculations, default is 3 and 100, respectively.
-    #     nx : int, optional
-    #         Number of samples between `xmin` and `xmax` for statistical
-    #         calculations, default is 30.
-    #     xspace : {"log", "linear"}, optional
-    #         Space along which `nx` points are selected, default is
-    #         "log".
-    #     limits : dict
-    #         Define upper and lower limits in any domain of the form:
-    #         `{"domain1": [d1min, d1max], "domain2":[d2min, d2max]}`.
-
-    #     Returns
-    #     -------
-    #     dict
-    #         Formatted correctly to be accepted by
-    #         `interactive_trimming`.
-
-    #     """
-    #     stat_kwargs = {} if stat_kwargs is None else stat_kwargs
-    #     settings = {
-    #         "domains": domains,
-    #         "statistics": {
-    #             "xtype": xdomain,
-    #             "ytype": ydomain,
-    #             "type": xspace,
-    #             "start": xmin,
-    #             "stop": xmax,
-    #             "num": nx,
-    #             **stat_kwargs
-    #         },
-    #         "limits": limits
-    #     }
-    #     return settings
-
-    # @staticmethod
-    # def create_setting_file(fname, domains, xdomain="wavelength",
-    #                         ydomain="velocity", xmin=3, xmax=100, nx=30,
-    #                         xspace="log", stat_kwargs=None, limits=None):
-    #     """Write settings file for `interactive_trimming` to disk.
-
-    #     Parameters
-    #     ----------
-    #     domains : list of lists
-    #         Define the domains on which to plot the dispersion data, of
-    #         the form `[ [x0, y0], [x1, y1] ... ]`.
-    #     xdomain, ydomain : {"frequency", "velocity", "wavelength", "slowness"}, optional
-    #         X and Y on which to calculate statistics, default is
-    #         "wavelength" and "velocity", respectively.
-    #     xmin, xmax : float, optional
-    #         Minimum and maximum values in the xdomain for statistical
-    #         calculations, default is 3 and 100, respectively.
-    #     nx : int, optional
-    #         Number of samples between `xmin` and `xmax` for statistical
-    #         calculations, default is 30.
-    #     xspace : {"log", "linear"}, optional
-    #         Space along which `nx` points are selected, default is
-    #         "log".
-    #     limits : dict
-    #         Define upper and lower limits in any domain of the form:
-    #         `{"domain1": [d1min, d1max], "domain2":[d2min, d2max]}`.
-
-    #     Returns
-    #     -------
-    #     None
-    #         Writes settings file for `interactive_trimming` to disk.
-
-    #     """
-    #     settings = PeaksSuite.create_settings_dict(
-    #         domains=domains, xdomain=xdomain, ydomain=ydomain, xmin=xmin,
-    #         xmax=xmax, nx=nx, xspace=xspace, stat_kwargs=stat_kwargs,
-    #         limits=limits)
-    #     with open(fname, "w") as f:
-    #         json.dump(settings, f)
-
     def interactive_trimming(self, xtype="wavelength", ytype="velocity",
                              plot_kwargs=None, resolution_limits=None,
                              resolution_limits_plot_kwargs=None):
+        """Interactively trim experimental dispersion data.
 
-        # xtype, ytype = Peaks._prepare_types(xtype=xtype, ytype=ytype)
+        Parameters
+        ----------
+        xtype : {'frequency', 'wavelength'}, optional
+            Denote whether the x-axis should be either `frequency` or
+            `wavelength`, default is `frequency`.
+        ytype : {'velocity', 'slowness'}, optional
+            Denote whether the y-axis should be either `velocity` or
+            `slowness`, default is `velocity`.
+        plot_kwargs : dict, optional
+            Keyword arguments to pass along to `ax.plot` can be in the
+            form `plot_kwargs = {"key":value_allpeaks}` or
+            `plot_kwargs = {"key":[value_peaks0, value_peaks1, ... ]}`,
+            default is `None` indicating the predefined settings should
+            be used.
+        resolution_limits : iterable, optional
+            Of form `("domain", (min, max))` where `"domain"` is a `str`
+            denoting the domain of the limits and `min` and `max` are
+            `floats` denoting their value, default is `None` so no
+            resolution limits are plotted for reference.
+        resolution_limits_plot_kwargs : dict, optional
+            Formatting of resolution limits passed to `ax.plot`, default
+            is `None` so default settings will be used.
 
-        # stat_settings = settings.get("statistics")
-        # if stat_settings is not None:
-        #     if stat_settings["type"] == "log":
-        #         stat_settings["xx"] = np.geomspace(stat_settings["start"],
-        #                                            stat_settings["stop"],
-        #                                            stat_settings["num"])
-        #     elif stat_settings["type"] == "linear":
-        #         stat_settings["xx"] = np.linspace(stat_settings["start"],
-        #                                           stat_settings["stop"],
-        #                                           stat_settings["num"])
-        #     else:
-        #         raise NotImplementedError
-        #     keys = ["xtype", "ytype", "xx"]
-        #     stat_settings = {key: stat_settings[key] for key in keys}
+        Returns
+        -------
+        None
+            Updates the `PeaksSuite` state.
 
-        #     for stat_ax_index, (_xtype, _ytype) in enumerate(zip(xtype, ytype)):
-        #         if _xtype == stat_settings["xtype"] and _ytype == stat_settings["ytype"]:
-        #             break
-        #     else:
-        #         msg = f"Can only calculate statistics on a displayed domain."
-        #         raise ValueError(msg)
+        """
+        # Prepare xtype, ytype.
+        xtype, ytype = Peaks._prepare_types(xtype=xtype, ytype=ytype)
+
+        # Create fig, ax and plot data
         fig, ax = self.plot(xtype=xtype, ytype=ytype, plot_kwargs=plot_kwargs)
 
+        # Store minimum and maximum axes limits
         pxlims, pylims = [], []
         for _ax in ax:
             _ax.autoscale(enable=False)
             pxlims.append(_ax.get_xlim())
             pylims.append(_ax.get_ylim())
 
+        # Plot resolution limits (if desired):
+        if resolution_limits is not None:
+            attribute, limits = resolution_limits
+            for _ax, _xtype, _ytype, in zip(ax, xtype, ytype):
+                self.plot_resolution_limits(ax=_ax, xtype=_xtype,
+                                            ytype=_ytype, limits=limits,
+                                            attribute=attribute,
+                                            plot_kwargs=resolution_limits_plot_kwargs)
+            
+        # Force display of figure.
         fig.show()
 
         _continue = 1
-        master_indices = [np.array([]) for _ in self.peaks]
+        master_indices = [np.array([], dtype=int) for _ in self.peaks]
         err_bar = None
         while _continue:
-            # Plot resolution limits (if desired):
-            if resolution_limits is not None:
-                attribute, limits = resolution_limits
-                for _ax, _xtype, _ytype, in zip(ax, xtype, ytype):
-                    self.plot_resolution_limits(ax=_ax, xtype=_xtype,
-                                                ytype=_ytype, limits=limits,
-                                                attribute=attribute,
-                                                plot_kwargs=resolution_limits_plot_kwargs)
 
-            # if stat_settings is not None:
-            #     if err_bar is not None:
-            #         del err_bar
-            #     statistics = self.statistics(**stat_settings)
-            #     self.plot_statistics(statistics, ax=ax[stat_ax_index])
-
+            # Ask user to draw box.
             (xlims, ylims, axclicked) = self._draw_box(fig)
 
+            # Find all points inside the box.
             rejection_ids = self.reject_ids(xtype[axclicked], xlims,
                                             ytype[axclicked], ylims)
+
+            # Count number of rejected points.
             rejection_count = 0
             for _rejection_id in rejection_ids:
                 rejection_count += _rejection_id.size
             logging.debug(f"\trejection_count = {rejection_count}")
 
+            # If latest rejection box has points, store and continue.
             if rejection_count > 0:
                 self.plot(xtype=xtype, ytype=ytype, ax=ax,
                           plot_kwargs=dict(color="#bbbbbb", label=None),
@@ -480,29 +403,104 @@ class PeaksSuite():
 
                 master_indices = [np.union1d(master, slave) for master, slave in zip(
                     master_indices, rejection_ids)]
+            # If latest rejection box is empty, ask user for input.
             else:
                 while True:
-                    msg = "Enter 1 to continue, 0 to quit, 2 to undo): "
+                    msg = "Enter (0 to quit, 1 to continue, 2 to undo): "
                     _continue = input(msg)
+
+                    # Bad entry, ask again.
                     if _continue not in ["0", "1", "2"]:
                         warnings.warn(f"Entry {_continue}, is not recognized.")
                         continue
+                    # Execute decision.
                     else:
                         _continue = int(_continue)
-
-                        if _continue in [0, 1]:
-                            self._reject(master_indices)
-                            master_indices = [np.array([]) for _ in self.peaks]
-
-                        for _ax, pxlim, pylim in zip(ax, pxlims, pylims):
-                            _ax.clear()
-                            _ax.set_xlim(pxlim)
-                            _ax.set_ylim(pylim)
-
-                        self.plot(xtype=xtype, ytype=ytype, ax=ax,
-                                  plot_kwargs=plot_kwargs)
-
                         break
+
+                # If continue or quit, reject points and reset master_indices.
+                if _continue in [0, 1]:
+                    self._reject(master_indices)
+                    master_indices = [np.array([], dtype=int) for _ in self.peaks]
+
+                # Clear, set axis limits, and lock axis.
+                for _ax, pxlim, pylim in zip(ax, pxlims, pylims):
+                    _ax.clear()
+                    _ax.set_xlim(pxlim)
+                    _ax.set_ylim(pylim)
+                    # Note: _ax.clear() re-enables autoscale.
+                    _ax.autoscale(enable=False)
+
+                # Replot points (rejected points have been removed).
+                self.plot(xtype=xtype, ytype=ytype, ax=ax,
+                          plot_kwargs=plot_kwargs)
+
+
+                # Plot resolution limits (if desired):
+                if resolution_limits is not None:
+                    attribute, limits = resolution_limits
+                    for _ax, _xtype, _ytype, in zip(ax, xtype, ytype):
+                        self.plot_resolution_limits(ax=_ax, xtype=_xtype,
+                                                    ytype=_ytype, limits=limits,
+                                                    attribute=attribute,
+                                                    plot_kwargs=resolution_limits_plot_kwargs)
+
+
+    # TODO (jpv): To be refactored. Place in interact module?
+    def _draw_box(self, fig):
+        """Prompt user to define a rectangular box on figure.
+
+        Parameters
+        ----------
+        fig : Figure
+            Figure object, on which the user is to draw the box.
+
+        Returns
+        -------
+        tuple
+            Of the form `((xmin, xmax), (ymin,ymax)), axclicked` where
+            `xmin` and `xmax` are the minimum and maximum abscissa and
+            `ymin` and `ymax` are the minimum and maximum ordinate of
+            the user-defined box and `axclicked` determine which `Axes`
+            was clicked.
+
+        """
+        # print("0")
+        cursors = []
+        for ax in fig.axes:
+            cursors.append(Cursor(ax, useblit=True, color='k', linewidth=1))
+        # print("1")
+
+        def on_click(event):
+            if event.inaxes is not None:
+                axclicked.append(event.inaxes)
+        # print("2")
+
+        while True:
+            # print("3")
+            axclicked = []
+            # on_click = lambda event : axclicked.append(event.inaxes) if event.inaxes is not None else None
+            session = fig.canvas.mpl_connect('button_press_event', on_click)
+            (x1, y1), (x2, y2) = fig.ginput(2, timeout=0)
+            xs = (x1, x2)
+            ys = (y1, y2)
+            # print(xs, ys)
+            fig.canvas.mpl_disconnect(session)
+            # print("4")
+
+            # print(axclicked)
+
+            if len(axclicked) == 2 and axclicked[0] == axclicked[1]:
+                xmin, xmax = min(xs), max(xs)
+                ymin, ymax = min(ys), max(ys)
+                ax_index = fig.axes.index(axclicked[0])
+                logger.debug(f"\tax_index = {ax_index}")
+                return ((xmin, xmax), (ymin, ymax), ax_index)
+            else:
+                msg = "Both clicks must be on the same axes. Please try again."
+                warnings.warn(msg)
+            # print("5")
+
 
     def statistics(self, xx, xtype, ytype, missing_data_procedure="drop",
                    ignore=None):
@@ -601,50 +599,6 @@ class PeaksSuite():
         data_matrix = np.delete(data_matrix, drop_rows, axis=0)
 
         return (xx, data_matrix)
-
-    def _draw_box(self, fig):
-        """Prompt user to define a rectangular box on figure.
-
-        Parameters
-        ----------
-        fig : Figure
-            Figure object, on which the user is to draw the box.
-
-        Returns
-        -------
-        tuple
-            Of the form `((xmin, xmax), (ymin,ymax)), axclicked` where
-            `xmin` and `xmax` are the minimum and maximum abscissa and
-            `ymin` and `ymax` are the minimum and maximum ordinate of
-            the user-defined box and `axclicked` determine which `Axes`
-            was clicked.
-
-        """
-        cursors = []
-        for ax in fig.axes:
-            cursors.append(Cursor(ax, useblit=True, color='k', linewidth=1))
-
-        def on_click(event):
-            if event.inaxes is not None:
-                axclicked.append(event.inaxes)
-
-        while True:
-            axclicked = []
-            session = fig.canvas.mpl_connect('button_press_event', on_click)
-            (x1, y1), (x2, y2) = fig.ginput(2, timeout=0)
-            xs = (x1, x2)
-            ys = (y1, y2)
-            fig.canvas.mpl_disconnect(session)
-
-            if len(axclicked) == 2 and axclicked[0] == axclicked[1]:
-                xmin, xmax = min(xs), max(xs)
-                ymin, ymax = min(ys), max(ys)
-                ax_index = fig.axes.index(axclicked[0])
-                logger.debug(f"\tax_index = {ax_index}")
-                return ((xmin, xmax), (ymin, ymax), ax_index)
-            else:
-                msg = "Both clicks must be on the same axes. Please try again."
-                warnings.warn(msg)
 
     def to_json(self, fname):
         """Write `PeaksSuite` to json file.
