@@ -259,7 +259,7 @@ class Test_Array1D(TestCase):
         self.assertRaises(ValueError, array4.waterfall, time_ax="z")
 
         plt.show(block=False)
-        # plt.show()
+        plt.close("all")
 
     def test_plot(self):
         # Basic case (near-side, 2m spacing)
@@ -278,7 +278,7 @@ class Test_Array1D(TestCase):
         swprocess.Array1D.from_files(fname).plot()
 
         plt.show(block=False)
-        # plt.show()
+        plt.close("all")
 
     def test_auto_pick_first_arrivals(self):
         s1 = swprocess.Sensor1C(np.concatenate((np.zeros(100),

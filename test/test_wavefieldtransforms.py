@@ -126,6 +126,7 @@ class Test_AbstractWavefieldTransform(TestCase):
         transform.plot_snr()
 
         plt.show(block=False)
+        plt.close("all")
 
     def test_plot(self):
         # transform example file.
@@ -147,6 +148,7 @@ class Test_AbstractWavefieldTransform(TestCase):
         self.assertRaises(ValueError, transform.plot, ax=ax)
 
         plt.show(block=False)
+        plt.close("all")
 
 
 class test_EmptyWavefieldTransform(TestCase):
