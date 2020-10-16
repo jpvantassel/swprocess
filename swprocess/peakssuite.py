@@ -10,6 +10,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
+from .wavefieldtransforms import AbstractWavefieldTransform as AWTransform
 from .peaks import Peaks
 from .regex import get_all
 
@@ -98,39 +99,97 @@ class PeaksSuite():
             _peak._reject(_reject_ids)
 
     @staticmethod
-    def plot_resolution_limits(ax, xtype, ytype, attribute, limits):
-        xs = np.linspace(*ax.get_xlim(), 20)
-        ys = np.linspace(*ax.get_ylim(), 20)
-
-        # Get x to frequency and y to velocity.
+    def calc_resolution_limits(xtype, attribute, ytype, limits, xs, ys):
+        """Calculate resolution limits for a variety of domains."""
         if xtype == "frequency":
-            if ytype == "velocity":
-                pass
-            elif ytype == "slowness":
-                ys = 1/ys
-            elif ytype == "wavenumber":
-                ys = 2*np.pi/ys
+            x1, x2 = xs, xs
+            if attribute == "wavelength":
+                if ytype == "velocity":
+                    y1, y2 = [xs*limit for limit in limits]
+                elif ytype == "wavenumber":
+                    y1, y2 = [np.ones_like(ys)*2*np.pi /
+                              limit for limit in limits]
+                elif ytype == "slowness":
+                    y1, y2 = [1/(xs*limit) for limit in limits]
+                else:
+                    raise NotImplementedError
+            elif attribute == "wavenumber":
+                if ytype == "velocity":
+                    y1, y2 = [xs*np.pi*2/limit for limit in limits]
+                elif ytype == "wavenumber":
+                    y1, y2 = [np.ones_like(ys)*limit for limit in limits]
+                elif ytype == "slowness":
+                    y1, y2 = [limit/(2*np.pi*xs) for limit in limits]
+                else:
+                    raise NotImplementedError
             else:
                 raise NotImplementedError
         elif xtype == "wavelength":
-            if ytype == "velocity":
-                xs = xs/ys
-            elif ytype == "slowness":
-                xs = xs*ys
-                ys = 1/ys
+            y1, y2 = ys, ys
+            if attribute == "wavelength":
+                if ytype == "velocity":
+                    x1, x2 = [np.ones_like(ys)*limit for limit in limits]
+                elif ytype == "slowness":
+                    x1, x2 = [np.ones_like(ys)*limit for limit in limits]
+                else:
+                    raise NotImplementedError
+            elif attribute == "wavenumber":
+                if ytype == "velocity":
+                    x1, x2 = [np.ones_like(ys)*2*np.pi /
+                              limit for limit in limits]
+                elif ytype == "slowness":
+                    x1, x2 = [np.ones_like(ys)*2*np.pi /
+                              limit for limit in limits]
+                else:
+                    raise NotImplementedError
             else:
                 raise NotImplementedError
         else:
             raise NotImplementedError
 
-        
+        return ((x1, y1), (x2, y2))
 
-        
-            
-            
-            
+    @staticmethod
+    def plot_resolution_limits(ax, xtype, ytype, attribute, limits,
+                               plot_kwargs=None):
+        """Plot resolution limits on provided `Axes`.
 
+        Parameters
+        ----------
+        ax : Axes
+            `Axes` on which resolution limit is to be plotted.
+        xtype : {"frequency", "wavelength"}
+            Attribute on x-axis.
+        ytype : {"velocity", "slowness", "wavenumber"}
+            Attribute on y-axis.
+        limits : tuple
+            Of the form `(lower limit, upper limit)`.
+        plot_kwargs : dict, optional
+            Keyword arguments to pass along to `ax.plot`, default is
+            `None` indicating the predefined settings should be used.
 
+        Returns
+        -------
+        None
+            Updates Axes with resolution limit (if possible).
+
+        """
+        xs = AWTransform._create_vector(*ax.get_xlim(), 50, ax.get_xscale())
+        ys = AWTransform._create_vector(*ax.get_ylim(), 50, ax.get_yscale())
+        try:
+            limits = PeaksSuite.calc_resolution_limits(xtype, attribute,
+                                                       ytype, limits, xs, ys)
+        except NotImplementedError:
+            warning.warn("Could not calculate resolution limits.")
+        else:
+            plot_kwargs = {} if plot_kwargs is None else plot_kwargs
+            default_kwargs = dict(color="#000000", linestyle="--",
+                                  linewidth=0.75, label="limit")
+            plot_kwargs = {**default_kwargs, **plot_kwargs}
+
+            for limit_pair in limits:
+                ax.plot(*limit_pair, **plot_kwargs)
+                plot_kwargs["label"] = None
 
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
              plot_kwargs=None, indices=None):
@@ -207,7 +266,7 @@ class PeaksSuite():
             for _peak, _plot_kwargs, _indices in zip(self.peaks[1:], plot_kwargs[1:], indices[1:]):
                 label = _plot_kwargs.get("label", None)
                 for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
-                    
+
                     # Only label unique data sets.
                     _, labels = _ax.get_legend_handles_labels()
                     if label in labels:
@@ -350,7 +409,8 @@ class PeaksSuite():
     #         json.dump(settings, f)
 
     def interactive_trimming(self, xtype="wavelength", ytype="velocity",
-                             plot_kwargs=None):
+                             plot_kwargs=None, resolution_limits=None,
+                             resolution_limits_plot_kwargs=None):
 
         # xtype, ytype = Peaks._prepare_types(xtype=xtype, ytype=ytype)
 
@@ -375,7 +435,6 @@ class PeaksSuite():
         #     else:
         #         msg = f"Can only calculate statistics on a displayed domain."
         #         raise ValueError(msg)
-
         fig, ax = self.plot(xtype=xtype, ytype=ytype, plot_kwargs=plot_kwargs)
 
         pxlims, pylims = [], []
@@ -390,6 +449,15 @@ class PeaksSuite():
         master_indices = [np.array([]) for _ in self.peaks]
         err_bar = None
         while _continue:
+            # Plot resolution limits (if desired):
+            if resolution_limits is not None:
+                attribute, limits = resolution_limits
+                for _ax, _xtype, _ytype, in zip(ax, xtype, ytype):
+                    self.plot_resolution_limits(ax=_ax, xtype=_xtype,
+                                                ytype=_ytype, limits=limits,
+                                                attribute=attribute,
+                                                plot_kwargs=resolution_limits_plot_kwargs)
+
             # if stat_settings is not None:
             #     if err_bar is not None:
             #         del err_bar

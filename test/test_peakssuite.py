@@ -89,24 +89,171 @@ class Test_PeaksSuite(TestCase):
         for peak, _arg in zip(suite, arg):
             peak._reject.assert_called_once_with(_arg)
 
+    def test_calc_resolution_limit(self):
+        # Shorten method.
+        calc_res_limits = swprocess.PeaksSuite.calc_resolution_limits
+
+        # xtype == frequency
+        xtype, xs = "frequency", np.array([1., 100.])
+
+        #   attribute == wavelength
+        attribute, limits = "wavelength", (2., 50.)
+
+        #     ytype == velocity -> v=fl
+        ytype, ys = "velocity", np.array([0, 0])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayEqual(np.array([1., 100.]), x1)
+        self.assertArrayEqual(np.array([1., 100.]), x2)
+        self.assertArrayEqual(np.array([1., 100.])*2., y1)
+        self.assertArrayEqual(np.array([1., 100.])*50., y2)
+
+        #     ytype == wavenumber -> k=2pi/l
+        ytype, ys = "wavenumber", np.array([0, 0])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayEqual(np.array([1., 100.]), x1)
+        self.assertArrayEqual(np.array([1., 100.]), x2)
+        self.assertArrayEqual(np.array([1., 1.])*2*np.pi/2., y1)
+        self.assertArrayEqual(np.array([1., 1.])*2*np.pi/50., y2)
+
+        #     ytype == slowness -> p=1/(fl)
+        ytype, ys = "slowness", np.array([0, 0])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayEqual(np.array([1., 100.]), x1)
+        self.assertArrayEqual(np.array([1., 100.]), x2)
+        self.assertArrayEqual(1/(np.array([1., 100.])*2.), y1)
+        self.assertArrayEqual(1/(np.array([1., 100.])*50.), y2)
+
+        #     ytype == other -> NotImplementedError
+        for _ytype in ["frequency", "wavelength"]:
+            self.assertRaises(NotImplementedError, calc_res_limits, xtype,
+                attribute, _ytype, limits, xs, ys)
+
+        #   attribute == "wavenumber"
+        attribute, limits = "wavenumber", (2*np.pi/2., 2*np.pi/50.)
+        
+        #     ytype == velocity -> v=2*pi*f/k
+        ytype, ys = "velocity", np.array([0, 0])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayEqual(np.array([1., 100.]), x1)
+        self.assertArrayEqual(np.array([1., 100.]), x2)
+        self.assertArrayEqual(np.array([1., 100.])*2.*np.pi/limits[0], y1)
+        self.assertArrayEqual(np.array([1., 100.])*2.*np.pi/limits[1], y2)
+
+        #     ytype == wavenumber -> k=k
+        ytype, ys = "wavenumber", np.array([0, 0])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayEqual(np.array([1., 100.]), x1)
+        self.assertArrayEqual(np.array([1., 100.]), x2)
+        self.assertArrayEqual(np.array([1., 1.])*limits[0], y1)
+        self.assertArrayEqual(np.array([1., 1.])*limits[1], y2)
+
+        #     ytype == slowness -> p=k/2*pi*f
+        ytype, ys = "slowness", np.array([0, 0])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayEqual(np.array([1., 100.]), x1)
+        self.assertArrayEqual(np.array([1., 100.]), x2)
+        self.assertArrayEqual(limits[0]/(np.array([1., 100.])*2.*np.pi), y1)
+        self.assertArrayEqual(limits[1]/(np.array([1., 100.])*2.*np.pi), y2)
+
+        #     ytype == other -> NotImplementedError
+        for _ytype in ["frequency", "wavelength"]:
+            self.assertRaises(NotImplementedError, calc_res_limits, xtype,
+                attribute, _ytype, limits, xs, ys)
+
+        # xtype == wavelength
+        xtype, xs = "wavelength", np.array([2., 50.])
+
+        #   attribute == wavelength
+        attribute, limits = "wavelength", (2., 50.)
+
+        #     ytype == velocity -> v=v, l=l
+        ytype, ys = "velocity", np.array([100., 500.])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayEqual(np.array([2., 2.]), x1)
+        self.assertArrayEqual(np.array([50., 50.]), x2)
+        self.assertArrayEqual(np.array([100., 500.]), y1)
+        self.assertArrayEqual(np.array([100., 500.]), y2)
+
+        #     ytype == slowness -> p=p, l=l
+        ytype, ys = "slowness", np.array([1/100., 1/500.])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayEqual(np.array([2., 2.]), x1)
+        self.assertArrayEqual(np.array([50., 50.]), x2)
+        self.assertArrayEqual(np.array([1/100., 1/500.]), y1)
+        self.assertArrayEqual(np.array([1/100., 1/500.]), y2)
+
+        #     ytype == other -> NotImplementedError
+        for _ytype in ["frequency", "wavelength"]:
+            self.assertRaises(NotImplementedError, calc_res_limits, xtype,
+                attribute, _ytype, limits, xs, ys)
+
+        #   attribute == other -> NotImplementedError
+        for _attribute in ["velocity", "frequency"]:
+            self.assertRaises(NotImplementedError, calc_res_limits, xtype,
+                _attribute, ytype, limits, xs, ys)
+
+        #   attribute == wavenumber
+        attribute, limits = "wavenumber", (2*np.pi/2., 2*np.pi/50.)
+
+        #     ytype == velocity -> v=v, k=k
+        ytype, ys = "velocity", np.array([100., 500.])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayAlmostEqual(np.array([2., 2.]), x1)
+        self.assertArrayAlmostEqual(np.array([50., 50.]), x2)
+        self.assertArrayEqual(np.array([100., 500.]), y1)
+        self.assertArrayEqual(np.array([100., 500.]), y2)
+
+        #     ytype == slowness -> p=p, l=l
+        ytype, ys = "slowness", np.array([1/100., 1/500.])
+        (x1, y1), (x2, y2) = calc_res_limits(xtype, attribute, ytype, limits,
+                                             xs, ys)
+        self.assertArrayAlmostEqual(np.array([2., 2.]), x1)
+        self.assertArrayAlmostEqual(np.array([50., 50.]), x2)
+        self.assertArrayEqual(np.array([1/100., 1/500.]), y1)
+        self.assertArrayEqual(np.array([1/100., 1/500.]), y2)
+
+        #     ytype == other -> NotImplementedError
+        for _ytype in ["frequency", "wavelength"]:
+            self.assertRaises(NotImplementedError, calc_res_limits, xtype,
+                attribute, _ytype, limits, xs, ys)
+
+        #   attribute == other -> NotImplementedError
+        for _attribute in ["velocity", "frequency"]:
+            self.assertRaises(NotImplementedError, calc_res_limits, xtype,
+                _attribute, ytype, limits, xs, ys)
+
+        # xtype == other -> NotImplementedError
+        for _xtype in ["wavenumber", "slowness"]:
+            self.assertRaises(NotImplementedError, calc_res_limits, _xtype,
+                attribute, ytype, limits, xs, ys)
+
     def test_plot(self):
         # Default
-        fname = self.full_path + "data/peak/suite_raw.json"
-        suite = swprocess.PeaksSuite.from_json(fname)
-        fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
-                             ytype=["velocity", "velocity", "slowness"],
+        fname=self.full_path + "data/peak/suite_raw.json"
+        suite=swprocess.PeaksSuite.from_json(fname)
+        fig, ax=suite.plot(xtype = ["frequency", "wavelength", "frequency"],
+                             ytype = ["velocity", "velocity", "slowness"],
                              )
 
         # With a provided Axes.
-        fig, ax = plt.subplots()
-        result = suite.plot(ax=ax, xtype="frequency", ytype="velocity")
+        fig, ax=plt.subplots()
+        result=suite.plot(ax = ax, xtype = "frequency", ytype = "velocity")
         self.assertTrue(result is None)
 
         # With a provided Axes (wrong size).
-        fig, ax = plt.subplots(ncols=3)
-        self.assertRaises(IndexError, suite.plot, ax=ax, xtype="frequency",
+        fig, ax=plt.subplots(ncols = 3)
+        self.assertRaises(IndexError, suite.plot, ax = ax, xtype = "frequency",
                           ytype="velocity")
-        
+
         # With a provided indices (wrong size).
         self.assertRaises(IndexError, suite.plot, xtype="frequency",
                           ytype="velocity", indices=[[0], [1]])
@@ -141,9 +288,8 @@ class Test_PeaksSuite(TestCase):
         # Bad input -> NotImplementedError
         plot_kwargs = dict(color=5)
         self.assertRaises(NotImplementedError,
-                          swprocess.PeaksSuite._prepare_plot_kwargs, 
+                          swprocess.PeaksSuite._prepare_plot_kwargs,
                           plot_kwargs, ncols=3)
-
 
     def test_statistics(self):
         # No missing data
