@@ -3,6 +3,7 @@
 import json
 import os
 import logging
+from unittest.mock import MagicMock
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ from testtools import unittest, TestCase, get_full_path
 logger = logging.getLogger("swprocess")
 logger.setLevel(logging.ERROR)
 
+
 class Test_PeaksSuite(TestCase):
 
     @classmethod
@@ -21,7 +23,13 @@ class Test_PeaksSuite(TestCase):
         cls.full_path = get_full_path(__file__)
 
     def test_init(self):
-        # Basic
+        p0 = Peaks([1, 2, 3], [4, 5, 6], "p0")
+        suite = swprocess.PeaksSuite(p0)
+
+        self.assertEqual(suite[0], p0)
+        self.assertEqual(suite.ids[0], p0.identifier)
+
+    def test_append(self):
         p0 = Peaks([1, 2, 3], [4, 5, 6], "p0")
         p1 = Peaks([7, 8, 9], [10, 11, 12], "p1")
         suite = swprocess.PeaksSuite(p0)
@@ -35,6 +43,145 @@ class Test_PeaksSuite(TestCase):
 
         # Bad: append non-Peaks object
         self.assertRaises(TypeError, suite.append, "not a Peaks object")
+
+    def test_blitz(self):
+        # Create mock PeaksSuite
+        peak0 = MagicMock(spec=Peaks)
+        peak0.identifier = "p0"
+        peak1 = MagicMock(spec=Peaks)
+        peak1.identifier = "p1"
+        suite = swprocess.PeaksSuite(peak0)
+        suite.append(peak1)
+
+        # Call and assert call with args.
+        args = ("attribute", ("low", "high"))
+        suite.blitz(*args)
+        for peak in suite:
+            peak.blitz.assert_called_once_with(*args)
+
+    def test_reject(self):
+        # Create mock PeaksSuite
+        peak0 = MagicMock(spec=Peaks)
+        peak0.identifier = "p0"
+        peak0.reject_ids.return_value = [0, 1, 2]
+        peak1 = MagicMock(spec=Peaks)
+        peak1.identifier = "p1"
+        peak1.reject_ids.return_value = [2, 1, 0]
+        suite = swprocess.PeaksSuite(peak0)
+        suite.append(peak1)
+
+        # Call reject and assert call with args.
+        args = ("xtype", ("xlow", "xhigh"), "ytype", ("ylow", "yhigh"))
+        suite.reject(*args)
+        for peak in suite:
+            peak.reject.assert_called_once_with(*args)
+
+        # Call reject_ids and assert call with args.
+        args = ("xtype", ("xlow", "xhigh"), "ytype", ("ylow", "yhigh"))
+        reject_ids = suite.reject_ids(*args)
+        for peak in suite:
+            peak.reject_ids.assert_called_once_with(*args)
+        self.assertListEqual([[0, 1, 2], [2, 1, 0]], reject_ids)
+
+        # Call _reject and assert call with args.
+        arg = ["reject_peak0", "reject_peak1"]
+        suite._reject(arg)
+        for peak, _arg in zip(suite, arg):
+            peak._reject.assert_called_once_with(_arg)
+
+    def test_plot(self):
+        # Default
+        fname = self.full_path + "data/peak/suite_raw.json"
+        suite = swprocess.PeaksSuite.from_json(fname)
+        fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
+                             ytype=["velocity", "velocity", "slowness"],
+                             )
+
+        # With a provided Axes.
+        fig, ax = plt.subplots()
+        result = suite.plot(ax=ax, xtype="frequency", ytype="velocity")
+        self.assertTrue(result is None)
+
+        # With a provided Axes (wrong size).
+        fig, ax = plt.subplots(ncols=3)
+        self.assertRaises(IndexError, suite.plot, ax=ax, xtype="frequency",
+                          ytype="velocity")
+        
+        # With a provided indices (wrong size).
+        self.assertRaises(IndexError, suite.plot, xtype="frequency",
+                          ytype="velocity", indices=[[0], [1]])
+
+        # With a name provided.
+        fig, ax = plt.subplots()
+        suite.plot(ax=ax, xtype="frequency", ytype="velocity",
+                   plot_kwargs=dict(label="tada"))
+        _, labels = ax.get_legend_handles_labels()
+        self.assertListEqual(["tada"], labels)
+
+        plt.show(block=False)
+        plt.close("all")
+
+    def test_prepare_plot_kwargs(self):
+        # Apply to all.
+        plot_kwargs = dict(color="color", label="label")
+        returned = swprocess.PeaksSuite._prepare_plot_kwargs(plot_kwargs,
+                                                             ncols=3)
+        expected = [plot_kwargs]*3
+        self.assertListEqual(expected, returned)
+
+        # Apply one by index.
+        plot_kwargs = dict(color=["c0", "c1", "c2"], label="label")
+        returned = swprocess.PeaksSuite._prepare_plot_kwargs(plot_kwargs,
+                                                             ncols=3)
+        expected = [dict(plot_kwargs) for _ in range(3)]
+        for index, _dict in enumerate(expected):
+            _dict["color"] = f"c{index}"
+        self.assertListEqual(expected, returned)
+
+        # Bad input -> NotImplementedError
+        plot_kwargs = dict(color=5)
+        self.assertRaises(NotImplementedError,
+                          swprocess.PeaksSuite._prepare_plot_kwargs, 
+                          plot_kwargs, ncols=3)
+
+
+    def test_statistics(self):
+        # No missing data
+        values = np.array([[1, 2, 3, 4, 5],
+                           [4, 5, 7, 8, 9],
+                           [4, 3, 6, 4, 2]])
+        frq = [1, 2, 3, 4, 5]
+        peaks = [Peaks(frq, values[k], str(k)) for k in range(3)]
+        suite = swprocess.PeaksSuite.from_peaks(peaks)
+        rfrq, rmean, rstd, rcorr = suite.statistics(frq,
+                                                    xtype="frequency",
+                                                    ytype="velocity")
+        self.assertArrayEqual(np.array(frq), rfrq)
+        self.assertArrayEqual(np.mean(values, axis=0), rmean)
+        self.assertArrayEqual(np.std(values, axis=0, ddof=1), rstd)
+        self.assertArrayEqual(np.corrcoef(values.T), rcorr)
+
+        # missing_data_procedure="drop"
+        values = np.array([[np.nan]*6,
+                           [np.nan, 1, 2, 3, 4, 5],
+                           [0, 4, 5, 7, 8, 9],
+                           [0, 4, 3, 6, 4, 2]])
+        frq = [0.2, 1, 2, 3, 4, 5]
+
+        valid = np.array([[1, 2, 3, 4, 5],
+                          [4, 5, 7, 8, 9],
+                          [4, 3, 6, 4, 2]])
+        valid_frq = frq[1:]
+        peaks = [Peaks(frq, values[k], str(k)) for k in range(4)]
+        suite = swprocess.PeaksSuite.from_peaks(peaks)
+        rfrq, rmean, rstd, rcorr = suite.statistics(frq,
+                                                    xtype="frequency",
+                                                    ytype="velocity",
+                                                    missing_data_procedure="drop")
+        self.assertArrayEqual(np.array(valid_frq), rfrq)
+        self.assertArrayEqual(np.mean(valid, axis=0), rmean)
+        self.assertArrayEqual(np.std(valid, axis=0, ddof=1), rstd)
+        self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
 
     def test_from_dict(self):
         # Simple Case: Single dictionary
@@ -61,7 +208,7 @@ class Test_PeaksSuite(TestCase):
             peak_list.append(peaks)
 
         returned = swprocess.PeaksSuite.from_json(fnames=fnames)
-        expected = swprocess.PeaksSuite.from_iter(peak_list)
+        expected = swprocess.PeaksSuite.from_peaks(peak_list)
         self.assertEqual(expected, returned)
 
         for fname in fnames:
@@ -72,7 +219,7 @@ class Test_PeaksSuite(TestCase):
         fnames = [self.full_path +
                   f"data/mm/test_hfk_line2_{x}.max" for x in range(2)]
         returned = swprocess.PeaksSuite.from_max(fnames=fnames,
-                                                  wavetype="rayleigh")
+                                                 wavetype="rayleigh")
 
         r0 = {"16200": {"frequency": [20.000000000000106581, 19.282217609815102577],
                         "velocity": [1/0.0068859013683322750979, 1/0.0074117944332218188563],
@@ -107,7 +254,7 @@ class Test_PeaksSuite(TestCase):
         fnames = [self.full_path +
                   f"data/mm/test_hfk_line2_{x}.max" for x in range(2)]
         returned = swprocess.PeaksSuite.from_max(fnames=fnames,
-                                                  wavetype="love")
+                                                 wavetype="love")
 
         l0 = {"16200": {"frequency": [20.000000000000106581, 19.282217609815102577],
                         "velocity": [1/0.0088200863560403078983, 1/0.0089530611050798007688],
@@ -138,66 +285,17 @@ class Test_PeaksSuite(TestCase):
 
         self.assertEqual(expected, returned)
 
-    def test_plot(self):
-        fname = self.full_path + "data/peak/suite_raw.json"
-        suite = swprocess.PeaksSuite.from_json(fname)
-        suite.blitz("velocity", (None, 500))
-        fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
-                             ytype=["velocity", "velocity", "slowness"],
-                             )
-        plt.show(block=False)
-        plt.pause(0.5)
-        plt.close("all")
-
-    def test_statistics(self):
-        # No missing data
-        values = np.array([[1, 2, 3, 4, 5],
-                           [4, 5, 7, 8, 9],
-                           [4, 3, 6, 4, 2]])
-        frq = [1, 2, 3, 4, 5]
-        peaks = [Peaks(frq, values[k], str(k)) for k in range(3)]
-        suite = swprocess.PeaksSuite.from_iter(peaks)
-        rfrq, rmean, rstd, rcorr = suite.statistics(frq,
-                                                    xtype="frequency",
-                                                    ytype="velocity")
-        self.assertArrayEqual(np.array(frq), rfrq)
-        self.assertArrayEqual(np.mean(values, axis=0), rmean)
-        self.assertArrayEqual(np.std(values, axis=0, ddof=1), rstd)
-        self.assertArrayEqual(np.corrcoef(values.T), rcorr)
-
-        # missing_data_procedure="drop"
-        values = np.array([[np.nan]*6,
-                           [np.nan, 1, 2, 3, 4, 5],
-                           [0, 4, 5, 7, 8, 9],
-                           [0, 4, 3, 6, 4, 2]])
-        frq = [0.2, 1, 2, 3, 4, 5]
-
-        valid = np.array([[1, 2, 3, 4, 5],
-                          [4, 5, 7, 8, 9],
-                          [4, 3, 6, 4, 2]])
-        valid_frq = frq[1:]
-        peaks = [Peaks(frq, values[k], str(k)) for k in range(4)]
-        suite = swprocess.PeaksSuite.from_iter(peaks)
-        rfrq, rmean, rstd, rcorr = suite.statistics(frq,
-                                                    xtype="frequency",
-                                                    ytype="velocity",
-                                                    missing_data_procedure="drop")
-        self.assertArrayEqual(np.array(valid_frq), rfrq)
-        self.assertArrayEqual(np.mean(valid, axis=0), rmean)
-        self.assertArrayEqual(np.std(valid, axis=0, ddof=1), rstd)
-        self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
-
     def test_eq(self):
         p0 = Peaks([1, 2, 3], [4, 5, 6], "0")
         p1 = Peaks([1, 2, 3], [7, 8, 9], "1")
         p2 = Peaks([1, 2, 3], [0, 1, 2], "2")
 
-        suite_a = swprocess.PeaksSuite.from_iter([p0, p1, p2])
+        suite_a = swprocess.PeaksSuite.from_peaks([p0, p1, p2])
         suite_b = "I am not a PeakSuite"
-        suite_c = swprocess.PeaksSuite.from_iter([p1, p2])
-        suite_d = swprocess.PeaksSuite.from_iter([p1])
-        suite_e = swprocess.PeaksSuite.from_iter([p1, p0, p2])
-        suite_f = swprocess.PeaksSuite.from_iter([p0, p1, p2])
+        suite_c = swprocess.PeaksSuite.from_peaks([p1, p2])
+        suite_d = swprocess.PeaksSuite.from_peaks([p1])
+        suite_e = swprocess.PeaksSuite.from_peaks([p1, p0, p2])
+        suite_f = swprocess.PeaksSuite.from_peaks([p0, p1, p2])
 
         self.assertTrue(suite_a == suite_a)
         self.assertFalse(suite_a == suite_b)
