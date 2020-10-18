@@ -22,3 +22,4 @@ tmp.json
 examples/masw/*.png
 examples/masw/*.json
 examples/mam/*.json
+examples/stats/*.json
