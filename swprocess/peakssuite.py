@@ -373,7 +373,7 @@ class PeaksSuite():
                                             ytype=_ytype, limits=limits,
                                             attribute=attribute,
                                             plot_kwargs=resolution_limits_plot_kwargs)
-            
+
         # Force display of figure.
         fig.show()
 
@@ -421,7 +421,8 @@ class PeaksSuite():
                 # If continue or quit, reject points and reset master_indices.
                 if _continue in [0, 1]:
                     self._reject(master_indices)
-                    master_indices = [np.array([], dtype=int) for _ in self.peaks]
+                    master_indices = [np.array([], dtype=int)
+                                      for _ in self.peaks]
 
                 # Clear, set axis limits, and lock axis.
                 for _ax, pxlim, pylim in zip(ax, pxlims, pylims):
@@ -435,7 +436,6 @@ class PeaksSuite():
                 self.plot(xtype=xtype, ytype=ytype, ax=ax,
                           plot_kwargs=plot_kwargs)
 
-
                 # Plot resolution limits (if desired):
                 if resolution_limits is not None:
                     attribute, limits = resolution_limits
@@ -445,8 +445,8 @@ class PeaksSuite():
                                                     attribute=attribute,
                                                     plot_kwargs=resolution_limits_plot_kwargs)
 
-
     # TODO (jpv): To be refactored. Place in interact module?
+
     def _draw_box(self, fig):
         """Prompt user to define a rectangular box on figure.
 
@@ -501,18 +501,21 @@ class PeaksSuite():
                 warnings.warn(msg)
             # print("5")
 
-
-    def statistics(self, xx, xtype, ytype, missing_data_procedure="drop",
-                   ignore=None):
-        """Determine the statistiscs of the `PeaksSuite`.
+    def statistics(self, xtype, ytype, xx, ignore_corr=True):
+        """Determine the statistics of the `PeaksSuite`.
 
         Parameters
         ----------
-        xx : ndarray
         xtype : {"frequency","wavelength"}
             Axis along which to calculate statistics.
         ytype : {"velocity", "slowness"}
             Axis along which to define uncertainty.
+        xx : ndarray
+            Array of values in `xtype` units where statistics are to be
+            calculated.
+        ignore_corr : bool, optional
+            Ignore calculation of data's correlation coefficients,
+            default is `True`.
 
         Returns
         -------
@@ -534,51 +537,29 @@ class PeaksSuite():
             # TODO (jpv): Allow assume_sorted should improve speed.
             interpfxn = interp1d(getattr(_peaks, xtype),
                                  getattr(_peaks, ytype),
-                                 copy=False, bounds_error=False)
+                                 copy=False, bounds_error=False,
+                                 fill_value=np.nan)
             data_matrix[:, col] = interpfxn(xx)
 
-        if missing_data_procedure == "drop":
-            xx, data_matrix = self._drop(xx, data_matrix)
-        elif missing_data_procedure == "ignore":
-            pass
-        else:
-            NotImplementedError
+        # if missing_data_procedure == "drop":
+        #     xx, data_matrix = self._drop(xx, data_matrix)
+        # elif missing_data_procedure == "ignore":
+        #     pass
+        # else:
+        #     NotImplementedError
 
-        if ignore is None:
-            ignore = []
-
-        if "mean" not in ignore:
-            mean = np.nanmean(data_matrix, axis=1)
-        else:
-            mean = None
-
-        if "stddev" not in ignore:
-            std = np.nanstd(data_matrix, axis=1, ddof=1)
-        else:
-            std = None
-
-        if "corr" not in ignore:
-            corr = np.corrcoef(data_matrix)
-        else:
-            corr = None
+        mean = np.nanmean(data_matrix, axis=1)
+        std = np.nanstd(data_matrix, axis=1, ddof=1)
+        corr = None if ignore_corr else np.corrcoef(data_matrix)
 
         return (xx, mean, std, corr)
 
-    def plot_statistics(self, statistics=None, ax=None,
-                        statistics_kwargs=None, errorbar_kwargs=None):
-        if ax is None:
-            raise NotImplementedError
-
-        if statistics is None:
-            raise NotImplementedError
-
+    def plot_statistics(self, ax, xx, mean, stddev, errorbar_kwargs=None):
         errorbar_kwargs = {} if errorbar_kwargs is None else errorbar_kwargs
         default_kwargs = dict(linestyle="", color="k", label=None,
                               marker="o", markerfacecolor="k",
                               markersize=0.5, capsize=2, zorder=20)
         errorbar_kwargs = {**default_kwargs, **errorbar_kwargs}
-        # TODO (jpv): This is broken!
-        xx, mean, stddev, corr = statistics
         ax.errorbar(xx, mean, yerr=stddev, **errorbar_kwargs)
 
     @staticmethod
