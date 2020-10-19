@@ -1,1 +1,0 @@
-{"domains": [["frequency", "velocity"], ["wavelength", "velocity"]], "statistics": {"xtype": "wavelength", "ytype": "velocity", "type": "log", "start": 1, "stop": 100, "num": 30, "missing_data_procedure": "ignore", "ignore": ["corr"]}, "limits": {"velocity": [50, 1000]}}
