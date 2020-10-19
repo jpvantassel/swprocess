@@ -479,12 +479,52 @@ class Test_PeaksSuite(TestCase):
         suite.plot_statistics(ax, [1, 2, 3], [0, 1, 2], [4, 5, 6])
         ax.errorbar.assert_called_once()
 
-    def test_from_dict(self):
-        # Simple Case: Single dictionary
-        data = {"test": {"frequency": [1, 2, 3], "velocity": [4, 5, 6]}}
-        suite = swprocess.PeaksSuite.from_dict(data)
-        peaks = Peaks.from_dict(data["test"], "test")
-        self.assertEqual(peaks, suite[0])
+    def test_drop(self):
+        # Full matrix -> No drop
+        xx = np.array([1, 2, 3])
+        data_matrix = np.array([[1, 2, 3],
+                                [4, 5, 6],
+                                [7, 8, 9],
+                                [0, 1, 2]])
+        rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix)
+        self.assertArrayEqual(xx, rxx)
+        self.assertArrayEqual(data_matrix, rdata_matrix)
+
+        # Remove single empty column regardless of threshold.
+        xx = np.array([1, 2, 3, 4])
+        data_matrix = np.array([[1, 2, 3, np.nan],
+                                [4, 5, 6, np.nan],
+                                [7, 8, 9, np.nan],
+                                [0, 1, 2, np.nan]])
+        for drop_observation in [0., 0.5, 1.]:
+            rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix,
+                                                           drop_observation_if_fewer_percent=drop_observation)
+            self.assertArrayEqual(xx[:-1], rxx)
+            self.assertArrayEqual(data_matrix[:, :-1], rdata_matrix)
+
+        # Remove single bad observation.
+        xx = np.array([1, 2, 3])
+        data_matrix = np.array([[1, 2, 3],
+                                [7, 8, 9],
+                                [0, 1, 2],
+                                [np.nan, np.nan, np.nan]])
+
+        for drop_observation in [0.1, 0.5, 1.]:
+            rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix,
+                                                           drop_observation_if_fewer_percent=drop_observation)
+            self.assertArrayEqual(xx, rxx)
+            self.assertArrayEqual(data_matrix[:-1, :], rdata_matrix)
+
+        # Remove sample b/c too few data points.
+        xx = np.array([1, 2, 3, 4, 5])
+        data_matrix = np.array([[1, 2, 3, 4, 5],
+                                [7, 8, 9, 0, 1],
+                                [1, 2, 3, 4, np.nan]])
+
+        rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix,
+                                                       drop_sample_if_fewer_count=3)
+        self.assertArrayEqual(xx[:-1], rxx)
+        self.assertArrayEqual(data_matrix[:, :-1], rdata_matrix)
 
     def test_to_and_from_json(self):
         # Advanced Case: Two keyword arguments
@@ -515,7 +555,14 @@ class Test_PeaksSuite(TestCase):
         expected.to_json(fname)
         returned = swprocess.PeaksSuite.from_json(fname)
         self.assertEqual(expected, returned)
-        
+
+    def test_from_dict(self):
+        # Simple Case: Single dictionary
+        data = {"test": {"frequency": [1, 2, 3], "velocity": [4, 5, 6]}}
+        suite = swprocess.PeaksSuite.from_dict(data)
+        peaks = Peaks.from_dict(data["test"], "test")
+        self.assertEqual(peaks, suite[0])
+
     def test_from_max(self):
         # Check Rayleigh (2 files, 2 lines per file)
         fnames = [self.full_path +
@@ -588,8 +635,8 @@ class Test_PeaksSuite(TestCase):
         self.assertEqual(expected, returned)
 
     def test_from_peakssuite(self):
-        frq = [0,1,2,3]
-        vel = [1,2,3,4]
+        frq = [0, 1, 2, 3]
+        vel = [1, 2, 3, 4]
 
         # suites[0]
         peaks0 = [Peaks(frq, vel, identifier=str(num)) for num in range(2)]
@@ -601,7 +648,7 @@ class Test_PeaksSuite(TestCase):
             self.assertIs(expected, returned)
 
         # Create several PeaksSuite objects.
-        # suites[1]        
+        # suites[1]
         peaks1 = [Peaks(frq, vel, identifier=str(num)) for num in range(3, 5)]
         suite1 = swprocess.PeaksSuite.from_peaks(peaks1)
 
@@ -613,7 +660,8 @@ class Test_PeaksSuite(TestCase):
         # Rename suite1 so there is a naming conflict -> KeyError
         peaks2 = [Peaks(frq, vel, identifier=str(num)) for num in range(2)]
         suite2 = swprocess.PeaksSuite.from_peaks(peaks2)
-        self.assertRaises(KeyError, swprocess.PeaksSuite.from_peakssuite, [suite0, suite2])
+        self.assertRaises(
+            KeyError, swprocess.PeaksSuite.from_peakssuite, [suite0, suite2])
 
     def test_eq(self):
         p0 = Peaks([1, 2, 3], [4, 5, 6], "0")

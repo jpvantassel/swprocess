@@ -526,6 +526,21 @@ class PeaksSuite():
             and all other points.
 
         """
+        xx, data_matrix = self._create_data_matrix(xtype, ytype, xx)
+
+        xx, data_matrix = self._drop(xx, data_matrix.T,
+                                     drop_sample_if_fewer_percent=0.,
+                                     drop_observation_if_fewer_percent=0.,
+                                     drop_sample_if_fewer_count=3)
+        data_matrix = data_matrix.T
+
+        mean = np.nanmean(data_matrix, axis=1)
+        std = np.nanstd(data_matrix, axis=1, ddof=1)
+        corr = None if ignore_corr else np.corrcoef(data_matrix)
+
+        return (xx, mean, std, corr)
+
+    def _create_data_matrix(self, xtype, ytype, xx):
         npeaks = len(self.peaks)
         if npeaks < 3:
             msg = f"Cannot calculate statistics on fewer than 3 `Peaks`."
@@ -537,23 +552,13 @@ class PeaksSuite():
         for col, _peaks in enumerate(self.peaks):
             # TODO (jpv): Allow assume_sorted should improve speed.
             interpfxn = interp1d(getattr(_peaks, xtype),
-                                 getattr(_peaks, ytype),
-                                 copy=False, bounds_error=False,
-                                 fill_value=np.nan)
+                                    getattr(_peaks, ytype),
+                                    copy=False, bounds_error=False,
+                                    fill_value=np.nan)
             data_matrix[:, col] = interpfxn(xx)
+        
+        return (xx, data_matrix)
 
-        # if missing_data_procedure == "drop":
-        #     xx, data_matrix = self._drop(xx, data_matrix)
-        # elif missing_data_procedure == "ignore":
-        #     pass
-        # else:
-        #     NotImplementedError
-
-        mean = np.nanmean(data_matrix, axis=1)
-        std = np.nanstd(data_matrix, axis=1, ddof=1)
-        corr = None if ignore_corr else np.corrcoef(data_matrix)
-
-        return (xx, mean, std, corr)
 
     def plot_statistics(self, ax, xx, mean, stddev, errorbar_kwargs=None):
         errorbar_kwargs = {} if errorbar_kwargs is None else errorbar_kwargs
@@ -564,23 +569,92 @@ class PeaksSuite():
         ax.errorbar(xx, mean, yerr=stddev, **errorbar_kwargs)
 
     @staticmethod
-    def _drop(xx, data_matrix):
-        drop_cols = []
-        for index, column in enumerate(data_matrix.T):
-            if np.isnan(column).all():
-                drop_cols.append(index)
-        drop_cols = np.array(drop_cols, dtype=int)
-        data_matrix = np.delete(data_matrix, drop_cols, axis=1)
+    def _drop(xx, data_matrix,
+              drop_observation_if_fewer_percent=0.8,
+              drop_sample_if_fewer_percent=0.4,
+              drop_sample_if_fewer_count=3):
+        """Procedure for removing probelmatic observations/samplings.
 
-        drop_rows = []
+        Parameters
+        ----------
+            xx : ndarray
+                Statistic sampling locations.
+            data_matrix : ndarray
+                Of shape `(# observations, # samples)` each entry's
+                value indicates the parameters value (e.g., velocity)
+                the presence of `np.nan` indicates missing data.
+            drop_observation_if_fewer_percent : {0. - 1.}, optional
+                Remove observations if the number of valid entries is
+                fewer than the specified fraction times the total
+                possible, default is 0.8.  
+            drop_sample_if_fewer_percent : {0. - 1.}, optional
+                Remove statistic sample if the number of valid entries
+                is fewer than the specified fraction times the total
+                possible, default is 0.4.
+            drop_sample_if_fewer_count : int, optional
+                Remove statistic sample if the number of valid entries
+                is fewer than the specified number, default is 3.   
+
+        Returns
+        -------
+            tuple
+                Of the form `(xx, data_matrix)` where `xx` and
+                `data_matrix` are the permuted inputs.
+
+        """
+        # Initial
+        i_nans = np.sum(np.isnan(data_matrix))
+        i_nums = data_matrix.size - i_nans
+
+        # Option 1: Drop columns then rows.
+        drop_cols = PeaksSuite._drop_indices(data_matrix.T,
+                                             drop_if_fewer_percent=drop_sample_if_fewer_percent,
+                                             drop_if_fewer_count=drop_sample_if_fewer_count)
+        xx_1 = np.delete(xx, drop_cols)
+        data_matrix_1 = np.delete(data_matrix, drop_cols, axis=1)
+        drop_rows = PeaksSuite._drop_indices(data_matrix_1,
+                                             drop_if_fewer_percent=drop_observation_if_fewer_percent,
+                                             drop_if_fewer_count=0)
+        data_matrix_1 = np.delete(data_matrix_1, drop_rows, axis=0)
+        r_nans = np.sum(np.isnan(data_matrix_1))
+        r_nums = data_matrix_1.size - r_nans
+        utility_option_1 = (i_nans - r_nans) / (i_nums - r_nums + 1)
+
+        # Option 2: Drop rows then columns.
+        drop_rows = PeaksSuite._drop_indices(data_matrix,
+                                             drop_if_fewer_percent=drop_observation_if_fewer_percent,
+                                             drop_if_fewer_count=0)
+        data_matrix_2 = np.delete(data_matrix, drop_rows, axis=0)
+        drop_cols = PeaksSuite._drop_indices(data_matrix_2.T,
+                                             drop_if_fewer_percent=drop_sample_if_fewer_percent,
+                                             drop_if_fewer_count=drop_sample_if_fewer_count)
+        xx_2 = np.delete(xx, drop_cols)
+        data_matrix_2 = np.delete(data_matrix_2, drop_cols, axis=1)
+        r_nans = np.sum(np.isnan(data_matrix_2))
+        r_nums = data_matrix_2.size - r_nans
+        utility_option_2 = (i_nans - r_nans) / (i_nums - r_nums + 1)
+
+        logger.debug(
+            f"utility_option_1={utility_option_1}, utility_option_2={utility_option_2}")
+        if utility_option_1 > utility_option_2:
+            return (xx_1, data_matrix_1)
+        else:
+            return (xx_2, data_matrix_2)
+
+    def _drop_indices(data_matrix, drop_if_fewer_percent, drop_if_fewer_count):
+        """Iterate by row, return rejection indices."""
+        if data_matrix.size == 0:
+            return np.array([], dtype=int)
+
+        drop_indices = []
         for index, row in enumerate(data_matrix):
-            if np.isnan(row).any():
-                drop_rows.append(index)
-        drop_rows = np.array(drop_rows, dtype=int)
-        xx = np.delete(xx, drop_rows)
-        data_matrix = np.delete(data_matrix, drop_rows, axis=0)
-
-        return (xx, data_matrix)
+            n_nan = np.sum(np.isnan(row))
+            n_tot = len(row)
+            n_num = n_tot - n_nan
+            p_num = n_num/n_tot
+            if n_num < drop_if_fewer_count or p_num < drop_if_fewer_percent:
+                drop_indices.append(index)
+        return np.array(drop_indices, dtype=int)
 
     def to_json(self, fname):
         """Write `PeaksSuite` to json file.

@@ -36,7 +36,9 @@ class Peaks():
                      "velocity": {"label": "Velocity (m/s)",
                                   "scale": "linear"},
                      "slowness": {"label": "Slowness (s/m)",
-                                  "scale": "log"}
+                                  "scale": "log"},
+                     "azimuth" : {"label": "Azimuth (deg)",
+                                  "scale": "linear"}
                      }
 
     def __init__(self, frequency, velocity, identifier="0", **kwargs):
