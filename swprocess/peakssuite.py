@@ -510,8 +510,8 @@ class PeaksSuite():
             Axis along which to calculate statistics.
         ytype : {"velocity", "slowness"}
             Axis along which to define uncertainty.
-        xx : ndarray
-            Array of values in `xtype` units where statistics are to be
+        xx : iterable
+            Values in `xtype` units where statistics are to be
             calculated.
         ignore_corr : bool, optional
             Ignore calculation of data's correlation coefficients,
@@ -531,6 +531,7 @@ class PeaksSuite():
             msg = f"Cannot calculate statistics on fewer than 3 `Peaks`."
             raise ValueError(msg)
 
+        xx = np.array(xx)
         data_matrix = np.empty((len(xx), npeaks))
 
         for col, _peaks in enumerate(self.peaks):
@@ -696,7 +697,7 @@ class PeaksSuite():
         return obj
 
     @classmethod
-    def from_peaksuite(cls, peakssuites):
+    def from_peakssuite(cls, peakssuites):
         """Instantiate `PeaksSuite` from iterable of `PeaksSuite`.
 
         Parameters

@@ -395,7 +395,7 @@ class Test_PeaksSuite(TestCase):
             with patch("builtins.input", return_value="0"):
                 with patch("swprocess.peakssuite.PeaksSuite.plot_resolution_limits", side_effect=mock):
                     suite.interactive_trimming(xtype="frequency", ytype="velocity",
-                                            resolution_limits=["wavelength", (1, 10)])
+                                               resolution_limits=["wavelength", (1, 10)])
                     mock.assert_called()
 
     # TODO (jpv): Draw box needs to be refactored.
@@ -435,35 +435,49 @@ class Test_PeaksSuite(TestCase):
         frq = [1, 2, 3, 4, 5]
         peaks = [Peaks(frq, values[k], str(k)) for k in range(3)]
         suite = swprocess.PeaksSuite.from_peaks(peaks)
-        rfrq, rmean, rstd, rcorr = suite.statistics(frq,
-                                                    xtype="frequency",
-                                                    ytype="velocity")
+        rfrq, rmean, rstd, rcorr = suite.statistics(xtype="frequency",
+                                                    ytype="velocity",
+                                                    xx=frq,
+                                                    ignore_corr=False)
         self.assertArrayEqual(np.array(frq), rfrq)
         self.assertArrayEqual(np.mean(values, axis=0), rmean)
         self.assertArrayEqual(np.std(values, axis=0, ddof=1), rstd)
         self.assertArrayEqual(np.corrcoef(values.T), rcorr)
 
-        # missing_data_procedure="drop"
-        values = np.array([[np.nan]*6,
-                           [np.nan, 1, 2, 3, 4, 5],
-                           [0, 4, 5, 7, 8, 9],
-                           [0, 4, 3, 6, 4, 2]])
-        frq = [0.2, 1, 2, 3, 4, 5]
-
-        valid = np.array([[1, 2, 3, 4, 5],
-                          [4, 5, 7, 8, 9],
-                          [4, 3, 6, 4, 2]])
-        valid_frq = frq[1:]
-        peaks = [Peaks(frq, values[k], str(k)) for k in range(4)]
+        # Fewer than three peaks in PeaksSuite -> ValueError
+        peaks = [Peaks(frq, values[k], str(k)) for k in range(2)]
         suite = swprocess.PeaksSuite.from_peaks(peaks)
-        rfrq, rmean, rstd, rcorr = suite.statistics(frq,
-                                                    xtype="frequency",
-                                                    ytype="velocity",
-                                                    missing_data_procedure="drop")
-        self.assertArrayEqual(np.array(valid_frq), rfrq)
-        self.assertArrayEqual(np.mean(valid, axis=0), rmean)
-        self.assertArrayEqual(np.std(valid, axis=0, ddof=1), rstd)
-        self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
+        self.assertRaises(ValueError, suite.statistics, xtype="frequency",
+                          ytype="velocity", xx=frq)
+
+        # # missing_data_procedure="drop"
+        # values = np.array([[np.nan]*6,
+        #                    [np.nan, 1, 2, 3, 4, 5],
+        #                    [0, 4, 5, 7, 8, 9],
+        #                    [0, 4, 3, 6, 4, 2]])
+        # frq = [0.2, 1, 2, 3, 4, 5]
+
+        # valid = np.array([[1, 2, 3, 4, 5],
+        #                   [4, 5, 7, 8, 9],
+        #                   [4, 3, 6, 4, 2]])
+        # valid_frq = frq[1:]
+        # peaks = [Peaks(frq, values[k], str(k)) for k in range(4)]
+        # suite = swprocess.PeaksSuite.from_peaks(peaks)
+        # rfrq, rmean, rstd, rcorr = suite.statistics(frq,
+        #                                             xtype="frequency",
+        #                                             ytype="velocity",
+        #                                             missing_data_procedure="drop")
+        # self.assertArrayEqual(np.array(valid_frq), rfrq)
+        # self.assertArrayEqual(np.mean(valid, axis=0), rmean)
+        # self.assertArrayEqual(np.std(valid, axis=0, ddof=1), rstd)
+        # self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
+
+    def test_plot_statistics(self):
+        # Mock ax
+        ax = MagicMock(spec=plt.Axes)
+        suite = swprocess.PeaksSuite(Peaks([1, 2, 3], [0, 1, 2]))
+        suite.plot_statistics(ax, [1, 2, 3], [0, 1, 2], [4, 5, 6])
+        ax.errorbar.assert_called_once()
 
     def test_from_dict(self):
         # Simple Case: Single dictionary
@@ -472,8 +486,8 @@ class Test_PeaksSuite(TestCase):
         peaks = Peaks.from_dict(data["test"], "test")
         self.assertEqual(peaks, suite[0])
 
-    def test_from_json(self):
-        # Advanced Case: Two keyword arguements
+    def test_to_and_from_json(self):
+        # Advanced Case: Two keyword arguments
         frequency = [100., 50, 30, 10, 5, 3]
         velocity = [100., 120, 130, 140, 145, 150]
         azi = [10., 15, 20, 35, 10, 20]
@@ -481,14 +495,14 @@ class Test_PeaksSuite(TestCase):
 
         peak_list = []
         fnames = []
-        for num in range(0, 3):
+        for num in range(3):
             fname = f"{self.full_path}data/tmp_id{num}.json"
-            peaks = Peaks(
-                frequency, velocity, str(num), azi=azi, pwr=pwr)
+            peaks = Peaks(frequency, velocity, str(num), azi=azi, pwr=pwr)
             peaks.to_json(fname)
             fnames.append(fname)
             peak_list.append(peaks)
 
+        # Compare from_peaks and from_json
         returned = swprocess.PeaksSuite.from_json(fnames=fnames)
         expected = swprocess.PeaksSuite.from_peaks(peak_list)
         self.assertEqual(expected, returned)
@@ -496,6 +510,12 @@ class Test_PeaksSuite(TestCase):
         for fname in fnames:
             os.remove(fname)
 
+        # Compare from_peaks and to/from_json
+        fname = "tmp.json"
+        expected.to_json(fname)
+        returned = swprocess.PeaksSuite.from_json(fname)
+        self.assertEqual(expected, returned)
+        
     def test_from_max(self):
         # Check Rayleigh (2 files, 2 lines per file)
         fnames = [self.full_path +
@@ -566,6 +586,34 @@ class Test_PeaksSuite(TestCase):
         expected = swprocess.PeaksSuite.from_dict(lov_dicts)
 
         self.assertEqual(expected, returned)
+
+    def test_from_peakssuite(self):
+        frq = [0,1,2,3]
+        vel = [1,2,3,4]
+
+        # suites[0]
+        peaks0 = [Peaks(frq, vel, identifier=str(num)) for num in range(2)]
+        suite0 = swprocess.PeaksSuite.from_peaks(peaks0)
+
+        # Create new PeaksSuite from old, no copy.
+        new_suite = swprocess.PeaksSuite.from_peakssuite(suite0)
+        for expected, returned in zip(peaks0, new_suite.peaks):
+            self.assertIs(expected, returned)
+
+        # Create several PeaksSuite objects.
+        # suites[1]        
+        peaks1 = [Peaks(frq, vel, identifier=str(num)) for num in range(3, 5)]
+        suite1 = swprocess.PeaksSuite.from_peaks(peaks1)
+
+        # Create new PeaksSuite from old, no copy.
+        new_suite = swprocess.PeaksSuite.from_peakssuite([suite0, suite1])
+        for expected, returned in zip(peaks0 + peaks1, new_suite.peaks):
+            self.assertIs(expected, returned)
+
+        # Rename suite1 so there is a naming conflict -> KeyError
+        peaks2 = [Peaks(frq, vel, identifier=str(num)) for num in range(2)]
+        suite2 = swprocess.PeaksSuite.from_peaks(peaks2)
+        self.assertRaises(KeyError, swprocess.PeaksSuite.from_peakssuite, [suite0, suite2])
 
     def test_eq(self):
         p0 = Peaks([1, 2, 3], [4, 5, 6], "0")
