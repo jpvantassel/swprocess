@@ -1,9 +1,9 @@
-"""PeaksStats class definition."""
+"""Statistics class definition."""
 
 import numpy as np
 
 
-class PeaksStats():
+class Statistics():
 
     def __init__(self, xx, data):
         self.xx = np.array(xx, dtype=float)
@@ -67,3 +67,20 @@ class PeaksStats():
         corr = None if ignore_corr else np.corrcoef(data_matrix)
 
         return (xx, mean, std, corr)
+
+    @staticmethod
+    def _sort_data(data_matrix):
+        """Reorganize rows to increase point density."""
+        nrows, ncols = data_matrix.shape
+        tmp_row = np.empty(ncols, dtype=data_matrix.dtype)
+        row_ids = np.arange(nrows, dtype=int)
+        c_row = 0
+        for column in reversed(data_matrix.T):
+            val_ids = np.argwhere(np.logical_and(~np.isnan(column),
+                                                 row_ids >= c_row))
+            for val_id in val_ids.flatten():
+                tmp_row[:] = data_matrix[c_row][:]
+                data_matrix[c_row][:] = data_matrix[val_id][:]
+                data_matrix[val_id][:] = tmp_row[:]
+                c_row += 1
+        return data_matrix
