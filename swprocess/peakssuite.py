@@ -44,7 +44,7 @@ class PeaksSuite():
             raise TypeError(msg)
 
     def append(self, peaks):
-        """Append a `Peaks` object.
+        """Append a `Peaks` object to `PeaksSuite`.
 
         Parameters
         ----------
@@ -68,25 +68,61 @@ class PeaksSuite():
     def blitz(self, attribute, limits):
         """Reject peaks outside the stated boundary.
 
-        TODO (jpv): Reference Peaks.blitz for more information.
+        Parameters
+        ----------
+        attr : {"frequency", "velocity", "slowness", "wavelength"}
+            Parameter domain in which the limits are defined.
+        limits : tuple
+            Tuple with the lower and upper limits. `None` may be used to
+            perform one-sided rejections. For example `limits=(None, 5)`
+            will reject all values above `5` and `limits=(5, None)` will
+            reject all values below `5`.
+
+        Returns
+        -------
+        None
+            Updates the `PeaksSuite` internal state.
 
         """
         for peak in self.peaks:
             peak.blitz(attribute, limits)
 
     def reject(self, xtype, xlims, ytype, ylims):
-        """Reject peaks inside the stated boundary.
+        """Reject peaks inside the stated boundaries.
 
-        TODO (jpv): Reference Peaks.reject for more information.
+        Parameters
+        ----------
+        xtype, ytype : {"frequency", "velocity", "slowness", "wavelength"}
+            Parameter domain in which the limits are defined.
+        xlims, ylims : tuple
+            Tuple with the lower and upper limits for each of the
+            boundaries.
+
+        Returns
+        -------
+        None
+            Updates the `PeaksSuite` internal state.
 
         """
         for peak in self.peaks:
             peak.reject(xtype, xlims, ytype, ylims)
 
     def reject_ids(self, xtype, xlims, ytype, ylims):
-        """Reject peaks inside the stated boundary.
+        """Determine rejection ids.
 
-        TODO (jpv): Reference Peaks.reject for more information.
+        Parameters
+        ----------
+        xtype, ytype : {"frequency", "velocity", "slowness", "wavelength"}
+            Parameter domain in which the limits are defined.
+        xlims, ylims : tuple
+            Tuple with the lower and upper limits for each of the
+            boundaries.
+
+        Returns
+        -------
+        list of ndarray
+            Containing the indices for rejection for each member of the
+            suite.
 
         """
         rejection_ids = []
@@ -95,6 +131,7 @@ class PeaksSuite():
         return rejection_ids
 
     def _reject(self, reject_ids):
+        """Reject peaks with the given ids."""
         for _peak, _reject_ids in zip(self.peaks, reject_ids):
             _peak._reject(_reject_ids)
 
@@ -551,14 +588,17 @@ class PeaksSuite():
 
         for col, _peaks in enumerate(self.peaks):
             # TODO (jpv): Allow assume_sorted should improve speed.
-            interpfxn = interp1d(getattr(_peaks, xtype),
+            try:
+                interpfxn = interp1d(getattr(_peaks, xtype),
                                     getattr(_peaks, ytype),
                                     copy=False, bounds_error=False,
                                     fill_value=np.nan)
-            data_matrix[:, col] = interpfxn(xx)
-        
-        return (xx, data_matrix)
+            except ValueError:
+                data_matrix[:, col] = np.nan
+            else:
+                data_matrix[:, col] = interpfxn(xx)
 
+        return (xx, data_matrix)
 
     def plot_statistics(self, ax, xx, mean, stddev, errorbar_kwargs=None):
         errorbar_kwargs = {} if errorbar_kwargs is None else errorbar_kwargs
@@ -573,33 +613,33 @@ class PeaksSuite():
               drop_observation_if_fewer_percent=0.8,
               drop_sample_if_fewer_percent=0.4,
               drop_sample_if_fewer_count=3):
-        """Procedure for removing probelmatic observations/samplings.
+        """Procedure for removing problematic observations/samplings.
 
         Parameters
         ----------
-            xx : ndarray
-                Statistic sampling locations.
-            data_matrix : ndarray
-                Of shape `(# observations, # samples)` each entry's
-                value indicates the parameters value (e.g., velocity)
-                the presence of `np.nan` indicates missing data.
-            drop_observation_if_fewer_percent : {0. - 1.}, optional
-                Remove observations if the number of valid entries is
-                fewer than the specified fraction times the total
-                possible, default is 0.8.  
-            drop_sample_if_fewer_percent : {0. - 1.}, optional
-                Remove statistic sample if the number of valid entries
-                is fewer than the specified fraction times the total
-                possible, default is 0.4.
-            drop_sample_if_fewer_count : int, optional
-                Remove statistic sample if the number of valid entries
-                is fewer than the specified number, default is 3.   
+        xx : ndarray
+            Statistic sampling locations.
+        data_matrix : ndarray
+            Of shape `(# observations, # samples)` each entry's
+            value indicates the parameters value (e.g., velocity)
+            the presence of `np.nan` indicates missing data.
+        drop_observation_if_fewer_percent : {0. - 1.}, optional
+            Remove observations if the number of valid entries is
+            fewer than the specified fraction times the total
+            possible, default is 0.8.  
+        drop_sample_if_fewer_percent : {0. - 1.}, optional
+            Remove statistic sample if the number of valid entries
+            is fewer than the specified fraction times the total
+            possible, default is 0.4.
+        drop_sample_if_fewer_count : int, optional
+            Remove statistic sample if the number of valid entries
+            is fewer than the specified number, default is 3.   
 
         Returns
         -------
-            tuple
-                Of the form `(xx, data_matrix)` where `xx` and
-                `data_matrix` are the permuted inputs.
+        tuple
+            Of the form `(xx, data_matrix)` where `xx` and
+            `data_matrix` are the permuted inputs.
 
         """
         # Initial
@@ -661,7 +701,7 @@ class PeaksSuite():
 
         Parameters
         ----------
-        fnames : str
+        fname : str
             Name of the output file, may contain a relative or the full
             path.
 
@@ -729,6 +769,22 @@ class PeaksSuite():
 
     @classmethod
     def from_max(cls, fnames, wavetype="rayleigh"):
+        """Instantiate `PeaksSuite` from .max file(s).
+
+        Parameters
+        ----------
+        fnames : list of str or str
+            File name or list of file names containing dispersion data.
+            Names may contain a relative or the full path.
+        wavetype : {'rayleigh', 'love'}, optional
+            Wavetype to extract from file, default is 'rayleigh'.
+
+        Returns
+        -------
+        Peaks
+            Initialized `PeaksSuite` object.
+
+        """
         peaks = []
         for fname in fnames:
             with open(fname, "r") as f:

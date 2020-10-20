@@ -314,13 +314,29 @@ class Peaks():
         Returns
         -------
         None
-            Instead updates the `Peaks` object's state.
+            Updates the `Peaks` object's state.
 
         """
         reject_ids = self.reject_ids(xtype, xlims, ytype, ylims)
         self._reject(reject_ids)
 
     def reject_ids(self, xtype, xlims, ytype, ylims):
+        """Determine rejection ids.
+
+        Parameters
+        ----------
+        xtype, ytype : {"frequency", "velocity", "slowness", "wavelength"}
+            Parameter domain in which the limits are defined.
+        xlims, ylims : tuple
+            Tuple with the lower and upper limits for each of the
+            boundaries.
+
+        Returns
+        -------
+        ndarray
+            Containing the indices for rejection.
+
+        """
         xs = getattr(self, xtype)
         x_min, x_max = min(xlims), max(xlims)
 
@@ -335,13 +351,6 @@ class Peaks():
         condition1 = np.logical_and(d1 > d1_min, d1 < d1_max)
         condition2 = np.logical_and(d2 > d2_min, d2 < d2_max)
         return np.flatnonzero(np.logical_and(condition1, condition2))
-        # print(a)
-        # print(type(a))
-        # try:
-        #     print(type(a[0]))
-        # except IndexError:
-        #     pass
-        # return a
 
     @staticmethod
     def _reject_outside_ids(values, _min, _max):
@@ -358,6 +367,7 @@ class Peaks():
         return np.flatnonzero(condition)
 
     def _reject(self, reject_ids):
+        """Reject peaks with the given ids."""
         for attr in self.attrs:
             setattr(self, attr, np.delete(getattr(self, attr), reject_ids))
 
@@ -431,6 +441,20 @@ class Peaks():
 
     @classmethod
     def from_json(cls, fname):
+        """Read `Peaks` from json file.
+
+        Parameters
+        ----------
+        fnames : str
+            Name of the input file, may contain a relative or the full
+            path.
+
+        Returns
+        -------
+        None
+            Reads `Peaks` object from disk.
+
+        """
         with open(fname, "r") as f:
             data = json.load(f)
 
