@@ -75,7 +75,7 @@ class Statistics():
         tmp_row = np.empty(ncols, dtype=data_matrix.dtype)
         row_ids = np.arange(nrows, dtype=int)
         c_row = 0
-        for column in reversed(data_matrix.T):
+        for column in data_matrix.T:
             val_ids = np.argwhere(np.logical_and(~np.isnan(column),
                                                  row_ids >= c_row))
             for val_id in val_ids.flatten():
@@ -84,3 +84,42 @@ class Statistics():
                 data_matrix[val_id][:] = tmp_row[:]
                 c_row += 1
         return data_matrix
+
+    @staticmethod
+    def _identify_regions(data_matrix, density_threshold=0.9):
+        """Find the largest regions of the data_matrix with at least
+        the minimum density_threshold."""
+        nrows, ncols = data_matrix.shape
+        s_row, s_col = 0, 0
+        c_row, c_col = 0, 0
+
+        for _ in range(nrows + ncols) :
+            if c_row < nrows:
+                # Check next row.
+                density = Statistics._calc_density(data_matrix,
+                                                   tl_corner=(s_row, s_col),
+                                                   br_corner=(c_row, c_col))
+                c_row += 1 if density >= density_threshold else 0
+
+            # Check next col.
+            if c_col < ncols:
+                density = Statistics._calc_density(data_matrix,
+                                                   tl_corner=(s_row, s_col),
+                                                   br_corner=(c_row, c_col))
+                c_col += 1 if density >= density_threshold else 0
+
+            if c_row == nrows and c_col == ncols:
+                break
+        else:
+            raise ValueError("Iteration stopped prematurely.")
+
+        return ((s_row, s_col), (c_row, c_col))
+
+    @staticmethod
+    def _calc_density(data_matrix, tl_corner, br_corner):
+        """Calculate value density given a start and stop location."""
+        b_row, b_col = tl_corner
+        e_row, e_col = br_corner
+        n_nums = np.sum(~np.isnan(data_matrix[b_row:e_row+1, b_col:e_col+1]))
+        n_poss = (e_col - b_col + 1) * (e_row - b_row + 1)
+        return n_nums/n_poss
