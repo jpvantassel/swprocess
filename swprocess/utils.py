@@ -114,14 +114,16 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
             logger.info(f"Creating folder: {output_dir}{folder}")
             os.mkdir(f"{output_dir}{folder}")
 
-        # # Unmask masked array.
-        # for tr in master:
-        #     if isinstance(tr.data, np.ma.masked_array):
-        #         tr.data = tr.data.filled()
-        #         logger.info(f"{folder}/{network}.STN{str(series['station number']).zfill(2)} was a masked array.")
+        # Unmask masked array.
+        for tr in master:
+            if isinstance(tr.data, np.ma.masked_array):
+                tr.data = tr.data.filled()
+                msg = f"{folder}/{network}.STN{str(series['station number']).zfill(2)} was a masked array."
+                warnings.warn(msg)
 
         # Write trimmed file to disk.
         fname_out = f"{output_dir}{folder}/{network}.STN{str(series['station number']).zfill(2)}.{series['array name']}.{extension}"
-        logger.info(f"Extracted {index+1} of {total}. Extracting data from station {str(series['station number']).zfill(2)}. Creating file: {fname_out}.")
+        logger.info(
+            f"Extracted {index+1} of {total}. Extracting data from station {str(series['station number']).zfill(2)}. Creating file: {fname_out}.")
 
         master.write(fname_out, format="mseed")
