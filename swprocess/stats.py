@@ -91,29 +91,76 @@ class Statistics():
         the minimum density_threshold."""
         nrows, ncols = data_matrix.shape
         s_row, s_col = 0, 0
-        c_row, c_col = 0, 0
 
-        for _ in range(nrows + ncols) :
-            if c_row < nrows:
-                # Check next row.
-                density = Statistics._calc_density(data_matrix,
-                                                   tl_corner=(s_row, s_col),
-                                                   br_corner=(c_row, c_col))
-                c_row += 1 if density >= density_threshold else 0
+        regions = []
+        for _ in range(100):
+            c_row, c_col = int(s_row), int(s_col)
+    
+            n_vals, totaln = 1, 1
 
-            # Check next col.
-            if c_col < ncols:
-                density = Statistics._calc_density(data_matrix,
-                                                   tl_corner=(s_row, s_col),
-                                                   br_corner=(c_row, c_col))
-                c_col += 1 if density >= density_threshold else 0
+            remaining_rows, remaining_cols = (nrows-s_row), (ncols-s_col)
+            for _ in range(remaining_rows + remaining_cols):
 
-            if c_row == nrows and c_col == ncols:
+                # Check next row (if it exists).
+                if c_row + 1 < nrows:
+                    row = data_matrix[c_row+1, s_col:c_col+1]
+                    # print(row)
+
+                    total = len(row)
+                    n_nan = np.sum(np.isnan(row))
+                    n_val = total - n_nan
+                    density = (n_vals + n_val)/(totaln + total)
+                    # print(density)
+
+                    if density >= density_threshold:
+                        row_failed = False
+                        n_vals += n_val
+                        totaln += total
+                        c_row += 1
+                    else:
+                        row_failed = True
+                else:
+                    row_failed = True
+
+                # Check next column (if it exists).
+                if c_col + 1 < ncols:
+                    col = data_matrix[s_row:c_row+1, c_col+1]
+                    # print(col)
+
+                    total = len(col)
+                    n_nan = np.sum(np.isnan(col))
+                    n_val = total - n_nan
+                    density = (n_vals + n_val)/(totaln + total)
+                    # print(density)
+
+                    if density >= density_threshold:
+                        col_failed = False
+                        n_vals += n_val
+                        totaln += total
+                        c_col += 1
+                    else:
+                        col_failed = True
+                else:
+                    col_failed = True
+
+                if row_failed and col_failed:
+                    regions.append(((s_row, s_col), (c_row+1, c_col+1)))
+                    break
+
+            else: # pragma: no cover
+                raise ValueError("Iteration stopped without breaking.")
+
+            if c_row+1 == nrows and c_col+1 == ncols:
                 break
-        else:
-            raise ValueError("Iteration stopped prematurely.")
+            else:
+                s_col = int(c_col)+1
+                s_row = np.argwhere(~np.isnan(data_matrix[:, s_col]))[0][0]
 
-        return ((s_row, s_col), (c_row, c_col))
+        else: # pragma: no cover
+            raise ValueError("Number of regions exceeded 100.")
+            
+
+        return regions
 
     @staticmethod
     def _calc_density(data_matrix, tl_corner, br_corner):

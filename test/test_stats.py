@@ -55,19 +55,39 @@ class Test_Statistics(TestCase):
         returned = Statistics._sort_data(data)
         self.assertArrayAlmostEqual(expected, returned, equal_nan=True)
 
-    # def test_identify_regions(self):
-    #     n = np.nan
+    def test_identify_regions(self):
+        n = np.nan
 
-    #     # Full matrix
-    #     data = np.array([[1, 2, 3, 4, 5],
-    #                      [1, 2, 3, 4, 5],
-    #                      [1, 2, 3, 4, 5]])
-        
-    #     # Should succeed regardless of density threshold.
-    #     for density_threshold in [0,0.5,1]:
-    #         (tl, br) = Statistics._identify_regions(data, density_threshold=density_threshold)
-    #         self.assertTupleEqual((0,0), tl)    
-    #         self.assertTupleEqual((3,5), br)    
+        # Full matrix, will succeed regardless of threshold.
+        data = np.array([[1, 2, 3, 4, 5],
+                         [1, 2, 3, 4, 5],
+                         [1, 2, 3, 4, 5]])
+
+        for threshold in [0, 0.5, 1]:
+            [(tl, br)] = Statistics._identify_regions(data,
+                                                      density_threshold=threshold)
+            self.assertTupleEqual((0, 0), tl)
+            self.assertTupleEqual((3, 5), br)
+
+        # P-full matrix, result dependant on threshold.
+        data = np.array([[1, 2, 3, n, n],
+                         [1, 2, 3, 4, 5],
+                         [n, n, 3, 4, 5]])
+
+        # If threshold below min(7/9=0.78, 9/12=0.75, 11/15=0.73) -> single region
+        for threshold in [0, 4/6, 11/15]:
+            [(tl, br)] = Statistics._identify_regions(data,
+                                                      density_threshold=threshold)
+            self.assertTupleEqual((0, 0), tl)
+            self.assertTupleEqual((3, 5), br)
+
+        # If threshold above 7/9=0.77 -> separate regions
+        threshold = 0.77
+        r_regions = Statistics._identify_regions(data,
+                                                 density_threshold=threshold)
+        e_regions = [((0,0), (3,3)), ((1,3), (3,5))]
+        for expected, returned in zip(e_regions, r_regions):
+            self.assertTupleEqual(expected, returned)
 
     def test_calc_density(self):
         n = np.nan
