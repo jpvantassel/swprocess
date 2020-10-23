@@ -15,7 +15,7 @@ logger.setLevel(logging.ERROR)
 
 class Test_Statistics(TestCase):
 
-    def test_sort_data(self):
+    def test_sort(self):
         n = np.nan
 
         # Well-sorted matrix, requires no alteration.
@@ -24,7 +24,7 @@ class Test_Statistics(TestCase):
                              [n, 1, 2, 3, n],
                              [n, 1, 2, 3, 4],
                              [n, n, n, 1, 2]])
-        returned = Statistics._sort_data(expected)
+        returned = Statistics._sort(expected)
         self.assertArrayAlmostEqual(expected, returned, equal_nan=True)
 
         # Unsorted array requires rearranging.
@@ -33,7 +33,7 @@ class Test_Statistics(TestCase):
                          [1, 2, 3, n, n],
                          [n, 1, 2, 3, 4],
                          [1, 2, n, n, n]])
-        returned = Statistics._sort_data(data)
+        returned = Statistics._sort(data)
         self.assertArrayAlmostEqual(expected, returned, equal_nan=True)
 
         # Another example of an unsorted array, that require rearranging.
@@ -52,7 +52,7 @@ class Test_Statistics(TestCase):
                              [n, n, n, n, 1, 2, 3, 4, 5],
                              [n, n, n, n, n, n, 1, 2, 3],
                              ])
-        returned = Statistics._sort_data(data)
+        returned = Statistics._sort(data)
         self.assertArrayAlmostEqual(expected, returned, equal_nan=True)
 
     def test_identify_regions(self):

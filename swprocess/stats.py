@@ -5,71 +5,185 @@ import numpy as np
 
 class Statistics():
 
-    def __init__(self, xx, data):
+    def __init__(self, xx, mean, stddev, corr):
         self.xx = np.array(xx, dtype=float)
-        self.data = np.array(data, dtype=float)
+        self.mean = np.array(mean, dtype=float)
+        self.stddev = np.array(stddev, dtype=float)
+        self.corr = np.array(corr, dytpe=float)
 
     @classmethod
-    def from_peakssuite(cls, xx, peakssuite, xtype="wavelength",
+    def from_peakssuite(cls, peakssuite, xx, xtype="wavelength",
                         ytype="velocity"):
-        xx, data = peakssuite._create_data_matrix(xtype, ytype, xx)
-        cls(xx, data)
+        xx, array = peakssuite.to_array(xtype, ytype, xx)
+        cls.from_array(xx, array)
 
-    def _statistics(self, xtype, ytype, xx, ignore_corr=True):
-        """Determine the statistics of the `PeaksSuite`.
+    @classmethod
+    def from_data_matrix(cls, xx, data_matrix, drop_kwargs=None,
+                         density_threshold=0.8, replacement_attempts=10):
+        """Create `Statistics` object from an array of data.
 
         Parameters
         ----------
-        xtype : {"frequency","wavelength"}
-            Axis along which to calculate statistics.
-        ytype : {"velocity", "slowness"}
-            Axis along which to define uncertainty.
         xx : iterable
-            Values in `xtype` units where statistics are to be
-            calculated.
-        ignore_corr : bool, optional
-            Ignore calculation of data's correlation coefficients,
-            default is `True`.
+            Iterable containing the x-locations associated with each
+            column of `array`.
+        data_matrix : ndarray
+            Two-dimensional array where each row denotes an observation
+            and each column a separate sampling location (e.g.,
+            wavelength). The value of each entry denotes the parameter
+            being estimated statistically (e.g., velocity), missing
+            values are denoted with `np.nan`.
+
+        Returns
+        -------
+        Statistics
+            An initialized `Statistics` object.
+
+        """
+        # Drop missing data following drop_kwargs.
+        drop_kwargs = {} if drop_kwargs is None else drop_kwargs
+        drop_kwargs = dict(drop_observation_if_fewer_percent=0,
+                           drop_sample_if_fewer_percent=0,
+                           drop_sample_if_fewer_count=3)
+        drop_kwargs = {**default_drop_kwargs, **drop_kwargs}
+        xx, data_matrix = cls._drop(xx, data_matrix, **drop_kwargs)
+
+        # Sort data_matrix to increase point density.
+        data_matrix = cls._sort(data_matrix)
+
+        # Calculate statistics (assume normal distribution).
+        mean, stddev = cls._calc_stat(data_matrix)
+
+        # Identify regions of highest density.
+        regions = cls._identify_regions(data_matrix,
+                                        density_threshold=density_threshold)
+
+        # Random replacement.
+        nan_mask = np.isnan(data_matrix)
+        for _ in range(replacement_attempts):
+            for region in regions:
+                ((s_row, s_col), (e_row, e_col)) = region
+                data_matrix[s_row:e_row, s_col:e_col] = cls._fill_data(data_matrix[s_row:e_row, s_col:e_col],
+                                                                  mask=nan_mask[s_row:e_row, s_col:e_col])
+
+            new_mean, new_stddev = cls._calc_stat(data_matrix)
+
+            p_diff_mean = np.max(np.abs((new_mean - mean)/mean))
+            p_diff_stddev = np.max(np.abs((new_stddev - stddev)/stddev))
+
+            logger.info(f"  p_diff_mean = {p_diff_mean}")
+            logger.info(f"  p_diff_stddev = {p_diff_stddev}")
+
+            if p_diff_mean < 0.05 and p_diff_stddev < 0.05:
+                break
+
+        else:
+            msg = f"Replacement attempts exceeded {replacement_attempts}."
+            raise ValueError(msg)
+
+        # Calculate correlation coefficients.
+        corr = np.empty_like(data_matrix)
+        nan_mask = np.isnan(data_matrix)
+        for region in regions:
+            ((s_row, s_col), (e_row, e_col)) = region
+            corr[s_row:e_row, s_col:e_col] = np.corrcoef(data_matrix[s_row:e_row, s_col:e_col],
+                                                         rowvar=False)
+
+        # Fill remaining correlation coefficients.
+        corr = cls._fill_corr(corr, mask=nan_mask)
+
+        return cls(xx, mean, stddev, corr)
+
+    @staticmethod
+    def _drop(xx, data_matrix,
+              drop_observation_if_fewer_percent=0.8,
+              drop_sample_if_fewer_percent=0.4,
+              drop_sample_if_fewer_count=3):
+        """Procedure for removing problematic observations/samplings.
+
+        Parameters
+        ----------
+        xx : ndarray
+            Statistic sampling locations.
+        data_matrix : ndarray
+            Of shape `(# observations, # samples)` each entry's
+            value indicates the parameters value (e.g., velocity)
+            the presence of `np.nan` indicates missing data.
+        drop_observation_if_fewer_percent : {0. - 1.}, optional
+            Remove observations if the number of valid entries is
+            fewer than the specified fraction times the total
+            possible, default is 0.8.
+        drop_sample_if_fewer_percent : {0. - 1.}, optional
+            Remove statistic sample if the number of valid entries
+            is fewer than the specified fraction times the total
+            possible, default is 0.4.
+        drop_sample_if_fewer_count : int, optional
+            Remove statistic sample if the number of valid entries
+            is fewer than the specified number, default is 3.
 
         Returns
         -------
         tuple
-            Of the form `(xx, mean, std, corr)` where `mean` and
-            `std` are the mean and standard deviation at each point and
-            `corr` are the correlation coefficients between every point
-            and all other points.
+            Of the form `(xx, data_matrix)` where `xx` and
+            `data_matrix` are the permuted inputs.
 
         """
-        npeaks = len(self.peaks)
-        if npeaks < 3:
-            msg = f"Cannot calculate statistics on fewer than 3 `Peaks`."
-            raise ValueError(msg)
+        # Initial
+        i_nans = np.sum(np.isnan(data_matrix))
+        i_nums = data_matrix.size - i_nans
 
-        xx = np.array(xx)
-        data_matrix = np.empty((len(xx), npeaks))
+        # Option 1: Drop columns then rows.
+        drop_cols = Statistics._drop_indices(data_matrix.T,
+                                             drop_if_fewer_percent=drop_sample_if_fewer_percent,
+                                             drop_if_fewer_count=drop_sample_if_fewer_count)
+        xx_1 = np.delete(xx, drop_cols)
+        data_matrix_1 = np.delete(data_matrix, drop_cols, axis=1)
+        drop_rows = Statistics._drop_indices(data_matrix_1,
+                                             drop_if_fewer_percent=drop_observation_if_fewer_percent,
+                                             drop_if_fewer_count=0)
+        data_matrix_1 = np.delete(data_matrix_1, drop_rows, axis=0)
+        r_nans = np.sum(np.isnan(data_matrix_1))
+        r_nums = data_matrix_1.size - r_nans
+        utility_option_1 = (i_nans - r_nans) / (i_nums - r_nums + 1)
 
-        for col, _peaks in enumerate(self.peaks):
-            # TODO (jpv): Allow assume_sorted should improve speed.
-            interpfxn = interp1d(getattr(_peaks, xtype),
-                                 getattr(_peaks, ytype),
-                                 copy=False, bounds_error=False,
-                                 fill_value=np.nan)
-            data_matrix[:, col] = interpfxn(xx)
+        # Option 2: Drop rows then columns.
+        drop_rows = Statistics._drop_indices(data_matrix,
+                                             drop_if_fewer_percent=drop_observation_if_fewer_percent,
+                                             drop_if_fewer_count=0)
+        data_matrix_2 = np.delete(data_matrix, drop_rows, axis=0)
+        drop_cols = Statistics._drop_indices(data_matrix_2.T,
+                                             drop_if_fewer_percent=drop_sample_if_fewer_percent,
+                                             drop_if_fewer_count=drop_sample_if_fewer_count)
+        xx_2 = np.delete(xx, drop_cols)
+        data_matrix_2 = np.delete(data_matrix_2, drop_cols, axis=1)
+        r_nans = np.sum(np.isnan(data_matrix_2))
+        r_nums = data_matrix_2.size - r_nans
+        utility_option_2 = (i_nans - r_nans) / (i_nums - r_nums + 1)
 
-        xx, data_matrix = self._drop(xx, data_matrix.T,
-                                     drop_sample_if_fewer_percent=0.,
-                                     drop_observation_if_fewer_percent=0.,
-                                     drop_sample_if_fewer_count=3)
-        data_matrix = data_matrix.T
+        logger.debug(
+            f"utility_option_1={utility_option_1}, utility_option_2={utility_option_2}")
+        if utility_option_1 > utility_option_2:
+            return (xx_1, data_matrix_1)
+        else:
+            return (xx_2, data_matrix_2)
 
-        mean = np.nanmean(data_matrix, axis=1)
-        std = np.nanstd(data_matrix, axis=1, ddof=1)
-        corr = None if ignore_corr else np.corrcoef(data_matrix)
+    def _drop_indices(data_matrix, drop_if_fewer_percent, drop_if_fewer_count):
+        """Iterate by row, return rejection indices."""
+        if data_matrix.size == 0:
+            return np.array([], dtype=int)
 
-        return (xx, mean, std, corr)
+        drop_indices = []
+        for index, row in enumerate(data_matrix):
+            n_nan = np.sum(np.isnan(row))
+            n_tot = len(row)
+            n_num = n_tot - n_nan
+            p_num = n_num/n_tot
+            if n_num < drop_if_fewer_count or p_num < drop_if_fewer_percent:
+                drop_indices.append(index)
+        return np.array(drop_indices, dtype=int)
 
     @staticmethod
-    def _sort_data(data_matrix):
+    def _sort(data_matrix):
         """Reorganize rows to increase point density."""
         nrows, ncols = data_matrix.shape
         tmp_row = np.empty(ncols, dtype=data_matrix.dtype)
@@ -86,16 +200,16 @@ class Statistics():
         return data_matrix
 
     @staticmethod
-    def _identify_regions(data_matrix, density_threshold=0.9):
+    def _identify_regions(data_matrix, density_threshold=0.9, max_regions=100):
         """Find the largest regions of the data_matrix with at least
         the minimum density_threshold."""
         nrows, ncols = data_matrix.shape
         s_row, s_col = 0, 0
 
         regions = []
-        for _ in range(100):
+        for _ in range(max_regions):
             c_row, c_col = int(s_row), int(s_col)
-    
+
             n_vals, totaln = 1, 1
 
             remaining_rows, remaining_cols = (nrows-s_row), (ncols-s_col)
@@ -147,7 +261,7 @@ class Statistics():
                     regions.append(((s_row, s_col), (c_row+1, c_col+1)))
                     break
 
-            else: # pragma: no cover
+            else:  # pragma: no cover
                 raise ValueError("Iteration stopped without breaking.")
 
             if c_row+1 == nrows and c_col+1 == ncols:
@@ -156,9 +270,8 @@ class Statistics():
                 s_col = int(c_col)+1
                 s_row = np.argwhere(~np.isnan(data_matrix[:, s_col]))[0][0]
 
-        else: # pragma: no cover
-            raise ValueError("Number of regions exceeded 100.")
-            
+        else:  # pragma: no cover
+            raise ValueError(f"Number of regions exceeded {max_regions}.")
 
         return regions
 
@@ -170,3 +283,9 @@ class Statistics():
         n_nums = np.sum(~np.isnan(data_matrix[b_row:e_row+1, b_col:e_col+1]))
         n_poss = (e_col - b_col + 1) * (e_row - b_row + 1)
         return n_nums/n_poss
+
+    @staticmethod
+    def _calc_stat(data_matrix):
+        mean = np.nanmean(data_matrix, axis=0)
+        stddev = np.nanstd(data_matrix, axis=0, ddof=1)
+        return (mean, stddev)

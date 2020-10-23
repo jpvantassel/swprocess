@@ -590,15 +590,55 @@ class PeaksSuite():
             # TODO (jpv): Allow assume_sorted should improve speed.
             try:
                 interpfxn = interp1d(getattr(_peaks, xtype),
-                                    getattr(_peaks, ytype),
-                                    copy=False, bounds_error=False,
-                                    fill_value=np.nan)
+                                     getattr(_peaks, ytype),
+                                     copy=False, bounds_error=False,
+                                     fill_value=np.nan)
             except ValueError:
                 data_matrix[:, col] = np.nan
             else:
                 data_matrix[:, col] = interpfxn(xx)
 
         return (xx, data_matrix)
+
+    def to_array(self, xtype, ytype, xx):
+        """Create an array representation of the `PeaksSuite`.
+
+        Parameters
+        ----------
+        xtype : {"frequency","wavelength"}
+            Axis along which to define samples.
+        ytype : {"velocity", "slowness"}
+            Axis along which to define values.
+        xx : iterable
+            Values, in the units of `xtype`, where `PeaksSuite` is to
+            be discretized.
+
+        Returns
+        -------
+        tuple
+            Of the form `(xx, array)` where `xx` is the discretized
+            values and `array` is a two-dimensional array with one row
+            per `Peaks` in the `PeaksSuite` and one column for each
+            entry of `xx`. Missing values are denoted with `np.nan`.
+
+        """
+        xx = np.array(xx)
+        npeaks = len(self.peaks)
+        array = np.empty((npeaks, len(xx)))
+
+        for row, _peaks in enumerate(self.peaks):
+            # TODO (jpv): Allow assume_sorted should improve speed.
+            try:
+                interpfxn = interp1d(getattr(_peaks, xtype),
+                                     getattr(_peaks, ytype),
+                                     copy=False, bounds_error=False,
+                                     fill_value=np.nan)
+            except ValueError:
+                array[row, :] = np.nan
+            else:
+                array[row, :] = interpfxn(xx)
+
+        return (xx, array)
 
     def plot_statistics(self, ax, xx, mean, stddev, errorbar_kwargs=None):
         errorbar_kwargs = {} if errorbar_kwargs is None else errorbar_kwargs
