@@ -24,7 +24,7 @@ def get_peak_from_max(wavetype="rayleigh", time="(\d+\.?\d*)"):
     """
     wavetype = validate_wavetypes(wavetype)
     number = "-?\d+.?\d*[eE]?[+-]?\d*"
-    pattern = f"{time} (\d+\.?\d*) {wavetype} ({number}) ({number}) ({number}) (\d+\.?\d*|-?inf|nan) (\d+\.?\d*) 1"
+    pattern = f"{time} ({number}) {wavetype} ({number}) ({number}) ({number}) ({number}|-?inf|nan) ({number}) 1"
     return re.compile(pattern)
 
 
