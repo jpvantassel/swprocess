@@ -2,6 +2,7 @@
 
 import numpy as np
 from numpy.random import default_rng, PCG64
+from scipy.optimize import curve_fit
 
 
 class Statistics():
@@ -93,7 +94,7 @@ class Statistics():
                                                          rowvar=False)
 
         # Fill remaining correlation coefficients.
-        corr = cls._fill_corr(corr, mask=nan_mask)
+        corr = cls._fill_corr(xx, corr)
 
         return cls(xx, mean, stddev, corr)
 
@@ -320,6 +321,58 @@ class Statistics():
                 data_matrix[_id, col] = value
 
         return data_matrix
+
+    @staticmethod
+    def _fill_corr(xx, corr_matrix):
+        """Fill correlation coefficient matrix.
+
+        Parameters
+        ----------
+        xx : ndarray
+            Location of x samples.
+        corr_matrix : ndarray
+            Correlation coefficient matrix, where missing values are
+            denoted with `np.nan`.
+
+        Returns
+        -------
+        ndarray
+            Where all missing values have been replaced using the
+            specified filling procedure.
+
+        """
+        def exponential_decay(x, y0, decay_factor):
+            return y0*np.power(decay_factor, x)
+
+        def filler(xs, ys, function):
+            invalid_ids = np.flatnonzero(np.isnan(xs))
+            valid_ids = np.flatnonzero(~np.isnan(xs))
+
+            # Fit functional form to valid entries.
+            popt, _ = curve_fit(f=function,
+                                xdata=xs[valid_ids],
+                                ydata=ys[valid_ids])
+            
+            # Replace invalid entries with functional approximation.
+            ys[invalid_ids] = function(xs[invalid_ids], *popt)
+
+            return ys
+
+        log_xx = np.log(xx)
+        for row, corr_row in enumerate(corr_matrix):
+            # Fill right
+            xs = log_xx[row:]
+            ys = corr_row[row:]
+            if np.sum(np.isnan(ys)) > 0:
+                corr_matrix[row, row:] = filler(xs - xs[0], ys, function=exponential_decay)
+
+            # Fill left
+            xs = log_xx[:row][::-1]
+            ys = corr_row[:row][::-1]
+            if np.sum(np.isnan(ys)) > 0:
+                corr_matrix[row, :row] = filler(xs - xs[0], ys, function=exponential_decay)[::-1]
+        
+        return corr_matrix
 
     @staticmethod
     def _calc_density(data_matrix, tl_corner, br_corner):
