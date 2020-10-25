@@ -1,6 +1,7 @@
 """Statistics class definition."""
 
 import numpy as np
+from numpy.random import default_rng, PCG64
 
 
 class Statistics():
@@ -64,7 +65,8 @@ class Statistics():
             for region in regions:
                 ((s_row, s_col), (e_row, e_col)) = region
                 data_matrix[s_row:e_row, s_col:e_col] = cls._fill_data(data_matrix[s_row:e_row, s_col:e_col],
-                                                                  mask=nan_mask[s_row:e_row, s_col:e_col])
+                                                                       means=mean[s_col:e_col],
+                                                                       stddevs=stddev[s_col:e_col])
 
             new_mean, new_stddev = cls._calc_stat(data_matrix)
 
@@ -76,7 +78,8 @@ class Statistics():
 
             if p_diff_mean < 0.05 and p_diff_stddev < 0.05:
                 break
-
+            else:
+                data_matrix[nan_mask] = np.nan
         else:
             msg = f"Replacement attempts exceeded {replacement_attempts}."
             raise ValueError(msg)
@@ -274,6 +277,49 @@ class Statistics():
             raise ValueError(f"Number of regions exceeded {max_regions}.")
 
         return regions
+
+    def _fill_data(data_matrix, means=None, stddevs=None, rng=None):
+        """Fill a matrix using random assignment.
+
+        Parameters
+        ----------
+        data_matrix : ndarray
+            Data values in a 2D `ndarray`. Each row is an observation
+            and each column is a different sampling location. Values to
+            be filled are denoted with `np.nan`.
+        means : iterable, optional
+            Iterable of means (one per column), default is `None`
+            indicating the mean should be calculated from the
+            `data_matrix` using `np.nanmean()`.
+        stddevs : iterable, optional
+            Iterable of standard deviations (one per column), default is
+            `None` indicating the standard deviation should be
+            calculated from the `data_matrix` using `np.nanstd()`.
+
+        Returns
+        -------
+        ndarray
+            With the missing data (i.e., `np.nan`) replaced with values
+            from random assignment.
+
+        """
+        try:
+            getattr(rng, "normal")
+        except AttributeError:
+            rng = default_rng(PCG64())
+
+        if means is None:
+            means = np.nanmean(data_matrix, axis=0)
+        if stddevs is None:
+            stddevs = np.nanstd(data_matrix, axis=0, ddof=1)
+
+        for col, (data, mean, stddev) in enumerate(zip(data_matrix.T, means, stddevs)):
+            nan_ids = np.flatnonzero(np.isnan(data))
+            for _id in nan_ids:
+                value = rng.normal(mean, stddev)
+                data_matrix[_id, col] = value
+
+        return data_matrix
 
     @staticmethod
     def _calc_density(data_matrix, tl_corner, br_corner):

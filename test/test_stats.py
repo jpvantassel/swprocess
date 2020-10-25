@@ -2,8 +2,10 @@
 
 import logging
 import warnings
+from unittest.mock import MagicMock, patch
 
 import numpy as np
+from numpy.random import default_rng, PCG64
 
 from swprocess.stats import Statistics
 
@@ -85,9 +87,64 @@ class Test_Statistics(TestCase):
         threshold = 0.77
         r_regions = Statistics._identify_regions(data,
                                                  density_threshold=threshold)
-        e_regions = [((0,0), (3,3)), ((1,3), (3,5))]
+        e_regions = [((0, 0), (3, 3)), ((1, 3), (3, 5))]
         for expected, returned in zip(e_regions, r_regions):
             self.assertTupleEqual(expected, returned)
+
+    def test_fill(self):
+        n = np.nan
+
+        # Full matrix, no fill required.
+        data = np.array([[1, 2, 3],
+                         [1, 2, 3],
+                         [1, 2, 3]])
+
+        returned = Statistics._fill_data(data)
+        self.assertArrayEqual(data, returned)
+
+        # P. full matrix, with locked seed rng.
+        pdata = np.array([[1., n, 3, 4, 5],
+                          [3., 2, 8, n, 5],
+                          [1., n, 3, 4, n],
+                          [2., 1, n, 1, 8],
+                          [1., 2, 3, 4, 5]])
+
+        #  Expected result
+        means = np.nanmean(pdata, axis=0)
+        stddevs = np.nanstd(pdata, axis=0, ddof=1)
+        means[0] = means[1]
+        stddevs[0] = stddevs[1]
+        rng = default_rng(PCG64(seed=1994))
+        expected = np.array(pdata)
+        rows = [0, 2, 3, 1, 2]
+        cols = [1, 1, 2, 3, 4]
+        for row, col, mean, stddev in zip(rows, cols, means, stddevs):
+            expected[row, col] = rng.normal(mean, stddev)
+
+        #  Returned result
+        rng = default_rng(PCG64(seed=1994))
+        returned = Statistics._fill_data(pdata, rng=rng)
+        self.assertArrayEqual(expected, returned)
+
+        # P. full matrix, with no uncertainty.
+        pdata = np.array([[1., n, 3, 4, 5],
+                          [1., 2, 3, n, 5],
+                          [1., n, 3, 4, n],
+                          [1., 2, n, 4, 5],
+                          [1., 2, 3, 4, 5]])
+        returned = Statistics._fill_data(pdata)
+        expected = np.array([[1, 2, 3, 4, 5] for _ in range(5)], dtype=float)
+        self.assertArrayEqual(expected, returned)
+
+        # P. full matrix, with mocked rng.
+        pdata = np.array([[1, 2, 3],
+                          [1, 2, 3],
+                          [1, n, 3]])
+        mock_rng = MagicMock()
+        mock_rng.normal.return_value = 2
+        returned = Statistics._fill_data(pdata, rng=mock_rng)
+        self.assertArrayEqual(data, returned)
+        mock_rng.normal.assert_called_once()
 
     def test_calc_density(self):
         n = np.nan
