@@ -17,6 +17,7 @@
 """Testing tools."""
 
 import unittest
+
 import numpy as np
 
 def get_full_path(path):
@@ -43,7 +44,7 @@ class TestCase(unittest.TestCase):
 
     def assertArrayAlmostEqual(self, array1, array2, **kwargs):
         if kwargs.get("places", False):
-            kwargs["atol"] = 1/kwargs["places"]
+            kwargs["atol"] = 1/(10**kwargs["places"])
             del kwargs["places"]
 
         try:
