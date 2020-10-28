@@ -538,7 +538,8 @@ class PeaksSuite():
                 warnings.warn(msg)
             # print("5")
 
-    def statistics(self, xtype, ytype, xx, ignore_corr=True):
+    def statistics(self, xtype, ytype, xx, ignore_corr=True,
+                   drop_sample_if_fewer_count=3):
         """Determine the statistics of the `PeaksSuite`.
 
         Parameters
@@ -553,6 +554,9 @@ class PeaksSuite():
         ignore_corr : bool, optional
             Ignore calculation of data's correlation coefficients,
             default is `True`.
+        drop_sample_if_fewer_count : int, optional
+            Remove statistic sample if the number of valid entries
+            is fewer than the specified number, default is 3.   
 
         Returns
         -------
@@ -568,7 +572,7 @@ class PeaksSuite():
         xx, data_matrix = self._drop(xx, data_matrix.T,
                                      drop_sample_if_fewer_percent=0.,
                                      drop_observation_if_fewer_percent=0.,
-                                     drop_sample_if_fewer_count=3)
+                                     drop_sample_if_fewer_count=drop_sample_if_fewer_count)
         data_matrix = data_matrix.T
 
         mean = np.nanmean(data_matrix, axis=1)
