@@ -1,9 +1,12 @@
 """Statistics class definition."""
 
+import logging
+
 import numpy as np
 from numpy.random import default_rng, PCG64
 from scipy.optimize import curve_fit
 
+logger = logging.getLogger("swprocess.stats")
 
 class Statistics():
 
@@ -44,9 +47,9 @@ class Statistics():
         """
         # Drop missing data following drop_kwargs.
         drop_kwargs = {} if drop_kwargs is None else drop_kwargs
-        drop_kwargs = dict(drop_observation_if_fewer_percent=0,
-                           drop_sample_if_fewer_percent=0,
-                           drop_sample_if_fewer_count=3)
+        default_drop_kwargs = dict(drop_observation_if_fewer_percent=0,
+                                   drop_sample_if_fewer_percent=0,
+                                   drop_sample_if_fewer_count=3)
         drop_kwargs = {**default_drop_kwargs, **drop_kwargs}
         xx, data_matrix = cls._drop(xx, data_matrix, **drop_kwargs)
 
@@ -72,12 +75,14 @@ class Statistics():
             new_mean, new_stddev = cls._calc_stat(data_matrix)
 
             p_diff_mean = np.max(np.abs((new_mean - mean)/mean))
-            p_diff_stddev = np.max(np.abs((new_stddev - stddev)/stddev))
+            diff_cov = np.max(np.abs(new_stddev/new_mean - stddev/mean))
+            # diff_stddev = np.max(np.abs(new_stddev - stddev))
+            # p_diff_stddev = np.max(np.abs((new_stddev - stddev)/stddev))
 
             logger.info(f"  p_diff_mean = {p_diff_mean}")
-            logger.info(f"  p_diff_stddev = {p_diff_stddev}")
+            logger.info(f"  diff_cov = {diff_cov}")
 
-            if p_diff_mean < 0.05 and p_diff_stddev < 0.05:
+            if p_diff_mean < 0.05 and diff_cov < 0.01:
                 break
             else:
                 data_matrix[nan_mask] = np.nan
@@ -352,7 +357,7 @@ class Statistics():
             popt, _ = curve_fit(f=function,
                                 xdata=xs[valid_ids],
                                 ydata=ys[valid_ids])
-            
+
             # Replace invalid entries with functional approximation.
             ys[invalid_ids] = function(xs[invalid_ids], *popt)
 
@@ -364,14 +369,16 @@ class Statistics():
             xs = log_xx[row:]
             ys = corr_row[row:]
             if np.sum(np.isnan(ys)) > 0:
-                corr_matrix[row, row:] = filler(xs - xs[0], ys, function=exponential_decay)
+                corr_matrix[row, row:] = filler(
+                    xs - xs[0], ys, function=exponential_decay)
 
             # Fill left
             xs = log_xx[:row][::-1]
             ys = corr_row[:row][::-1]
             if np.sum(np.isnan(ys)) > 0:
-                corr_matrix[row, :row] = filler(xs - xs[0], ys, function=exponential_decay)[::-1]
-        
+                corr_matrix[row, :row] = filler(
+                    xs - xs[0], ys, function=exponential_decay)[::-1]
+
         return corr_matrix
 
     @staticmethod
