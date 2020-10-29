@@ -22,5 +22,6 @@ tmp.json
 examples/masw/*.png
 examples/masw/*.json
 examples/mam/*.json
+examples/stats/*.txt
 examples/stats/*.json
 examples/mam/data/*/*.miniseed
