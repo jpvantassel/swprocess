@@ -357,7 +357,8 @@ class PeaksSuite():
 
     def interactive_trimming(self, xtype="wavelength", ytype="velocity",
                              plot_kwargs=None, resolution_limits=None,
-                             resolution_limits_plot_kwargs=None):
+                             resolution_limits_plot_kwargs=None,
+                             margins=0.1):
         """Interactively trim experimental dispersion data.
 
         Parameters
@@ -398,9 +399,11 @@ class PeaksSuite():
         # Store minimum and maximum axes limits
         pxlims, pylims = [], []
         for _ax in ax:
-            _ax.autoscale(enable=False)
+            _ax.margins(margins)
+            _ax.autoscale()
             pxlims.append(_ax.get_xlim())
             pylims.append(_ax.get_ylim())
+            _ax.autoscale(enable=False)
 
         # Plot resolution limits (if desired):
         if resolution_limits is not None:
