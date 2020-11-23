@@ -10,7 +10,7 @@ from matplotlib.widgets import Cursor
 def ginput_session(ax, initial_adjustment=True,
                    initial_adjustment_message=None, npts=1,
                    ask_to_continue=True,
-                   ask_to_continue_message=None, ):
+                   ask_to_continue_message=None):
     """Start ginput session using the provided axes object.
 
     Parameters
@@ -43,7 +43,7 @@ def ginput_session(ax, initial_adjustment=True,
 
     """
     # Enable cursor to make precise selection easier.
-    cursor = Cursor(ax, useblit=True, color='k', linewidth=1)
+    cursor = Cursor(ax, color='k', linewidth=1)
 
     # Permit initial adjustment with blocking call to figure.
     if initial_adjustment:
@@ -69,6 +69,11 @@ def ginput_session(ax, initial_adjustment=True,
             msg = "More than one point selected, ignoring all but the last point."
             warnings.warn(msg)
 
+        if len(vals) == 0:
+            msg = "No points selected, try again."
+            warnings.warn(msg)
+            continue
+
         x, y = vals[-1]
         ax.plot(x, y, "r", marker="+", linestyle="")
         xs.append(x)
@@ -77,7 +82,7 @@ def ginput_session(ax, initial_adjustment=True,
 
         if ask_to_continue:
             if ask_to_continue_message is None:
-                msg = "Adjust view,\npress spacebar\nonce to contine,\ntwice to exit."
+                ask_to_continue_message = "Adjust view,\npress spacebar\nonce to contine,\ntwice to exit."
             text = ax.text(0.95, 0.95, ask_to_continue_message,
                            ha="right", va="top",
                            transform=ax.transAxes)
@@ -86,7 +91,7 @@ def ginput_session(ax, initial_adjustment=True,
                     text.set_visible(False)
                     break
 
-        if plt.waitforbuttonpress(timeout=0.25):
+        if plt.waitforbuttonpress(timeout=0.3):
             break
 
     finish_message = "Interactive session complete,\nclose figure(s) when ready."

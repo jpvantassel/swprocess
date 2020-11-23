@@ -328,11 +328,11 @@ class ActiveTimeSeries(TimeSeries):
         maxcorr_location = np.argmax(corr)
         shifts = (maxcorr_location+1)-b.nsamples
         if shifts > 0:
-            return np.concatenate((np.zeros(shifts), b.amp[:-shifts]))
+            return (shifts, np.concatenate((np.zeros(shifts), b.amp[:-shifts])))
         elif shifts < 0:
-            return np.concatenate((b.amp[abs(shifts):], np.zeros(abs(shifts))))
+            return (shifts, np.concatenate((b.amp[abs(shifts):], np.zeros(abs(shifts)))))
         else:
-            return np.array(b.amp)
+            return (shifts, np.array(b.amp))
 
     @classmethod
     def from_cross_stack(cls, a, b):
@@ -359,8 +359,9 @@ class ActiveTimeSeries(TimeSeries):
 
         """
         obj = cls.from_activetimeseries(a)
-        b.amp = cls.crosscorr_shift(a, b)
-        obj.stack_append(b)
+        b_copy = cls.from_activetimeseries(b)
+        _, b_copy.amp = cls.crosscorr_shift(a, b_copy, exclude=("nsamples", "nstacks"))
+        obj.stack_append(b_copy)
         return obj
 
     def _is_similar(self, other, exclude=None):
