@@ -9,4 +9,4 @@ from .masw import Masw
 from .peakssuite import PeaksSuite
 
 logging.getLogger('swprocess').addHandler(logging.NullHandler())
-__version__ = "0.1.0a2"
+__version__ = "0.1.0a3"

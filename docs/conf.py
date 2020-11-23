@@ -18,7 +18,6 @@ from swprocess import __version__
 sys.path.insert(0, os.path.abspath('../swprocess'))
 
 # -- Project information -----------------------------------------------------
-
 project = 'swprocess'
 copyright = '2020, Joseph P. Vantassel'
 author = 'Joseph P. Vantassel'

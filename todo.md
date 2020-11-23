@@ -12,5 +12,6 @@
 
 ## Long term
 
+- Slow down on Michael's machine.
 - Take noise from the end of the record.
 - Interactive picking in MASW.
