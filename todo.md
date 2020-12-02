@@ -9,6 +9,7 @@
 - Make df a figurative rather than literal attribute.
 - Waveform normalization bnz 0.5m.
 - Add test case for from_max from waterplant.
+- Corr shift test failing.
 
 ## Long term
 
