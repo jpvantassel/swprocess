@@ -2,14 +2,16 @@
 
 from setuptools import setup, find_packages
 
-from swprocess.__init__ import __version__
+meta = {}
+with open("swprocess/meta.py") as f:
+    exec(f.read(), meta)
 
 with open('README.md', encoding="utf8") as f:
     long_description = f.read()
 
 setup(
     name='swprocess',
-    version=__version__,
+    version=meta['__version__'],
     description='Package for Surface-Wave Processing',
     long_description=long_description,
     long_description_content_type='text/markdown',

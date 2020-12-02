@@ -13,7 +13,9 @@
 import os
 import sys
 
-from swprocess import __version__
+meta = {}
+with open("swprocess/meta.py") as f:
+    exec(f.read(), meta)
 
 sys.path.insert(0, os.path.abspath('../swprocess'))
 
@@ -23,7 +25,7 @@ copyright = '2020, Joseph P. Vantassel'
 author = 'Joseph P. Vantassel'
 
 # The full version, including alpha/beta/rc tags
-release = __version__
+release = meta['__version__']
 
 # -- General configuration ---------------------------------------------------
 
