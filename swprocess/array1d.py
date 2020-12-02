@@ -131,6 +131,10 @@ class Array1D():
     def nchannels(self):
         """Number of `Sensors` in the array."""
         return len(self.sensors)
+    
+    @property
+    def array_center_distance(self):
+        return np.mean(self.offsets)
 
     @property
     def spacing(self):

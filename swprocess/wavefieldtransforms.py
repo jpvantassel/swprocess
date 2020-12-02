@@ -148,7 +148,7 @@ class AbstractWavefieldTransform(ABC):
 
     def plot(self, fig=None, ax=None, cax=None,
              normalization="frequency-maximum", peaks="frequency-maximum",
-             cmap="jet", peak_kwargs=None):
+             nearfield=None, cmap="jet", peak_kwargs=None):
         """Plot the `WavefieldTransform`'s dispersion image.
 
         Parameters
@@ -166,6 +166,11 @@ class AbstractWavefieldTransform(ABC):
         peaks : {"none", "frequency-maximum"}, optional
             Determines if the spectral peaks are shown and if so how
             they will be determined, default is 'frequency-maximum'.
+        nearfield : int, optional
+            Number of array center distances per wavelength following
+            Yoon and Rix (2009), default is `None` so nearfield
+            criteria will not be plotted. A value of 1 corresponds
+            to ~15% error and 2 ~5% error.
         peak_kwargs : dict, optional
             Keyword arguments to control the appearance of the spectral
             peaks, default is `None` so the default settings will be
@@ -206,7 +211,6 @@ class AbstractWavefieldTransform(ABC):
         fig.colorbar(contour, **ax_kwargs,
                      ticks=np.round(np.linspace(0, np.max(self.power), 11), 1))
                         
-
         # Plot peaks (if necessary).
         if peaks != "none":
             default_kwargs = dict(marker="o", markersize=1, markeredgecolor="w",
@@ -215,6 +219,16 @@ class AbstractWavefieldTransform(ABC):
             peak_kwargs = {**default_kwargs, **peak_kwargs}
             ax.plot(self.frequencies, selected_peaks, **peak_kwargs)
 
+        # Plot Yoon and Rix (2009) (if necessary).
+        if nearfield is not None:
+            ylims = ax.get_ylim()
+            fmin, fmax = ax.get_xlim()
+            fs = np.linspace(fmin, fmax, 30)
+            wv = self.array.array_center_distance / nearfield
+            vs = fs*wv
+            ax.plot(fs, vs, color="black", linestyle="-.", label=r"$\frac{\overline{x}}{\lambda}=$"+f"{nearfield:.2f}")
+            ax.set_ylim(ylims)
+            
         ax.set_xlabel("Frequency (Hz)")
         ax.set_ylabel("Phase Velocity (m/s)")
 
