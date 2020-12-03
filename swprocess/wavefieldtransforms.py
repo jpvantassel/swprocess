@@ -318,7 +318,7 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
         velocities = cls._create_vector(settings["vmin"], settings["vmax"],
                                         settings["nvel"], settings["vspace"])
         
-        # Instantiate empty power tensor.
+        # Create empty power tensor.
         nvel, nfrq = settings["nvel"], len(keep_ids)
         power = np.empty((nvel, nfrq), dtype=complex)
 
