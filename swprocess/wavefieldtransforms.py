@@ -202,14 +202,14 @@ class AbstractWavefieldTransform(ABC):
         contour = ax.contourf(self.frequencies,
                               self.velocities,
                               self.power,
-                              np.linspace(0, np.max(self.power), 20),
+                              np.linspace(0, np.max(self.power), 21),
                               cmap=plt.cm.get_cmap(cmap))
         if cax is None:
             ax_kwargs = dict(ax=ax, pad=0.01)
         else:
             ax_kwargs = dict(cax=cax)
         fig.colorbar(contour, **ax_kwargs,
-                     ticks=np.round(np.linspace(0, np.max(self.power), 11), 1))
+                     ticks=np.round(np.linspace(0, np.max(self.power), 6), 1))
                         
         # Plot peaks (if necessary).
         if peaks != "none":
