@@ -320,7 +320,7 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
         
         # Create empty power tensor.
         nvel, nfrq = settings["nvel"], len(keep_ids)
-        power = np.empty((nvel, nfrq), dtype=complex)
+        power = np.zeros((nvel, nfrq), dtype=complex)
 
         return cls(frequencies, velocities, power)
 
