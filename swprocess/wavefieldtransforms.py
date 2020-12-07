@@ -61,7 +61,7 @@ class AbstractWavefieldTransform(ABC):
 
     @classmethod
     @abstractclassmethod
-    def transform(cls, array, velocities, settings): # pragma: no cover
+    def transform(cls, array, velocities, settings):  # pragma: no cover
         pass
 
     @staticmethod
@@ -148,7 +148,7 @@ class AbstractWavefieldTransform(ABC):
 
     def plot(self, fig=None, ax=None, cax=None,
              normalization="frequency-maximum", peaks="frequency-maximum",
-             nearfield=None, cmap="jet", peak_kwargs=None):
+             nearfield=None, cmap="jet", peak_kwargs=None, colorbar_kwargs=None, rasterize=False):
         """Plot the `WavefieldTransform`'s dispersion image.
 
         Parameters
@@ -183,6 +183,8 @@ class AbstractWavefieldTransform(ABC):
             otherwise.
 
         """
+        # TODO (jpv): Rewrite docstring.
+
         # Construct fig and ax (if necessary).
         if ax is None:
             ax_was_none = True
@@ -199,18 +201,30 @@ class AbstractWavefieldTransform(ABC):
         selected_peaks = self.find_peak_power(by=peaks)
 
         # Plot dispersion image.
-        contour = ax.contourf(self.frequencies,
-                              self.velocities,
-                              self.power,
-                              np.linspace(0, np.max(self.power), 21),
-                              cmap=plt.cm.get_cmap(cmap))
+        img = ax.contourf(self.frequencies,
+                          self.velocities,
+                          self.power,
+                          np.linspace(0, np.max(self.power), 21),
+                          cmap=plt.cm.get_cmap(cmap))
+        if rasterize:
+            for pathcoll in img.collections:
+                pathcoll.set_rasterized(True)
+
+        # Plot colorbar for image.
         if cax is None:
             ax_kwargs = dict(ax=ax, pad=0.01)
         else:
             ax_kwargs = dict(cax=cax)
-        fig.colorbar(contour, **ax_kwargs,
-                     ticks=np.round(np.linspace(0, np.max(self.power), 6), 1))
-                        
+
+        default_colorbar_kwargs = dict(
+            **ax_kwargs, ticks=np.round(np.linspace(0, np.max(self.power), 6), 1))
+        if colorbar_kwargs is None:
+            colorbar_kwargs = default_colorbar_kwargs
+        else:
+            colorbar_kwargs = {**default_colorbar_kwargs, **colorbar_kwargs}
+
+        fig.colorbar(img, **colorbar_kwargs)
+
         # Plot peaks (if necessary).
         if peaks != "none":
             default_kwargs = dict(marker="o", markersize=1, markeredgecolor="w",
@@ -226,9 +240,10 @@ class AbstractWavefieldTransform(ABC):
             fs = np.linspace(fmin, fmax, 30)
             wv = self.array.array_center_distance / nearfield
             vs = fs*wv
-            ax.plot(fs, vs, color="black", linestyle="-.", label=r"$\frac{\overline{x}}{\lambda}=$"+f"{nearfield:.2f}")
+            ax.plot(fs, vs, color="black", linestyle="-.",
+                    label=r"$\frac{\overline{x}}{\lambda}=$"+f"{nearfield:.2f}")
             ax.set_ylim(ylims)
-            
+
         ax.set_xlabel("Frequency (Hz)")
         ax.set_ylabel("Phase Velocity (m/s)")
 
@@ -257,7 +272,6 @@ class AbstractWavefieldTransform(ABC):
     #     plot_kwargs : dict, optional
     #         Keyword arguments to the plot command, default is `None`
     #         so the default settings will be used.
-
 
     #     Returns
     #     -------
@@ -317,7 +331,7 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
         # Create velocity vector.
         velocities = cls._create_vector(settings["vmin"], settings["vmax"],
                                         settings["nvel"], settings["vspace"])
-        
+
         # Create empty power tensor.
         nvel, nfrq = settings["nvel"], len(keep_ids)
         power = np.zeros((nvel, nfrq), dtype=complex)
@@ -334,7 +348,7 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
         self.n += other.n
 
     @classmethod
-    def transform(cls, array, velocities, settings): # pragma: no cover
+    def transform(cls, array, velocities, settings):  # pragma: no cover
         pass
 
 
@@ -678,6 +692,7 @@ class FDBF(AbstractWavefieldTransform):
 
         return spatiospectral
 
+
 @WavefieldTransformRegistry.register('fk')
 class FK(FDBF):
 
@@ -686,4 +701,4 @@ class FK(FDBF):
         settings["fdbf-specific"]["weighting"] = "none"
         settings["fdbf-specific"]["steering"] = "plane"
 
-        return super().from_array(array, settings)    
+        return super().from_array(array, settings)
