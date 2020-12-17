@@ -192,31 +192,33 @@ class Array1D():
         return True if self.source.x > self.position(normalize=False)[-1] else False
 
     def waterfall(self, ax=None, time_ax="y", amplitude_detrend=True,
-                  amplitude_normalization="each",
+                  amplitude_normalization="each", amplitude_scale=None,
                   position_normalization=False, plot_kwargs=None):
         """Create waterfall plot for this array setup.
 
         Parameters
         ----------
-        ax : Axis, optional
+        ax : Axes, optional
             Axes on which to plot, default is `None` indicating a
-            `Figure` and `Axis` will be generated on-the-fly.
+            `Figure` and `Axes` will be generated on-the-fly.
         time_ax : {'x', 'y'}, optional
             Denotes the time axis, 'y' is the default.
-        scale : float, optional
-            Denotes the scale of the nomalized timeseries height
-            (peak-to-trough), default is `None` so half the receiver
-            spacing is used.
         amplitude_detrend : bool, optional
             Boolean to control whether a linear detrending operation is
             performed, default is `False` so no detrending is performed.
+        amplitude_normalization : {"none", "each", "all"}, optional
+            Enable different normalizations including:
+            `"each"` which normalizes each traces by its maximum,
+            `"all"` which normalizes all traces by the same maximum, and
+            `"none"` which perform no normalization, default is
+            `"each"`.
+        amplitude_scale : float, optional
+            Factor by which each trace is multiplied, default is `None`
+            which uses a factor equal to half the average receiver
+            receiver spacing. 
         position_normalization : bool, optional
             Determines whether the array positions are shifted such
             that the first sensor is located at x=0.
-        amplitude_normalization : {"none", "each", "all"}, optional
-            Enable different normalizations to be performed. `"each"`
-            normalizes each traces by its maximum. `"all"` normalizes
-            all traces by the same maximum. Default is `"each"`.
         plot_kwargs : None, dict, optional
             Kwargs for `matplotlib.pyplot.plot <https://matplotlib.org/3.3.1/api/_as_gen/matplotlib.pyplot.plot.html>`_
             to control the style of each trace, default is `None`.
@@ -247,7 +249,10 @@ class Array1D():
         traces = self.timeseriesmatrix(detrend=amplitude_detrend,
                                        normalize=amplitude_normalization)
         positions = self.position(normalize=position_normalization)
+        if amplitude_scale is None:
+            amplitude_scale = np.mean(np.diff(positions))/2
         for i, position in enumerate(positions):
+            traces[i, :] *= amplitude_scale
             traces[i, :] += position
 
         # Allow custom plotting kwargs.
