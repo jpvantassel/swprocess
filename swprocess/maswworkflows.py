@@ -75,7 +75,6 @@ class AbstractMaswWorkflow(ABC):
                                 signal_end=self.signal_end,
                                 window_kwargs=mute.get("window kwargs"),
                                 )
-
     def select_signal(self):
         """Select a portion of the record as signal."""
         snr = self.settings["signal-to-noise"]
