@@ -155,12 +155,20 @@ class Sensor1C(ActiveTimeSeries):
         """
         header = trace.stats.su.trace_header
         nstack_key = "number_of_horizontally_stacked_traces_yielding_this_trace"
+        scaleco = int(header["scalar_to_be_applied_to_all_coordinates"])
+
+        int_x = int(header["group_coordinate_x"])
+        x =  int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
+
+        int_y = int(header["group_coordinate_y"])
+        y = int_y / abs(scaleco) if scaleco < 0 else int_x * scaleco
+
         return cls.from_trace(trace,
                               read_header=False,
                               nstacks=int(header[nstack_key])+1,
-                              delay=int(header["delay_recording_time"])/1000,
-                              x=map_x(float(header["group_coordinate_x"])),
-                              y=map_y(float(header["group_coordinate_y"])),
+                              delay=-int(header["delay_recording_time"])/1000,
+                              x=map_x(x),
+                              y=map_y(y),
                               z=0)
 
     def _is_similar(self, other, exclude=[]):

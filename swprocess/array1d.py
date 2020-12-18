@@ -612,9 +612,14 @@ class Array1D():
                 return Source(x=x, y=0, z=0)
         elif _format == "SU":
             def parse_source(stats):
-                x = map_x(float(stats.su.trace_header["source_coordinate_x"]))
-                y = map_y(float(stats.su.trace_header["source_coordinate_y"]))
-                return Source(x=x, y=y, z=0)
+                scaleco = int(stats.su.trace_header["scalar_to_be_applied_to_all_coordinates"])
+                int_x = int(stats.su.trace_header["source_coordinate_x"])
+                x =  int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
+
+                int_y = int(stats.su.trace_header["source_coordinate_y"])
+                y = int_y / abs(scaleco) if scaleco < 0 else int_x * scaleco
+                return Source(x=map_x(x), y=map_y(y), z=0)
+
         source = parse_source(trace.stats)
         obj = cls(sensors, source)
 
@@ -644,6 +649,9 @@ class Array1D():
         obj = cls(sensors, source)
         return obj
 
+    # https://pubs.usgs.gov/of/2001/of01-326/HTML/FILEFORM.HTM
+    # https://wiki.seismic-unix.org/sudoc:su_data_format
+    # http://web.mit.edu/cwpsu_v44r1/sumanual_600dpi_letter.pdf
     def to_file(self, fname, ftype="su"):
         if ftype != "su":
             raise ValueError(f"ftype = {ftype} not recognized.")
@@ -653,15 +661,16 @@ class Array1D():
         for sensor in self.sensors:
             trace = obspy.Trace(np.array(sensor.amp, dtype=np.float32))
             trace.stats.delta = sensor.dt
-            # trace.stats.starttime = obspy.UTCDateTime(2019,1,1,0,0,0)
+            trace.stats.starttime = obspy.UTCDateTime(2020,12,18,10,0,0)
 
             if not hasattr(trace.stats, 'su'):
                 trace.stats.su = {}
             trace.stats.su.trace_header = obspy.io.segy.segy.SEGYTraceHeader()
+            trace.stats.su.trace_header.scalar_to_be_applied_to_all_coordinates = int(-1000)
             trace.stats.su.trace_header.source_coordinate_x = int(self.source._x*1000)
             trace.stats.su.trace_header.source_coordinate_y = int(self.source._y*1000)
             trace.stats.su.trace_header.number_of_horizontally_stacked_traces_yielding_this_trace = int(sensor.nstacks-1)
-            trace.stats.su.trace_header.delay_recording_time = int(sensor.delay*1000)
+            trace.stats.su.trace_header.delay_recording_time = int(abs(sensor.delay)*1000)
             trace.stats.su.trace_header.group_coordinate_x = int(sensor.x*1000)
             trace.stats.su.trace_header.group_coordinate_y = int(sensor.y*1000)
             
