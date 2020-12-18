@@ -644,6 +644,31 @@ class Array1D():
         obj = cls(sensors, source)
         return obj
 
+    def to_file(self, fname, ftype="su"):
+        if ftype != "su":
+            raise ValueError(f"ftype = {ftype} not recognized.")
+        
+        stream = obspy.Stream()
+
+        for sensor in self.sensors:
+            trace = obspy.Trace(np.array(sensor.amp, dtype=np.float32))
+            trace.stats.delta = sensor.dt
+            # trace.stats.starttime = obspy.UTCDateTime(2019,1,1,0,0,0)
+
+            if not hasattr(trace.stats, 'su'):
+                trace.stats.su = {}
+            trace.stats.su.trace_header = obspy.io.segy.segy.SEGYTraceHeader()
+            trace.stats.su.trace_header.source_coordinate_x = int(self.source._x*1000)
+            trace.stats.su.trace_header.source_coordinate_y = int(self.source._y*1000)
+            trace.stats.su.trace_header.number_of_horizontally_stacked_traces_yielding_this_trace = int(sensor.nstacks-1)
+            trace.stats.su.trace_header.delay_recording_time = int(sensor.delay*1000)
+            trace.stats.su.trace_header.group_coordinate_x = int(sensor.x*1000)
+            trace.stats.su.trace_header.group_coordinate_y = int(sensor.y*1000)
+            
+            stream.append(trace)
+
+        stream.write(filename=fname, format="SU")
+
     def is_similar(self, other):
         """Check if `other` is similar to `self`."""
         if not isinstance(other, (Array1D,)):
