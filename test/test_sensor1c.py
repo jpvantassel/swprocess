@@ -59,12 +59,13 @@ class Test_Sensor1C(TestCase):
             warnings.simplefilter("ignore")
             traces = obspy.read(self.full_path+"data/denise/v1.2_x.su.shot1")
         trace = traces[0]
-        sensor = Sensor1C.from_trace(trace, map_y=lambda y:y/1000, map_x=lambda x:x/1000)
+        sensor = Sensor1C.from_trace(trace)
         self.assertArrayEqual(trace.data, sensor.amp)
         self.assertEqual(trace.stats.delta, sensor.dt)
         header = trace.stats.su.trace_header
-        x, y = [
-            float(header[key])/1000 for key in [f"group_coordinate_{c}" for c in ["x", "y"]]]
+        scaleco = int(header["scalar_to_be_applied_to_all_coordinates"])
+        scaleco = abs(1/scaleco) if scaleco < 0 else scaleco
+        x, y = [int(header[key]) *scaleco for key in [f"group_coordinate_{c}" for c in ["x", "y"]]]
         self.assertTupleEqual((x, y, 0.),
                               (sensor.x, sensor.y, sensor.z))
         self.assertEqual(float(header["delay_recording_time"]), sensor.delay)
