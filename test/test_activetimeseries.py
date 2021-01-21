@@ -51,15 +51,15 @@ class Test_ActiveTimeSeries(TestCase):
 
     def test_init(self):
         dt = 1
-        amp = [0, 1, 0, -1]
-        returned = swprocess.ActiveTimeSeries(amp, dt)
-        self.assertArrayEqual(np.array(amp), returned.amp)
+        amplitude = [0., 1, 0, -1]
+        returned = swprocess.ActiveTimeSeries(amplitude, dt)
+        self.assertArrayEqual(np.array(amplitude), returned.amplitude)
         self.assertEqual(dt, returned.dt)
 
     def test_time(self):
         dt = 0.5
-        amp = [0, 1, 2, 3]
-        obj = swprocess.ActiveTimeSeries(amp, dt)
+        amplitude = [0., 1, 2, 3]
+        obj = swprocess.ActiveTimeSeries(amplitude, dt)
 
         expected = np.array([0., 0.5, 1., 1.5])
         returned = obj.time
@@ -67,9 +67,9 @@ class Test_ActiveTimeSeries(TestCase):
 
         # With pre-event delay
         dt = 0.5
-        amp = [-1, 0, 1, 0, -1]
+        amplitude = [-1., 0, 1, 0, -1]
         true_time = [-0.5, 0., 0.5, 1., 1.5]
-        test = swprocess.ActiveTimeSeries(amp, dt, delay=-0.5)
+        test = swprocess.ActiveTimeSeries(amplitude, dt, delay=-0.5)
         self.assertListEqual(test.time.tolist(), true_time)
 
     def test_from_trace_seg2(self):
@@ -77,7 +77,7 @@ class Test_ActiveTimeSeries(TestCase):
             warnings.simplefilter("ignore")
             trace = obspy.read(self.wghs_path + "1.dat")[0]
         returned = swprocess.ActiveTimeSeries.from_trace_seg2(trace)
-        self.assertArrayEqual(trace.data, returned.amp)
+        self.assertArrayEqual(trace.data, returned.amplitude)
         self.assertEqual(trace.stats.delta, returned.dt)
         self.assertEqual(int(trace.stats.seg2.STACK), returned._nstacks)
         self.assertEqual(float(trace.stats.seg2.DELAY), returned.delay)
@@ -87,7 +87,7 @@ class Test_ActiveTimeSeries(TestCase):
             warnings.simplefilter("ignore")
             trace = obspy.read(self.wghs_path + "1.dat")[0]
         tseries = swprocess.ActiveTimeSeries.from_trace(trace, delay=-0.5)
-        self.assertListEqual(tseries.amp.tolist(), trace.data.tolist())
+        self.assertArrayEqual(tseries.amplitude, trace.data)
         self.assertEqual(trace.stats.delta, tseries.dt)
         self.assertEqual(int(trace.stats.seg2.STACK), tseries._nstacks)
         self.assertEqual(float(trace.stats.seg2.DELAY), tseries.delay)
@@ -98,7 +98,7 @@ class Test_ActiveTimeSeries(TestCase):
         nseries = swprocess.ActiveTimeSeries(amplitude=[0, -1, 0, 1], dt=1)
         tseries.stack_append(nseries)
         expected = np.array([0, 0, 0, 0])
-        returned = tseries.amp
+        returned = tseries.amplitude
         self.assertArrayEqual(expected, returned)
 
         # Append trace with 5 stacks.
@@ -107,7 +107,7 @@ class Test_ActiveTimeSeries(TestCase):
         nseries = swprocess.ActiveTimeSeries(amplitude=[5], dt=1,
                                              nstacks=5)
         tseries.stack_append(nseries)
-        returned = tseries.amp
+        returned = tseries.amplitude
         expected = (10*3 + 5*5)/(3+5)
         self.assertEqual(expected, returned)
 
@@ -178,9 +178,9 @@ class Test_ActiveTimeSeries(TestCase):
         # First Example: no delay
         thist = swprocess.ActiveTimeSeries(amplitude=np.arange(0, 2, 0.001),
                                            dt=0.001)
-        self.assertEqual(len(thist.amp), 2000)
+        self.assertEqual(len(thist.amplitude), 2000)
         thist.trim(0, 1)
-        self.assertEqual(len(thist.amp), 1001)
+        self.assertEqual(len(thist.amplitude), 1001)
         self.assertEqual(thist.nsamples, 1001)
 
         # With pre-trigger delay
@@ -244,131 +244,140 @@ class Test_ActiveTimeSeries(TestCase):
         self.assertFalse(thist_a._is_similar(thist_f))
         self.assertFalse(thist_a._is_similar(thist_g))
 
-    # def test_crosscorr(self):
-    #     ampa = [0, 1, 0]
-    #     ampb = [1]
-    #     dt = 1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-    #     self.assertListEqual([0, 1, 0], correlate.tolist())
+    def test_crosscorr(self):
+        # TODO (jpv): Timeseries of length 1 get reduced to float.
+        # ampa = [0., 1, 0]
+        # ampb = [1.]
+        # dt = 1
+        # tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        # tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        # correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        # self.assertListEqual([0., 1, 0], correlate.tolist())
 
-    #     ampa = [0, 0, 1, 0]
-    #     ampb = [1]
-    #     dt = 1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-    #     self.assertListEqual([0, 0, 1, 0], correlate.tolist())
+        # ampa = [0, 0, 1, 0]
+        # ampb = [1]
+        # dt = 1
+        # tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        # tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        # correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        # self.assertListEqual([0, 0, 1, 0], correlate.tolist())
 
-    #     ampa = [0, 0, 1, 0]
-    #     ampb = [1, 0]
-    #     dt = 1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-    #     self.assertListEqual([0, 0, 0, 1, 0], correlate.tolist())
+        ampa = [0, 0, 1, 0]
+        ampb = [1, 0]
+        dt = 1
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        self.assertListEqual([0, 0, 0, 1, 0], correlate.tolist())
 
-    #     ampa = [0, 0, 1, 0]
-    #     ampb = [0, 1, 0]
-    #     dt = 1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-    #     self.assertListEqual([0, 0, 0, 1, 0, 0], correlate.tolist())
+        ampa = [0, 0, 1, 0]
+        ampb = [0, 1, 0]
+        dt = 1
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        self.assertListEqual([0, 0, 0, 1, 0, 0], correlate.tolist())
 
-    #     ampa = [0, 0, -1, 0]
-    #     ampb = [0, -1, 0, 0]
-    #     dt = 1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
-    #     self.assertListEqual([0, 0, 0, 0, 1, 0, 0], correlate.tolist())
+        ampa = [0, 0, -1, 0]
+        ampb = [0, -1, 0, 0]
+        dt = 1
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        correlate = swprocess.ActiveTimeSeries.crosscorr(tseries_a, tseries_b)
+        self.assertListEqual([0, 0, 0, 0, 1, 0, 0], correlate.tolist())
 
-    #     # Bad example
-    #     self.assertRaises(ValueError, swprocess.ActiveTimeSeries.crosscorr,
-    #                       swprocess.ActiveTimeSeries([1, 2], dt=1),
-    #                       swprocess.ActiveTimeSeries([1, 2], dt=2))
+        # Bad example
+        self.assertRaises(ValueError, swprocess.ActiveTimeSeries.crosscorr,
+                          swprocess.ActiveTimeSeries([1, 2], dt=1),
+                          swprocess.ActiveTimeSeries([1, 2], dt=2))
 
-    # def test_crosscorr_shift(self):
-    #     # Simple Pulse
-    #     ampa = [0, 0, 1, 0]
-    #     ampb = [0, 1, 0, 0]
-    #     dt = 1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     shifted = swprocess.ActiveTimeSeries.crosscorr_shift(
-    #         tseries_a, tseries_b)
-    #     self.assertListEqual(ampa, shifted.tolist())
+    def test_crosscorr_shift(self):
+        # Simple Pulse
+        ampa = [0, 0, 1, 0]
+        ampb = [0, 1, 0, 0]
+        dt = 1
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        shifts, shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+                                                                     tseries_b)
+        self.assertEqual(1, shifts)
+        self.assertListEqual(ampa, shifted.tolist())
 
-    #     # Simple Pulse
-    #     ampa = [0, 0, 2, 3, 4, 5, 0, 2, 3, 0]
-    #     ampb = [0, 2, 3, 4, 5, 0, 0, 0, 0, 0]
-    #     dt = 1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
-    #                                                          tseries_b)
-    #     self.assertListEqual([0, 0, 2, 3, 4, 5, 0, 0, 0, 0], shifted.tolist())
+        # Simple Pulse
+        ampa = [0, 0, 2, 3, 4, 5, 0, 2, 3, 0]
+        ampb = [0, 2, 3, 4, 5, 0, 0, 0, 0, 0]
+        dt = 1
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        shifts, shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+                                                                     tseries_b)
+        self.assertEqual(1, shifts)
+        self.assertListEqual([0, 0, 2, 3, 4, 5, 0, 0, 0, 0], shifted.tolist())
 
-    #     # Sinusoidal Pulse
-    #     ampa = [0, -1, 0, 1, 0, -1, 0, 0]
-    #     ampb = [0, 0, 0, -1, 0, 1, 0, 0]
-    #     dt = 0.1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     shifted = swprocess.ActiveTimeSeries.crosscorr_shift(
-    #         tseries_a, tseries_b)
-    #     self.assertListEqual([0, -1, 0, 1, 0, 0, 0, 0], shifted.tolist())
+        # Sinusoidal Pulse
+        ampa = [0, -1, 0, 1, 0, -1, 0, 0]
+        ampb = [0, 0, 0, -1, 0, 1, 0, 0]
+        dt = 0.1
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        shifts, shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+                                                                     tseries_b)
+        self.assertEqual(-2, shifts)
+        self.assertListEqual([0, -1, 0, 1, 0, 0, 0, 0], shifted.tolist())
 
-    #     # Sinusoid
-    #     dt = 0.01
-    #     time = np.arange(0, 2, dt)
-    #     f = 5
-    #     ampa = np.concatenate((np.zeros(20), np.sin(2*np.pi*f*time)))
-    #     ampb = np.concatenate((np.sin(2*np.pi*f*time), np.zeros(20)))
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
-    #                                                          tseries_b)
-    #     self.assertArrayEqual(ampa, shifted)
+        # Sinusoid
+        dt = 0.01
+        time = np.arange(0, 2, dt)
+        f = 5
+        ampa = np.concatenate((np.zeros(20), np.sin(2*np.pi*f*time)))
+        ampb = np.concatenate((np.sin(2*np.pi*f*time), np.zeros(20)))
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        shifts, shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+                                                                     tseries_b)
+        self.assertEqual(20, shifts)
+        self.assertArrayEqual(ampa, shifted)
 
-    #     # No shift
-    #     dt = 0.1
-    #     f = 10
-    #     time = np.arange(0, 5, dt)
-    #     amp = np.concatenate((np.zeros(15), np.sin(2*np.pi*f*time)))
-    #     tseries_a = swprocess.ActiveTimeSeries(amp, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries.from_activetimeseries(tseries_a)
-    #     shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
-    #                                                          tseries_b)
-    #     self.assertArrayEqual(tseries_a.amp, shifted)
+        # No shift
+        dt = 0.1
+        f = 10
+        time = np.arange(0, 5, dt)
+        amplitude = np.concatenate((np.zeros(15), np.sin(2*np.pi*f*time)))
+        tseries_a = swprocess.ActiveTimeSeries(amplitude, dt)
+        tseries_b = swprocess.ActiveTimeSeries.from_activetimeseries(tseries_a)
+        shifts, shifted = swprocess.ActiveTimeSeries.crosscorr_shift(tseries_a,
+                                                                     tseries_b)
+        self.assertEqual(0, shifts)
+        self.assertArrayEqual(tseries_a.amplitude, shifted)
 
-    # def test_from_cross_stack(self):
-    #     # Simple pulse
-    #     ampa = [0, 0, 1, 0]
-    #     ampb = [0, 1, 0, 0]
-    #     dt = 1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     stacked = swprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
-    #                                                           tseries_b)
-    #     self.assertListEqual(ampa, stacked.amp.tolist())
+    def test_from_cross_stack(self):
+        # Simple pulse
+        ampa = [0, 0, 1, 0]
+        ampb = [0, 1, 0, 0]
+        dt = 1
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        stacked = swprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
+                                                              tseries_b)
+        self.assertListEqual(ampa, stacked.amplitude.tolist())
 
-    #     # Simple Sinusoid
-    #     ampa = [0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
-    #     ampb = [0, 0, 0, 0, 0, 0, 1, 0, 1, 0]
-    #     dt = 1
-    #     tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
-    #     tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
-    #     stacked = swprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
-    #                                                           tseries_b)
-    #     self.assertListEqual(ampa, stacked.amp.tolist())
+        # Simple Sinusoid
+        ampa = [0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
+        ampb = [0, 0, 0, 0, 0, 0, 1, 0, 1, 0]
+        dt = 1
+        tseries_a = swprocess.ActiveTimeSeries(ampa, dt)
+        tseries_b = swprocess.ActiveTimeSeries(ampb, dt)
+        stacked = swprocess.ActiveTimeSeries.from_cross_stack(tseries_a,
+                                                              tseries_b)
+        self.assertListEqual(ampa, stacked.amplitude.tolist())
 
     def test_properties(self):
-        amp = [0, 1, 0, 1, 0, 1, 0, 1]
+        amplitude = [0, 1, 0, 1, 0, 1, 0, 1]
         dt = 0.5
-        tseries = swprocess.ActiveTimeSeries(amp, dt, nstacks=3, delay=-1)
+        tseries = swprocess.ActiveTimeSeries(amplitude,
+                                             dt,
+                                             nstacks=3,
+                                             delay=-1)
 
         # nstacks
         self.assertEqual(3, tseries.nstacks)
@@ -379,15 +388,17 @@ class Test_ActiveTimeSeries(TestCase):
             self.assertEqual(3, tseries.n_stacks)
 
     def test_str_and_repr(self):
-        amp = [0, 1, 2, 3, 4, 5]
+        amplitude = [0, 1, 2, 3, 4, 5]
         dt = 0.25
         delay = -0.5
         nstacks = 5
-        tseries = swprocess.ActiveTimeSeries(
-            amp, dt, nstacks=nstacks, delay=delay)
+        tseries = swprocess.ActiveTimeSeries(amplitude,
+                                             dt,
+                                             nstacks=nstacks,
+                                             delay=delay)
 
         # __repr__
-        expected = f"ActiveTimeSeries(dt={tseries.dt}, amplitude={tseries.amp}, nstacks={tseries._nstacks}, delay={tseries._delay})"
+        expected = f"ActiveTimeSeries(dt={tseries.dt}, amplitude={tseries.amplitude}, nstacks={tseries._nstacks}, delay={tseries._delay})"
         returned = tseries.__repr__()
         self.assertEqual(expected, returned)
 

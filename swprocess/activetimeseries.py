@@ -127,8 +127,8 @@ class ActiveTimeSeries(TimeSeries):
             msg = "`timeseries` is incompatible and cannot be stacked."
             raise ValueError(msg)
 
-        self.amp = (self.amp*self.nstacks + timeseries.amp*timeseries.nstacks)
-        self.amp /= (self.nstacks + timeseries.nstacks)
+        self._amp = (self._amp*self.nstacks + timeseries._amp*timeseries.nstacks)
+        self._amp /= (self.nstacks + timeseries.nstacks)
         self._nstacks += timeseries.nstacks
 
     @classmethod
@@ -267,7 +267,7 @@ class ActiveTimeSeries(TimeSeries):
         else:
             return
 
-        self.amp = np.concatenate((self.amp, np.zeros(padding)))
+        self._amp = np.concatenate((self._amp, np.zeros((1, padding))), axis=1)
 
     @staticmethod
     def crosscorr(a, b, correlate_kwargs=None, exclude=("nsamples")):
@@ -299,7 +299,7 @@ class ActiveTimeSeries(TimeSeries):
         if correlate_kwargs is None:
             correlate_kwargs = {}
 
-        return correlate(a.amp, b.amp, **correlate_kwargs)
+        return correlate(a.amplitude, b.amplitude, **correlate_kwargs)
 
     @staticmethod
     def crosscorr_shift(a, b, exclude=None):
@@ -328,11 +328,11 @@ class ActiveTimeSeries(TimeSeries):
         maxcorr_location = np.argmax(corr)
         shifts = (maxcorr_location+1)-b.nsamples
         if shifts > 0:
-            return (shifts, np.concatenate((np.zeros(shifts), b.amp[:-shifts])))
+            return (shifts, np.concatenate((np.zeros(shifts), b.amplitude[:-shifts])))
         elif shifts < 0:
-            return (shifts, np.concatenate((b.amp[abs(shifts):], np.zeros(abs(shifts)))))
+            return (shifts, np.concatenate((b.amplitude[abs(shifts):], np.zeros(abs(shifts)))))
         else:
-            return (shifts, np.array(b.amp))
+            return (shifts, np.array(b.amplitude))
 
     @classmethod
     def from_cross_stack(cls, a, b):
@@ -360,7 +360,8 @@ class ActiveTimeSeries(TimeSeries):
         """
         obj = cls.from_activetimeseries(a)
         b_copy = cls.from_activetimeseries(b)
-        _, b_copy.amp = cls.crosscorr_shift(a, b_copy, exclude=("nsamples", "nstacks"))
+        _, shifted_amplitude = cls.crosscorr_shift(a, b_copy, exclude=("nsamples", "nstacks"))
+        b_copy._amp = np.expand_dims(shifted_amplitude, axis=0)
         obj.stack_append(b_copy)
         return obj
 
@@ -384,14 +385,14 @@ class ActiveTimeSeries(TimeSeries):
         if not self._is_similar(other):
             return False
 
-        if not np.allclose(self.amp, other.amp):
+        if not np.allclose(self.amplitude, other.amplitude):
             return False
 
         return True
 
     def __repr__(self):
         """Unambiguous representation of the object."""
-        return f"ActiveTimeSeries(dt={self.dt}, amplitude={self.amp}, nstacks={self._nstacks}, delay={self._delay})"
+        return f"ActiveTimeSeries(dt={self.dt}, amplitude={self.amplitude}, nstacks={self._nstacks}, delay={self._delay})"
 
     def __str__(self):
         """Human-readable representation of the object."""
