@@ -37,7 +37,7 @@ class TestCase(unittest.TestCase):
 
     def assertArrayEqual(self, array1, array2):
         try:
-            self.assertTrue(np.equal(array1, array2).all())
+            self.assertTrue(np.equal(array1, array2, casting='safe').all())
         except AssertionError as e:
             msg = f"\nExpected:\n{array1}\nReturned:\n{array2})"
             raise AssertionError(msg) from e
