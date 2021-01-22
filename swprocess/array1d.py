@@ -87,7 +87,7 @@ class Array1D():
         """
         matrix = np.empty((self.nchannels, self[0].nsamples))
         for i, sensor in enumerate(self.sensors):
-            _amp = sensor.amp
+            _amp = sensor.amplitude
             amp = signal.detrend(_amp) if detrend else _amp
             amp = amp/np.max(np.abs(amp)) if normalize == "each" else amp
             matrix[i, :] = amp
@@ -546,7 +546,7 @@ class Array1D():
         for i, (start, stop) in enumerate(zip(start_indices, stop_indices)):
             window[start:stop] = signal.windows.tukey(stop-start,
                                                       **window_kwargs)
-            self.sensors[i].amp *= window
+            self.sensors[i]._amp *= window
             window *= 0
 
     def _flipped_tseries_and_offsets(self):
@@ -659,7 +659,7 @@ class Array1D():
         stream = obspy.Stream()
 
         for sensor in self.sensors:
-            trace = obspy.Trace(np.array(sensor.amp, dtype=np.float32))
+            trace = obspy.Trace(np.array(sensor.amplitude, dtype=np.float32))
             trace.stats.delta = sensor.dt
             trace.stats.starttime = obspy.UTCDateTime(2020,12,18,10,0,0)
 

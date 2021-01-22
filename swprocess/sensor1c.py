@@ -46,7 +46,7 @@ class Sensor1C(ActiveTimeSeries):
 
     @classmethod
     def from_activetimeseries(cls, activetimeseries, x, y, z):
-        return cls(activetimeseries.amp, activetimeseries.dt, x, y, z,
+        return cls(activetimeseries.amplitude, activetimeseries.dt, x, y, z,
                    nstacks=activetimeseries.nstacks,
                    delay=activetimeseries.delay)
 

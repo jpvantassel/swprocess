@@ -32,7 +32,7 @@ class Test_Sensor1C(TestCase):
         # __init__
         sensor_1 = Sensor1C(self.a_amp, self.a_dt, 0, 0, 0)
 
-        self.assertArrayEqual(self.a_amp, sensor_1.amp)
+        self.assertArrayEqual(self.a_amp, sensor_1.amplitude)
         self.assertEqual(self.a_dt, sensor_1.dt)
 
         # from_activetimeseries
@@ -46,7 +46,7 @@ class Test_Sensor1C(TestCase):
             traces = obspy.read(self.wghs_path+"6.dat")
         trace = traces[0]
         sensor = Sensor1C.from_trace(trace)
-        self.assertArrayEqual(trace.data, sensor.amp)
+        self.assertArrayEqual(trace.data, sensor.amplitude)
         self.assertEqual(trace.stats.delta, sensor.dt)
         x = float(trace.stats.seg2.RECEIVER_LOCATION)
         self.assertTupleEqual((x, 0., 0.),
@@ -60,7 +60,7 @@ class Test_Sensor1C(TestCase):
             traces = obspy.read(self.full_path+"data/denise/v1.2_x.su.shot1")
         trace = traces[0]
         sensor = Sensor1C.from_trace(trace)
-        self.assertArrayEqual(trace.data, sensor.amp)
+        self.assertArrayEqual(trace.data, sensor.amplitude)
         self.assertEqual(trace.stats.delta, sensor.dt)
         header = trace.stats.su.trace_header
         scaleco = int(header["scalar_to_be_applied_to_all_coordinates"])
@@ -79,7 +79,7 @@ class Test_Sensor1C(TestCase):
                 traces = obspy.read(cpath)
             sensor = Sensor1C.from_trace(
                 trace, read_header=False, nstacks=15, delay=-2, x=3, y=6, z=12)
-            self.assertArrayEqual(trace.data, sensor.amp)
+            self.assertArrayEqual(trace.data, sensor.amplitude)
             self.assertEqual(trace.stats.delta, sensor.dt)
             self.assertEqual(15, sensor.nstacks)
             self.assertEqual(-2., sensor.delay)

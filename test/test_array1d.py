@@ -449,7 +449,7 @@ class Test_Array1D(TestCase):
                                       delay=0, nsensors=5, spacing=2,
                                       source_x=-5)
         for index, sensor in enumerate(near_array):
-            sensor.amp += index
+            sensor._amp += index
 
         expected_tmatrix = np.array([[0]*4, [1]*4, [2]*4, [3]*4, [4]*4])
         expected_offsets = np.array([5, 7, 9, 11, 13])
@@ -496,7 +496,7 @@ class Test_Array1D(TestCase):
                 tmp = obspy.read(fname).traces[0]
                 expected += tmp.data
             expected /= len(fnames)
-        returned = swprocess.Array1D.from_files(fnames)[0].amp
+        returned = swprocess.Array1D.from_files(fnames)[0].amplitude
         self.assertArrayAlmostEqual(expected, returned, places=2)
 
         # Bad : incompatible sources
