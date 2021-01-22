@@ -11,6 +11,10 @@
 - Add test case for from_max from waterplant.
 - Corr shift test failing.
 - Change `single` to `nostacking`.
+- Delay on SU file, is being read/written incorrectly.
+- Update for latest version of sigpropy.
+- Straighten out SWprocess.
+- Broken benchmarks, bad SU?
 
 ## Long term
 
