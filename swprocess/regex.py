@@ -2,7 +2,7 @@
 
 import re
 
-__all__ = ["get_peak_from_max", "get_all"]
+__all__ = ["get_peak_from_max", "get_all", "get_spac_ratio", "get_spac_ring"]
 
 
 def get_peak_from_max(wavetype="rayleigh", time="(\d+\.?\d*)"):
@@ -56,8 +56,9 @@ def validate_wavetypes(wavetype):
     else:
         raise ValueError(f"wavetype={wavetype}, not recognized.")
 
-def get_spac_ratio(component="0", ring="\d*"):
-    """TODO (jpv): Finish docstring.
+def get_spac_ratio(time="(\d+\.?\d*)", component="(0)", ring="(\d+)"):
+    """
+    TODO (jpv): Finish docstring.
 
     Paramters
     ---------
@@ -65,7 +66,7 @@ def get_spac_ratio(component="0", ring="\d*"):
         Component vertical="0", radial="1", and transverse="2" to be
         read, default is "0".
     ring : str
-        Desired ring, default is "\d*" so all rings will be
+        Desired ring, default is "\d+" so all rings will be
         exported.
 
     Returns
@@ -74,11 +75,21 @@ def get_spac_ratio(component="0", ring="\d*"):
         To read lines from SPAC-style `.max` file.
 
     """
-    if component != "0":
-        msg = f"component={component} is not allowed; only vertical component is implemented."
+    if component != "(0)" or component != "0" :
+        msg = f"component={component} is not allowed; only vertical component=0 is implemented."
         raise NotImplementedError(msg)
 
-    number =  "-?\d+.?\d*[eE]?[+-]?\d*"
+    number =  "(-?\d+.?\d*[eE]?[+-]?\d*)"
 
-    pattern = f"({number}) ({number}) ({component}) ({ring}) ({number})"
+    pattern = f"{time} {number} {component} {ring} {number}"
+    print(pattern)
+    return re.compile(pattern)
+
+def get_spac_ring():
+    """Find all rings in MSPAC .log file.
+    TODO (jpv): Finish docstring.
+
+    """
+    number =  "(-?\d+.?\d*[eE]?[+-]?\d*)"
+    pattern = f" --- Ring \({number} m, {number} m\)"
     return re.compile(pattern)
