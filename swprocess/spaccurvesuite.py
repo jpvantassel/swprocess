@@ -13,7 +13,7 @@ class SpacCurveSuite():
         self.spaccurves = [spaccurve]
 
     def append(self, spaccurve):
-        self.spaccurves.append(spacurve)
+        self.spaccurves.append(spaccurve)
 
     @classmethod
     def from_list(cls, spaccurves):
@@ -64,7 +64,8 @@ class SpacCurveSuite():
         meas_npeaks = data.count("\n") - data.count("#")
         # TODO (jpv): Implement radial and transverse spaccurve, remove * 3.
         found_npeaks = len(found_curves) * 3 * len(spaccurve.frequencies)
-        if meas_npeaks != pred_npeaks:
+        
+        if meas_npeaks != found_npeaks:
             msg = f"Number of measured peaks {meas_npeaks} does not equal the number of found peaks {found_npeaks}."
             raise ValueError(msg)
 

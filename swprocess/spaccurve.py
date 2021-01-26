@@ -22,7 +22,10 @@ class SpacCurve():
 
         """
         self.frequencies = np.array(frequencies, dtype=float)
+        sort_ids = np.argsort(frequencies)
+        self.frequencies = self.frequencies[sort_ids]
         self.ratios = np.array(ratios, dtype=float)
+        self.ratios = self.ratios[sort_ids]
         self.time = str(time)
         self.component = int(component)
         self.ring = int(ring)
@@ -34,8 +37,8 @@ class SpacCurve():
         frequencies, ratios = [], []
         for found in regex.finditer(data):
             frequency, ratio = found.groups()
-            frequencies.append(frequency)
-            ratios.append(ratios)
+            frequencies.append(float(frequency))
+            ratios.append(float(ratio))
         return cls(frequencies, ratios, time, component, ring, dmin, dmax)
 
     def fit_to_bessel(self, intial_guess=400,
