@@ -55,3 +55,30 @@ def validate_wavetypes(wavetype):
         return wavetype.capitalize()
     else:
         raise ValueError(f"wavetype={wavetype}, not recognized.")
+
+def get_spac_ratio(component="0", ring="\d*"):
+    """TODO (jpv): Finish docstring.
+
+    Paramters
+    ---------
+    component : {"0", "1", "2"}, optional
+        Component vertical="0", radial="1", and transverse="2" to be
+        read, default is "0".
+    ring : str
+        Desired ring, default is "\d*" so all rings will be
+        exported.
+
+    Returns
+    -------
+    Compiled regular expression
+        To read lines from SPAC-style `.max` file.
+
+    """
+    if component != "0":
+        msg = f"component={component} is not allowed; only vertical component is implemented."
+        raise NotImplementedError(msg)
+
+    number =  "-?\d+.?\d*[eE]?[+-]?\d*"
+
+    pattern = f"({number}) ({number}) ({component}) ({ring}) ({number})"
+    return re.compile(pattern)
