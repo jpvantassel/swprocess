@@ -56,7 +56,9 @@ def validate_wavetypes(wavetype):
     else:
         raise ValueError(f"wavetype={wavetype}, not recognized.")
 
-def get_spac_ratio(time="(\d+\.?\d*)", component="(0)", ring="(\d+)"):
+
+def get_spac_ratio(time="(-?\d+.?\d*[eE]?[+-]?\d*)", component="(0)",
+                   ring="(\d+)"):
     """
     TODO (jpv): Finish docstring.
 
@@ -75,21 +77,21 @@ def get_spac_ratio(time="(\d+\.?\d*)", component="(0)", ring="(\d+)"):
         To read lines from SPAC-style `.max` file.
 
     """
-    if component != "(0)" or component != "0" :
+    if component not in ["(0)", "0"]:
         msg = f"component={component} is not allowed; only vertical component=0 is implemented."
         raise NotImplementedError(msg)
 
-    number =  "(-?\d+.?\d*[eE]?[+-]?\d*)"
+    number = "(-?\d+.?\d*[eE]?[+-]?\d*)"
 
     pattern = f"{time} {number} {component} {ring} {number}"
-    print(pattern)
     return re.compile(pattern)
+
 
 def get_spac_ring():
     """Find all rings in MSPAC .log file.
     TODO (jpv): Finish docstring.
 
     """
-    number =  "(-?\d+.?\d*[eE]?[+-]?\d*)"
+    number = "(-?\d+.?\d*[eE]?[+-]?\d*)"
     pattern = f" --- Ring \({number} m, {number} m\)"
     return re.compile(pattern)

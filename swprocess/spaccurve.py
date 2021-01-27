@@ -41,19 +41,39 @@ class SpacCurve():
             ratios.append(float(ratio))
         return cls(frequencies, ratios, time, component, ring, dmin, dmax)
 
-    def fit_to_bessel(self, intial_guess=400,
-                      lower_bounds=0, upper_bounds=4000):
-        """Fit SPAC curve to associated Bessel functional form.
+    def theoretical_spac_ratio_function_custom(self):
+        return self.theoretical_spac_ratio_function_general(component=self.component,
+                                                            dmin=self.dmin,
+                                                            dmax=self.dmax)
+
+    @staticmethod
+    def theoretical_spac_ratio_function_general(component, dmin, dmax):
+        if component == 0:
+            def func(frequencies, vrs, dmin=dmin, dmax=dmax):
+                w = 2*np.pi*frequencies
+                ratios = 2*vrs
+                ratios /= (w*(dmax*dmax - dmin*dmin))
+                ratios *= (dmax*j1(w*dmax/vrs) -
+                           dmin*j1(w*dmin/vrs))
+                return ratios
+        else:
+            msg = f"component={component} is not allowed; only vertical component=0 is implemented."
+            raise NotImplementedError(msg)
+
+        return func
+
+    def fit_to_theoretical(self):
+        """Fit SPAC ratio curve to theoretical functional form.
 
         Paramters
         ---------
-        initial_guess : {float, array-like}, optional
-            Initial guess for data's approximate wave velocity, default
-            is 400 m/s.
-        lower_bounds, upper_bounds : {float, array-like}, optional
-            Upper and lower boundaries on surface wave phase velocity
-            for each frequency, defaults are `0` and `4000`
-            respectively.
+        # initial_guesses : {float, array-like}, optional
+        #     Initial guesses for data's approximate wave velocity,
+        #     default is 400 m/s.
+        # lower_bounds, upper_bounds : {float, array-like}, optional
+        #     Upper and lower boundaries on surface wave phase velocity
+        #     for each frequency, defaults are `0` and `4000`
+        #     respectively.
 
         Returns
         -------
@@ -65,24 +85,37 @@ class SpacCurve():
         TODO (jpv): Extend this to radial and transverse.
 
         """
-        if self.component == 0:
-            def func(frequencies, vrs):
-                w = 2*np.pi*frequencies
-                ratios = 2*vrs
-                ratios /= (w*(self.dmax*self.dmax - self.dmin*self.dmin))
-                ratios *= (self.dmax*j1(w*self.dmax/vrs) -
-                           self.dmin*j1(w*self.dmin/vrs))
-                return ratios
-        else:
-            msg = f"component={self.component} is not allowed; only vertical component=0 is implemented."
-            raise NotImplementedError(msg)
+        func = self.theoretical_spac_ratio_function_custom()
+        
+        vtrial = np.linspace(50, 4000, 4000)
+        vrs = np.empty_like(self.frequencies)
+        errors = np.empty_like(self.frequencies)
+        for index, (frequency, exp_ratio) in enumerate(zip(self.frequencies, self.ratios)):
+            theo_ratios = func(frequency, vtrial)
+            
+            error = theo_ratios - exp_ratio
+            
+            v_index = np.argmin(error*error)
+            
+            errors[index] = error[v_index]
+            vrs[index] = vtrial[v_index]
 
-        guess = np.ones_like(self.frequencies)*intial_guess
-        lower_bounds = np.ones_like(self.frequencies)*lower_bounds
-        upper_bounds = np.ones_like(self.frequencies)*upper_bounds
-        bounds = (lower_bounds, upper_bounds)
 
-        vrs, _ = curve_fit(func, self.frequencies,
-                           self.ratios, p0=guess, bounds=bounds)
+        # def wrapper_func(frequencies, *vrs):
+        #     vrs = np.array(vrs)
+        #     return func(frequencies, vrs)
 
-        return (self.frequencies, vrs)
+
+        # lower_bounds = np.ones_like(self.frequencies)*lower_bounds
+        # upper_bounds = np.ones_like(self.frequencies)*upper_bounds
+
+        # vrs, _ = curve_fit(wrapper_func, self.frequencies, self.ratios,
+        #                    p0=guesses, bounds=(lower_bounds, upper_bounds))
+
+        # vrs = np.empty_like(self.frequencies)
+        # for index, (guess, lower_bound, upper_bound) in enumerate(zip(guesses, lower_bounds, upper_bounds)):
+        #     vrs, _ = curve_fit(func, self.frequencies, self.ratios,
+        #                       p0=guess, bounds=(lower_bound, upper_bound))
+        #     vrs[index] = vr
+
+        return (self.frequencies, vrs, errors)
