@@ -1,0 +1,739 @@
+### Init Log ###
+*********** File UT.STN11.WGHS_C50.miniseed+File UT.STN12.WGHS_C50.miniseed+File UT.STN14.WGHS_C50.miniseed+File UT.STN15.WGHS_C50.miniseed+File UT.STN16.WGHS_C50.miniseed+File UT.STN17.WGHS_C50.miniseed+File UT.STN18.WGHS_C50.miniseed+File UT.STN19.WGHS_C50.miniseed+File UT.STN20.WGHS_C50.miniseed ***********
+Add signal id 1 to component Vertical of station UT_STN11 at 9.3093 47.1799 0
+Add signal id 2 to component North of station UT_STN11 at 9.3093 47.1799 0
+Add signal id 3 to component East of station UT_STN11 at 9.3093 47.1799 0
+Add signal id 5 to component Vertical of station UT_STN12 at 24.423 31.8716 0
+Add signal id 4 to component North of station UT_STN12 at 24.423 31.8716 0
+Add signal id 6 to component East of station UT_STN12 at 24.423 31.8716 0
+Add signal id 7 to component Vertical of station UT_STN14 at 17.4323 8.34162 0
+Add signal id 8 to component North of station UT_STN14 at 17.4323 8.34162 0
+Add signal id 9 to component East of station UT_STN14 at 17.4323 8.34162 0
+Add signal id 10 to component Vertical of station UT_STN15 at 0 0 0
+Add signal id 11 to component North of station UT_STN15 at 0 0 0
+Add signal id 12 to component East of station UT_STN15 at 0 0 0
+Add signal id 13 to component Vertical of station UT_STN16 at -18.2473 7.05167 0
+Add signal id 14 to component North of station UT_STN16 at -18.2473 7.05167 0
+Add signal id 15 to component East of station UT_STN16 at -18.2473 7.05167 0
+Add signal id 16 to component Vertical of station UT_STN17 at -25.2823 27.7703 0
+Add signal id 17 to component North of station UT_STN17 at -25.2823 27.7703 0
+Add signal id 18 to component East of station UT_STN17 at -25.2823 27.7703 0
+Add signal id 19 to component Vertical of station UT_STN18 at -13.8502 46.103 0
+Add signal id 21 to component North of station UT_STN18 at -13.8502 46.103 0
+Add signal id 20 to component East of station UT_STN18 at -13.8502 46.103 0
+Add signal id 23 to component Vertical of station UT_STN19 at -1.18444 24.2744 0
+Add signal id 22 to component North of station UT_STN19 at -1.18444 24.2744 0
+Add signal id 24 to component East of station UT_STN19 at -1.18444 24.2744 0
+Add signal id 25 to component Vertical of station UT_STN20 at -9.33381 29.0734 0
+Add signal id 26 to component North of station UT_STN20 at -9.33381 29.0734 0
+Add signal id 27 to component East of station UT_STN20 at -9.33381 29.0734 0
+Found 9 different stations
+Found 36 couples
+### End Init Log ###
+### Parameters ###
+WINDOW MIN LENGTH (s) = 120
+WINDOW MAX LENGTH (s) = 50
+WINDOW LENGTH TYPE (at least/exactly/freq. dep.) = exactly
+DO BAD SAMPLE TOLERANCE (y/n) = n
+BAD SAMPLE TOLERANCE (s) = 0
+DO WINDOW OVERLAP (y/n) = n
+WINDOW OVERLAP (%) = 5
+DO BAD SAMPLE THRESHOLD (y/n) = n
+BAD SAMPLE THRESHOLD (%) = 99
+ANTI-TRIGGERING ON RAW SIGNAL (y/n) = n
+USED RAW COMPONENTS = y, y, y, n, y, y, y, y, y, y, y, y, y
+RAW STA (s) = 1
+RAW LTA (s) = 30
+RAW MIN SLTA = 0.2
+RAW MAX SLTA = 2.5
+MINIMUM FREQUENCY = 1
+MAXIMUM FREQUENCY = 30
+INVERSED FREQUENCY = n
+SAMPLES NUMBER FREQUENCY = 30
+SAMPLING TYPE FREQUENCY (0=log, 1=linear)= 0
+FROM TIME TYPE = 1
+FROM TIME TEXT = 22h25m
+TO TIME TYPE = 1
+TO TIME TEXT = 23h0m0.0100s
+OUTPUT TARGET FILE = n
+OUTPUT STMAP FILE = n
+OUTPUT MAX FILE = y
+OUTPUT FILE = D:/CurrentResearch/swprocess/examples/mam/data/spac/nz_wghs_c50_spac
+### End Parameters ###
+### Process Log ###
+ --- Ring (21.51 m, 24.55 m)
+UT_STN11-UT_STN18 azimuth=2.66238 weight=23.9648
+UT_STN16-UT_STN19 azimuth=45.2672 weight=27.6952
+UT_STN17-UT_STN18 azimuth=58.0527 weight=11.3484
+UT_STN16-UT_STN20 azimuth=67.964 weight=7.70043
+UT_STN12-UT_STN14 azimuth=73.4536 weight=12.4147
+UT_STN15-UT_STN19 azimuth=92.7935 weight=17.6507
+UT_STN16-UT_STN17 azimuth=108.755 weight=20.92
+UT_STN11-UT_STN12 azimuth=134.634 weight=15.3436
+UT_STN14-UT_STN19 azimuth=139.442 weight=18.5561
+UT_STN17-UT_STN19 azimuth=171.746 weight=24.4061
+Total weight=180
+ --- Ring (23.75 m, 26.72 m)
+UT_STN12-UT_STN19 azimuth=16.5247 weight=30.3441
+UT_STN11-UT_STN20 azimuth=44.1635 weight=14.3712
+UT_STN16-UT_STN19 azimuth=45.2672 weight=10.6113
+UT_STN11-UT_STN19 azimuth=65.386 weight=11.3484
+UT_STN16-UT_STN20 azimuth=67.964 weight=4.03378
+UT_STN12-UT_STN14 azimuth=73.4536 weight=12.4147
+UT_STN15-UT_STN19 azimuth=92.7935 weight=23.3351
+UT_STN18-UT_STN19 azimuth=120.124 weight=23.3244
+UT_STN14-UT_STN19 azimuth=139.442 weight=25.8109
+UT_STN17-UT_STN19 azimuth=171.746 weight=24.4061
+Total weight=180
+ --- Ring (35.7 m, 40.84 m)
+UT_STN14-UT_STN16 azimuth=2.07056 weight=15.6839
+UT_STN11-UT_STN17 azimuth=29.2972 weight=25.2334
+UT_STN12-UT_STN15 azimuth=52.5373 weight=27.1392
+UT_STN16-UT_STN18 azimuth=83.5757 weight=24.6379
+UT_STN11-UT_STN14 azimuth=101.813 weight=24.3697
+UT_STN15-UT_STN17 azimuth=132.315 weight=28.895
+UT_STN12-UT_STN18 azimuth=159.603 weight=34.041
+Total weight=180
+ --- Ring (46.92 m, 49.88 m)
+UT_STN12-UT_STN17 azimuth=4.71703 weight=17.4511
+UT_STN12-UT_STN16 azimuth=30.1853 weight=25.4026
+UT_STN11-UT_STN16 azimuth=55.5221 weight=24.3264
+UT_STN11-UT_STN15 azimuth=78.8381 weight=25.5995
+UT_STN15-UT_STN18 azimuth=106.721 weight=25.4006
+UT_STN14-UT_STN18 azimuth=129.639 weight=24.4102
+UT_STN14-UT_STN17 azimuth=155.542 weight=37.4095
+Total weight=180
+Process started at 2021-01-27 15:10:58
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 1/30 30
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 2/30 26.68
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 3/30 23.7274
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 4/30 21.1016
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 5/30 18.7664
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 6/30 16.6896
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 7/30 14.8426
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 8/30 13.2
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 9/30 11.7392
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 10/30 10.4401
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 11/30 9.28473
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 12/30 8.25722
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 13/30 7.34343
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 14/30 6.53076
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 15/30 5.80802
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 16/30 5.16527
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 17/30 4.59365
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 18/30 4.08529
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 19/30 3.63318
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 20/30 3.23111
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 21/30 2.87354
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 22/30 2.55553
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 23/30 2.27272
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 24/30 2.02121
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 25/30 1.79753
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 26/30 1.5986
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 27/30 1.42169
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 28/30 1.26436
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 29/30 1.12444
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Adding window from 80700 to 80820 s.
+Adding window from 80820 to 80940 s.
+Adding window from 80940 to 81060 s.
+Adding window from 81060 to 81180 s.
+Adding window from 81180 to 81300 s.
+Adding window from 81300.1 to 81420.1 s.
+Adding window from 81420.1 to 81540.1 s.
+Adding window from 81540.1 to 81660.1 s.
+Adding window from 81660.1 to 81780.1 s.
+Adding window from 81780.1 to 81900.1 s.
+Adding window from 81900.1 to 82020.1 s.
+Adding window from 82020.1 to 82140.1 s.
+Adding window from 82140.1 to 82260.1 s.
+Adding window from 82260.1 to 82380.1 s.
+Adding window from 82380.1 to 82500.1 s.
+Adding window from 82500.1 to 82620.1 s.
+Adding window from 82620.2 to 82740.2 s.
+Frequency 30/30 1
+Min Window length 120 seconds
+Max Window length 120 seconds
+ 17 Time windows
+Process run in 00:00:06
+Process ended at 2021-01-27 15:11:04
+### End Process Log ###
