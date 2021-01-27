@@ -1,4 +1,4 @@
-.. _activetimeseries:
+.. _ActiveTimeSeries:
 
 activetimeseries
 ================

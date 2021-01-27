@@ -17,5 +17,7 @@ API Reference
    sensor1c
    snr
    source
+   spaccurve
+   spaccurvesuite
    utils
    wavefieldtransforms

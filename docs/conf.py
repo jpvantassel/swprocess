@@ -14,7 +14,7 @@ import os
 import sys
 
 meta = {}
-with open("swprocess/meta.py") as f:
+with open("../swprocess/meta.py") as f:
     exec(f.read(), meta)
 
 sys.path.insert(0, os.path.abspath('../swprocess'))

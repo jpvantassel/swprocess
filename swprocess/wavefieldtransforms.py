@@ -20,12 +20,10 @@ logger = logging.getLogger("swprocess.wavefieldtransforms")
 class AbstractWavefieldTransform(ABC):
     """Wavefield transformation of an `Array1D`.
 
-    Attributes
-    ----------
-
     """
 
     def __init__(self, frequencies, velocities, power):
+        """Define AbstractWavefieldTransform."""
         self.n = 1
         self.frequencies = frequencies
         self.velocities = velocities
@@ -62,6 +60,7 @@ class AbstractWavefieldTransform(ABC):
     @classmethod
     @abstractclassmethod
     def transform(cls, array, velocities, settings):  # pragma: no cover
+        """Abstract transform method."""
         pass
 
     @staticmethod
@@ -349,6 +348,7 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
 
     @classmethod
     def transform(cls, array, velocities, settings):  # pragma: no cover
+        """Empty transform method."""
         pass
 
 

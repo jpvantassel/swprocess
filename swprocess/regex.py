@@ -62,7 +62,7 @@ def get_spac_ratio(time="(-?\d+.?\d*[eE]?[+-]?\d*)", component="(0)",
     """
     TODO (jpv): Finish docstring.
 
-    Paramters
+    Parameters
     ---------
     component : {"0", "1", "2"}, optional
         Component vertical="0", radial="1", and transverse="2" to be

@@ -13,7 +13,7 @@ class SpacCurve():
     def __init__(self, frequencies, ratios, time, component, ring, dmin, dmax):
         """
 
-        Paramters
+        Parameters
         ---------
         frequencies : array-like
             Frequencies associated with each SPAC ratio.
@@ -66,7 +66,7 @@ class SpacCurve():
     def fit_to_theoretical(self, vrange=(50, 4000)):
         """Fit SPAC ratio curve to theoretical functional form.
 
-        Paramters
+        Parameters
         ---------
         vrange : tuple, optional
             Contains the upper and lower limit of the search range for
