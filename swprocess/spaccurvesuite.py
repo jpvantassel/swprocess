@@ -4,6 +4,7 @@ import numpy as np
 
 from .regex import get_spac_ratio, get_spac_ring
 from .spaccurve import SpacCurve
+from .peakssuite import PeaksSuite
 
 
 class SpacCurveSuite():
@@ -14,6 +15,51 @@ class SpacCurveSuite():
 
     def append(self, spaccurve):
         self.spaccurves.append(spaccurve)
+
+    @property
+    def rings(self):
+        """List of rings associated with the particular suite."""
+        rings = []
+        for spaccurve in self.spaccurves:
+            ring = spaccurve.ring
+            if ring not in rings:
+                rings.append(ring)
+        return rings
+
+    def to_peaksuite(self, rings="all", vrange=(50, 4000)):
+        """Transform `SpacCurveSuite` to `PeaksSuite`.
+
+        Parameters
+        ----------
+        rings : {int, list, "all"}, optional
+            Desired ring(s) to be transformed, default is "all".
+        vrange : tuple, optional
+            See parameter description in
+            :meth:`~swprocess.spaccurve.SpacCurve.fit_to_theoretical`
+        
+        Returns
+        -------
+        list of PeaksSuite
+            `list` of `PeaksSuite` objects, one per ring.
+
+        """
+        if rings == "all":
+            rings = self.rings
+        elif isinstance(ring, int):
+            rings = [rings]
+        else:
+            rings = list(rings)
+
+        peakssuites_one_per_ring = []
+        for ring in rings:
+            peaks_for_suite = []
+            for spaccurve in self.spaccurves:
+                if spaccurve.ring == ring:
+                    peaks = spaccurve.to_peaks(vrange=vrange)
+                    peaks_for_suite.append(peaks)
+            peakssuite = PeaksSuite.from_peaks(peaks_for_suite)
+            peakssuites_one_per_ring.append(peakssuite)
+        return peakssuites_one_per_ring
 
     @classmethod
     def from_list(cls, spaccurves):

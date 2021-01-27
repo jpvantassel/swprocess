@@ -5,6 +5,7 @@ from scipy.special import j1
 from scipy.optimize import curve_fit
 
 from .regex import get_spac_ratio
+from .peaks import Peaks
 
 
 class SpacCurve():
@@ -86,7 +87,7 @@ class SpacCurve():
         """
         # TODO (jpv): Make this function more rigorous. Implement relational constraint.
         func = self.theoretical_spac_ratio_function_custom()
-        
+
         # Define trial velocities with 0.9 m/s spacing.
         vmin, vmax = min(vrange), max(vrange)
         n = int((vmax - vmin)/0.9)
@@ -95,7 +96,7 @@ class SpacCurve():
         vrs = np.empty_like(self.frequencies)
         for index, (frequency, exp_ratio) in enumerate(zip(self.frequencies, self.ratios)):
             theo_ratios = func(frequency, vtrial)
-            
+
             diff = theo_ratios - exp_ratio
             error = np.abs(diff*diff)
 
@@ -103,3 +104,23 @@ class SpacCurve():
             vrs[index] = vtrial[v_index]
 
         return (self.frequencies, vrs)
+
+    def to_peaks(self, vrange=(50, 4000)):
+        """Transform `SpacCurve` to `Peaks` object.
+
+        Parameters
+        ----------
+        vrange : tuple, optional
+            See parameter description in
+            :meth:`~swprocess.spaccurve.SpacCurve.fit_to_theoretical`
+
+        Returns
+        -------
+        Peaks
+            Containing the frequency-velocity peaks fit to the SPAC
+            ratios.
+
+        """
+        frequency, velocities = self.fit_to_theoretical(vrange=vrange)
+        return Peaks(frequency, velocities,
+                     identifier=f"time={self.time}; ring={self.ring}")
