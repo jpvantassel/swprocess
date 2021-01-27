@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import swprocess
 from testtools import unittest, TestCase, get_full_path
@@ -42,6 +43,46 @@ class Test_SpacCurve(TestCase):
 
         self.assertEqual(dmax, spaccurve.dmax)
         self.assertIsNot(dmax, spaccurve.dmax)
+
+    def test_theoretical_spac_ratio_function_custom(self):
+        # component=0; vertical.
+        fname = self.full_path + "data/mspac/bessel_vr=400_bettig2001.csv"
+        df = pd.read_csv(fname)
+
+        spaccurve = swprocess.SpacCurve([0.1, 0.2], [0.1, 0.2],
+                                        time="0", component=0, ring=0,
+                                        dmin=352, dmax=383)
+        func = spaccurve.theoretical_spac_ratio_function_custom()
+        expected = df.ratios.to_numpy()
+        returned = func(df.frequencies.to_numpy(), 400)
+        self.assertArrayAlmostEqual(expected, returned)
+
+        # component=1; radial.
+        spaccurve = swprocess.SpacCurve([0.1, 0.2], [0.1, 0.2],
+                                        time="0", component=1, ring=0,
+                                        dmin=352, dmax=383)
+        self.assertRaises(NotImplementedError,
+                          spaccurve.theoretical_spac_ratio_function_custom)
+
+        # component=2; transverse.
+        spaccurve = swprocess.SpacCurve([0.1, 0.2], [0.1, 0.2],
+                                        time="0", component=2, ring=0,
+                                        dmin=352, dmax=383)
+        self.assertRaises(NotImplementedError,
+                          spaccurve.theoretical_spac_ratio_function_custom)
+
+    def test_fit_to_theoretical(self):
+        # known solution with vr = 400.
+        fname = self.full_path + "data/mspac/bessel_vr=400_bettig2001.csv"
+        df = pd.read_csv(fname)
+
+        spaccurve = swprocess.SpacCurve(df.frequencies, df.ratios,
+                                        time="0", component=0, ring=0,
+                                        dmin=352, dmax=383)
+        frequencies, vrs = spaccurve.fit_to_theoretical(vrange=(100, 1000))
+        self.assertArrayEqual(df.frequencies.to_numpy(), frequencies)
+        self.assertArrayAlmostEqual(np.ones_like(frequencies)*400, vrs)
+
 
 
 if __name__ == "__main__":

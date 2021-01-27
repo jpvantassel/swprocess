@@ -48,6 +48,7 @@ class SpacCurve():
 
     @staticmethod
     def theoretical_spac_ratio_function_general(component, dmin, dmax):
+        # TODO (jpv): Extend this to radial and transverse.
         if component == 0:
             def func(frequencies, vrs, dmin=dmin, dmax=dmax):
                 w = 2*np.pi*frequencies
@@ -62,60 +63,43 @@ class SpacCurve():
 
         return func
 
-    def fit_to_theoretical(self):
+    def fit_to_theoretical(self, vrange=(50, 4000)):
         """Fit SPAC ratio curve to theoretical functional form.
 
         Paramters
         ---------
-        # initial_guesses : {float, array-like}, optional
-        #     Initial guesses for data's approximate wave velocity,
-        #     default is 400 m/s.
-        # lower_bounds, upper_bounds : {float, array-like}, optional
-        #     Upper and lower boundaries on surface wave phase velocity
-        #     for each frequency, defaults are `0` and `4000`
-        #     respectively.
+        vrange : tuple, optional
+            Contains the upper and lower limit of the search range for
+            the Rayleigh phase velocity, default is `(50, 4000)`. It is
+            strongly recommended that this range be narrowed according
+            to the anticipated site conditions and/or other experimental
+            measurements (e.g., FK-type processing).
 
         Returns
         -------
         tuple
             Of the form `(frequencies, vrs)` where `frequencies` are the
-            frequencies where the SPAC curve is defined and `vrs` are
-            the fit Rayleigh wave phase velocities.
-
-        TODO (jpv): Extend this to radial and transverse.
+            frequencies where the SPAC ratios are defined and `vrs` are
+            the Rayleigh wave phase velocities which best explain the
+            experimental SPAC ratios.
 
         """
+        # TODO (jpv): Make this function more rigorous. Implement relational constraint.
         func = self.theoretical_spac_ratio_function_custom()
         
-        vtrial = np.linspace(50, 4000, 4000)
+        # Define trial velocities with 0.9 m/s spacing.
+        vmin, vmax = min(vrange), max(vrange)
+        n = int((vmax - vmin)/0.9)
+        vtrial = np.linspace(vmin, vmax, n)
+
         vrs = np.empty_like(self.frequencies)
-        errors = np.empty_like(self.frequencies)
         for index, (frequency, exp_ratio) in enumerate(zip(self.frequencies, self.ratios)):
             theo_ratios = func(frequency, vtrial)
             
-            error = theo_ratios - exp_ratio
-            
-            v_index = np.argmin(error*error)
-            
-            errors[index] = error[v_index]
+            diff = theo_ratios - exp_ratio
+            error = np.abs(diff*diff)
+
+            v_index = np.argmin(error)
             vrs[index] = vtrial[v_index]
 
-
-        # def wrapper_func(frequencies, *vrs):
-        #     vrs = np.array(vrs)
-        #     return func(frequencies, vrs)
-
-
-        # lower_bounds = np.ones_like(self.frequencies)*lower_bounds
-        # upper_bounds = np.ones_like(self.frequencies)*upper_bounds
-
-        # vrs, _ = curve_fit(wrapper_func, self.frequencies, self.ratios,
-        #                    p0=guesses, bounds=(lower_bounds, upper_bounds))
-
-        # vrs = np.empty_like(self.frequencies)
-        # for index, (guess, lower_bound, upper_bound) in enumerate(zip(guesses, lower_bounds, upper_bounds)):
-        #     vrs, _ = curve_fit(func, self.frequencies, self.ratios,
-        #                       p0=guess, bounds=(lower_bound, upper_bound))
-        #     vrs[index] = vr
-
-        return (self.frequencies, vrs, errors)
+        return (self.frequencies, vrs)
