@@ -26,40 +26,63 @@ class SpacCurveSuite():
                 rings.append(ring)
         return rings
 
-    def to_peaksuite(self, rings="all", vrange=(50, 4000)):
-        """Transform `SpacCurveSuite` to `PeaksSuite`.
-
-        Parameters
-        ----------
-        rings : {int, list, "all"}, optional
-            Desired ring(s) to be transformed, default is "all".
-        vrange : tuple, optional
-            See parameter description in
-            :meth:`~swprocess.spaccurve.SpacCurve.fit_to_theoretical`
+    def _data_matrix(self):
+        """Create data matrix.
         
-        Returns
-        -------
-        list of PeaksSuite
-            `list` of `PeaksSuite` objects, one per ring.
+        Notes
+        -----
+        Assumes all `SpacCurve`s share same frequency sampling.
 
         """
-        if rings == "all":
-            rings = self.rings
-        elif isinstance(ring, int):
-            rings = [rings]
-        else:
-            rings = list(rings)
+        data_matrix = np.empty((len(self), len(self[0].frequency)))
+        for row, spaccurve in enumerate(self.spaccurves):
+            data_matrix[row] = spaccurve
+        return data_matrix
 
-        peakssuites_one_per_ring = []
-        for ring in rings:
-            peaks_for_suite = []
-            for spaccurve in self.spaccurves:
-                if spaccurve.ring == ring:
-                    peaks = spaccurve.to_peaks(vrange=vrange)
-                    peaks_for_suite.append(peaks)
-            peakssuite = PeaksSuite.from_peaks(peaks_for_suite)
-            peakssuites_one_per_ring.append(peakssuite)
-        return peakssuites_one_per_ring
+    def _calc_spac_ratio_uncertainty(self, data_matrix=None):
+        if data_matrix is None:
+            data_matrix = self._data_matrix()
+        
+        mean = np.mean(data_matrix, axis=1)
+        std = np.std(data_matrix, axis=1, ddof=1)
+        cov = np.cov(data_matrix.T).T
+
+        return (mean, std, cov)
+        
+    # def to_peaksuite(self, rings="all"):
+    #     """Transform `SpacCurveSuite` to `PeaksSuite`.
+
+    #     Parameters
+    #     ----------
+    #     rings : {int, list, "all"}, optional
+    #         Desired ring(s) to be transformed, default is "all".
+    #     vrange : tuple, optional
+    #         See parameter description in
+    #         :meth:`~swprocess.spaccurve.SpacCurve.fit_to_theoretical`
+        
+    #     Returns
+    #     -------
+    #     list of PeaksSuite
+    #         `list` of `PeaksSuite` objects, one per ring.
+
+    #     """
+    #     if rings == "all":
+    #         rings = self.rings
+    #     elif isinstance(ring, int):
+    #         rings = [rings]
+    #     else:
+    #         rings = list(rings)
+
+    #     peakssuites_one_per_ring = []
+    #     for ring in rings:
+    #         peaks_for_suite = []
+    #         for spaccurve in self.spaccurves:
+    #             if spaccurve.ring == ring:
+    #                 peaks = spaccurve.to_peaks(vrange=vrange)
+    #                 peaks_for_suite.append(peaks)
+    #         peakssuite = PeaksSuite.from_peaks(peaks_for_suite)
+    #         peakssuites_one_per_ring.append(peakssuite)
+    #     return peakssuites_one_per_ring
 
     @classmethod
     def from_list(cls, spaccurves):

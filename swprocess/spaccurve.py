@@ -64,63 +64,62 @@ class SpacCurve():
 
         return func
 
-    def fit_to_theoretical(self, vrange=(50, 4000)):
-        """Fit SPAC ratio curve to theoretical functional form.
+    # def fit_to_theoretical(self, vrange=(50, 4000)):
+    #     """Fit SPAC ratio curve to theoretical functional form.
 
-        Parameters
-        ---------
-        vrange : tuple, optional
-            Contains the upper and lower limit of the search range for
-            the Rayleigh phase velocity, default is `(50, 4000)`. It is
-            strongly recommended that this range be narrowed according
-            to the anticipated site conditions and/or other experimental
-            measurements (e.g., FK-type processing).
+    #     Parameters
+    #     ---------
+    #     vrange : tuple, optional
+    #         Contains the upper and lower limit of the search range for
+    #         the Rayleigh phase velocity, default is `(50, 4000)`. It is
+    #         strongly recommended that this range be narrowed according
+    #         to the anticipated site conditions and/or other experimental
+    #         measurements (e.g., FK-type processing).
 
-        Returns
-        -------
-        tuple
-            Of the form `(frequencies, vrs)` where `frequencies` are the
-            frequencies where the SPAC ratios are defined and `vrs` are
-            the Rayleigh wave phase velocities which best explain the
-            experimental SPAC ratios.
+    #     Returns
+    #     -------
+    #     tuple
+    #         Of the form `(frequencies, vrs)` where `frequencies` are the
+    #         frequencies where the SPAC ratios are defined and `vrs` are
+    #         the Rayleigh wave phase velocities which best explain the
+    #         experimental SPAC ratios.
 
-        """
-        # TODO (jpv): Make this function more rigorous. Implement relational constraint.
-        func = self.theoretical_spac_ratio_function_custom()
+    #     """
+    #     func = self.theoretical_spac_ratio_function_custom()
 
-        # Define trial velocities with 0.9 m/s spacing.
-        vmin, vmax = min(vrange), max(vrange)
-        n = int((vmax - vmin)/0.9)
-        vtrial = np.linspace(vmin, vmax, n)
+    #     # Define trial velocities with 0.9 m/s spacing.
+    #     vmin, vmax = min(vrange), max(vrange)
+    #     n = int((vmax - vmin)/0.9)
+    #     vtrial = np.linspace(vmin, vmax, n)
 
-        vrs = np.empty_like(self.frequencies)
-        for index, (frequency, exp_ratio) in enumerate(zip(self.frequencies, self.ratios)):
-            theo_ratios = func(frequency, vtrial)
+    #     vrs = np.empty_like(self.frequencies)
+    #     for index, (frequency, exp_ratio) in enumerate(zip(self.frequencies, self.ratios)):
+    #         theo_ratios = func(frequency, vtrial)
 
-            diff = theo_ratios - exp_ratio
-            error = np.abs(diff*diff)
+    #         diff = theo_ratios - exp_ratio
+    #         error = np.abs(diff*diff)
 
-            v_index = np.argmin(error)
-            vrs[index] = vtrial[v_index]
+    #         v_index = np.argmin(error)
+    #         vrs[index] = vtrial[v_index]
 
-        return (self.frequencies, vrs)
+    #     return (self.frequencies, vrs)
 
-    def to_peaks(self, vrange=(50, 4000)):
-        """Transform `SpacCurve` to `Peaks` object.
+    # def to_peaks(self, vrange=(50, 4000)):
+    #     """Transform `SpacCurve` to `Peaks` object.
 
-        Parameters
-        ----------
-        vrange : tuple, optional
-            See parameter description in
-            :meth:`~swprocess.spaccurve.SpacCurve.fit_to_theoretical`
+    #     Parameters
+    #     ----------
+    #     vrange : tuple, optional
+    #         See parameter description in
+    #         :meth:`~swprocess.spaccurve.SpacCurve.fit_to_theoretical`
 
-        Returns
-        -------
-        Peaks
-            Containing the frequency-velocity peaks fit to the SPAC
-            ratios.
+    #     Returns
+    #     -------
+    #     Peaks
+    #         Containing the frequency-velocity peaks fit to the SPAC
+    #         ratios.
 
-        """
-        frequency, velocities = self.fit_to_theoretical(vrange=vrange)
-        return Peaks(frequency, velocities,
-                     identifier=f"time={self.time}; ring={self.ring}")
+    #     """
+    #     frequency, velocities = self.fit_to_theoretical(vrange=vrange)
+    #     return Peaks(frequency, velocities,
+    #                  identifier=f"time={self.time}; ring={self.ring}")

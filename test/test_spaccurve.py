@@ -71,17 +71,17 @@ class Test_SpacCurve(TestCase):
         self.assertRaises(NotImplementedError,
                           spaccurve.theoretical_spac_ratio_function_custom)
 
-    def test_fit_to_theoretical(self):
-        # known solution with vr = 400.
-        fname = self.full_path + "data/mspac/bessel_vr=400_bettig2001.csv"
-        df = pd.read_csv(fname)
+    # def test_fit_to_theoretical(self):
+    #     # known solution with vr = 400.
+    #     fname = self.full_path + "data/mspac/bessel_vr=400_bettig2001.csv"
+    #     df = pd.read_csv(fname)
 
-        spaccurve = swprocess.SpacCurve(df.frequencies, df.ratios,
-                                        time="0", component=0, ring=0,
-                                        dmin=352, dmax=383)
-        frequencies, vrs = spaccurve.fit_to_theoretical(vrange=(100, 1000))
-        self.assertArrayEqual(df.frequencies.to_numpy(), frequencies)
-        self.assertArrayAlmostEqual(np.ones_like(frequencies)*400, vrs)
+    #     spaccurve = swprocess.SpacCurve(df.frequencies, df.ratios,
+    #                                     time="0", component=0, ring=0,
+    #                                     dmin=352, dmax=383)
+    #     frequencies, vrs = spaccurve.fit_to_theoretical(vrange=(100, 1000))
+    #     self.assertArrayEqual(df.frequencies.to_numpy(), frequencies)
+    #     self.assertArrayAlmostEqual(np.ones_like(frequencies)*400, vrs)
 
 
 
