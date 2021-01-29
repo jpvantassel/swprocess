@@ -1,7 +1,7 @@
 """SpacCurveSuite class definition."""
 
 import numpy as np
-from scipy.special import j2
+from scipy.special import jv
 
 from .regex import get_spac_ratio, get_spac_ring
 from .spaccurve import SpacCurve
@@ -42,9 +42,9 @@ class SpacCurveSuite():
         Assumes all `SpacCurve`s share same frequency sampling.
 
         """
-        data_matrix = np.empty((len(self[0].frequency), len(self)))
+        data_matrix = np.empty((len(self[0].frequencies), len(self)))
         for col, spaccurve in enumerate(self.spaccurves):
-            data_matrix[:, col] = spaccurve
+            data_matrix[:, col] = spaccurve.ratios
         return data_matrix
 
     def _calc_spac_ratio_stats(self, data_matrix=None):
@@ -65,8 +65,8 @@ class SpacCurveSuite():
 
         return (self[0].frequencies, mean, std, cov)
 
-    def _from_spac_stat_to_phase_stat(self, p0=1500, p0_std=500, covp0p0=None,
-                                      omega=5, iterations=20, tol=0.01):
+    def _to_phase_stat(self, p0=1500, p0_std=500, covp0p0=None,
+                       omega=5, iterations=20, tol=0.01):
         """Use non-linear least squares to compute phase velocity stats.
 
         Parameters
@@ -116,20 +116,23 @@ class SpacCurveSuite():
         def calc_partial_derivative_matrix(fs, pm,
                                            dmin=self[0].dmin,
                                            dmax=self[0].dmax):
+            pm = pm.flatten()
             ws = 2*np.pi*fs
             dgdp = np.empty((len(fs), len(pm)))
             pm2 = pm*pm
             dmax3 = dmax**3
             dmin3 = dmin**3
             for row, w in enumerate(ws):
-                a = w*dmax3/pm2 * j2(w*dmax/pm)
-                b = w*dmin3/pm2 * j2(w*dmin/pm)
+                a = w*dmax3/pm2 * jv(2, w*dmax/pm)
+                b = w*dmin3/pm2 * jv(2, w*dmin/pm)
                 dgdp[row] = a - b
             return dgdp
 
         # Prepare iterative fit.
         forward = self[0].theoretical_spac_ratio_function_custom()
-        dm = forward(frq, p0)
+        pm = p0
+        dm = forward(frq, p0.flatten())
+        dm = np.reshape(dm, (k,1))
         dgdp = calc_partial_derivative_matrix(frq, p0)
 
         # Iterate
@@ -141,16 +144,18 @@ class SpacCurveSuite():
             covpm1pm1 = leastsquare_posterioricovmatrix(covp0p0, covd0d0, dgdp)
             
             # Error calculation (only done for the mean currently).
-            error = forward(frq, pm1) - d0
+            error = forward(frq, pm1.flatten()) - d0.flatten()
             rms = np.sqrt(np.mean(error*error))
             if rms < tol:
                 break
             
             # Update in preparation for next iteration.
             pm = pm1
-            dm = forward(frq, pm)
+            dm = forward(frq, pm.flatten())
+            dm = np.reshape(dm, (k,1))
 
-        return (frq, pm1, np.diag(covpm1pm1), covpm1pm1)
+        print(iteration)
+        return (frq, pm1.flatten(), np.sqrt(np.abs(np.diag(covpm1pm1))), covpm1pm1)
 
     # def to_peaksuite(self, rings="all"):
     #     """Transform `SpacCurveSuite` to `PeaksSuite`.
@@ -232,14 +237,14 @@ class SpacCurveSuite():
                                              ring, **rings[ring])
             spaccurves.append(spaccurve)
 
-        # Check if all values are accounted for.
-        meas_npeaks = data.count("\n") - data.count("#")
-        # TODO (jpv): Implement radial and transverse spaccurve, remove * 3.
-        found_npeaks = len(found_curves) * 3 * len(spaccurve.frequencies)
+        # # Check if all values are accounted for.
+        # meas_npeaks = data.count("\n") - data.count("#")
+        # # TODO (jpv): Implement radial and transverse spaccurve, remove * 3.
+        # found_npeaks = len(found_curves) * 3 * len(spaccurve.frequencies)
 
-        if meas_npeaks != found_npeaks:
-            msg = f"Number of measured peaks {meas_npeaks} does not equal the number of found peaks {found_npeaks}."
-            raise ValueError(msg)
+        # if meas_npeaks != found_npeaks:
+        #     msg = f"Number of measured peaks {meas_npeaks} does not equal the number of found peaks {found_npeaks}."
+        #     raise ValueError(msg)
 
         return cls.from_list(spaccurves)
 
