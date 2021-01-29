@@ -42,3 +42,9 @@ def leastsquare_iterativealgorithm(p0, pm, covp0p0, d0, dm, covd0d0, dgdp):
     b = np.linalg.inv(covd0d0 + np.matmul(np.matmul(dgdp, covp0p0), dgdp.T))
     c = d0 - dm + np.matmul(dgdp, (pm-p0))
     return p0 + np.matmul(np.matmul(a, b), c)
+
+def leastsquare_posterioricovmatrix(covp0p0, covd0d0, dgdp):
+    a = np.matmul(covp0p0, dgdp.T)
+    b = np.linalg.inv(covd0d0 + np.matmul(np.matmul(dgdp, covp0p0), dgdp.T))
+    c = np.matmul(dgdp, covp0p0)
+    return covp0p0 - np.matmul(np.matmul(a, b), c)
