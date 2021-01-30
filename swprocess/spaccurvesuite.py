@@ -103,56 +103,71 @@ class SpacCurveSuite():
 
         # Prepare the prior parameter information (i.e., on phase velocity).
         j = len(frq)
-        p0 = np.ones((j, 1)) * p0
+        p0 = np.ones(j) * p0
+        p0 = np.reshape(p0, (j,1))
         if covp0p0 is None:
             p0_std = np.ones(j) * p0_std
             covp0p0 = np.empty((j, j))
             omega2 = omega*omega
-            for row, (f0, std) in enumerate(zip(frq, p0_std)):
-                df = frq - f0
-                covp0p0[row] = std*std*np.exp(-0.5*(df*df)/omega2)
+            ws = 2*np.pi*frq
+            for row, (w, std) in enumerate(zip(ws, p0_std)):
+                dw = w - ws
+                covp0p0[row] = std*std*np.exp(-0.5*(dw*dw)/omega2)
 
-        # TODO (jpv): Make SpacCurveSuite only for a single ring & component.
+        # # TODO (jpv): Make SpacCurveSuite only for a single ring & component.
+        # def calc_partial_derivative_matrix(fs, pm,
+        #                                    dmin=self[0].dmin,
+        #                                    dmax=self[0].dmax):
+        #     pm = pm.flatten()
+        #     ws = 2*np.pi*fs
+        #     dgdp = np.empty((len(fs), len(pm)))
+        #     pm2 = pm*pm
+        #     dmax3 = dmax**3
+        #     dmin3 = dmin**3
+        #     for row, w in enumerate(ws):
+        #         a = w*dmax3/pm2 * jv(2, w*dmax/pm)
+        #         b = w*dmin3/pm2 * jv(2, w*dmin/pm)
+        #         dgdp[row] = a - b
+        #     return dgdp
+
         def calc_partial_derivative_matrix(fs, pm,
                                            dmin=self[0].dmin,
                                            dmax=self[0].dmax):
-            pm = pm.flatten()
             ws = 2*np.pi*fs
             dgdp = np.empty((len(fs), len(pm)))
-            pm2 = pm*pm
-            dmax3 = dmax**3
-            dmin3 = dmin**3
+            dmax2 = dmax*dmax
+            dmin2 = dmin*dmin
             for row, w in enumerate(ws):
-                a = w*dmax3/pm2 * jv(2, w*dmax/pm)
-                b = w*dmin3/pm2 * jv(2, w*dmin/pm)
-                dgdp[row] = a - b
+                a = dmax2 * jv(2, w*dmax/pm)
+                b = dmin2 * jv(2, w*dmin/pm)
+                dgdp[row] = 2/(dmax2 - dmin2)/pm * (a - b)
             return dgdp
 
         # Prepare iterative fit.
         forward = self[0].theoretical_spac_ratio_function_custom()
         pm = p0
-        dm = forward(frq, p0.flatten())
-        dm = np.reshape(dm, (k,1))
-        dgdp = calc_partial_derivative_matrix(frq, p0)
+        dm = forward(frq, p0[:, 0]).reshape((k, 1))
+        dgdp = calc_partial_derivative_matrix(frq, pm[:, 0])
 
         # Iterate
         for iteration in range(iterations):
-            pm1 = leastsquare_iterativealgorithm(p0, pm, covp0p0, d0, dm, covd0d0, dgdp)
+            pm1 = leastsquare_iterativealgorithm(p0, pm, covp0p0,
+                                                 d0, dm, covd0d0, dgdp)
 
             # Calculate posteriori covariance matrix.
-            dgdp = calc_partial_derivative_matrix(frq, pm1)
+            dgdp = calc_partial_derivative_matrix(frq, pm1[:, 0])
             covpm1pm1 = leastsquare_posterioricovmatrix(covp0p0, covd0d0, dgdp)
-            
+
             # Error calculation (only done for the mean currently).
-            error = forward(frq, pm1.flatten()) - d0.flatten()
+            error = forward(frq, pm1[:, 0]) - d0[:, 0]
             rms = np.sqrt(np.mean(error*error))
+            print(rms)
             if rms < tol:
                 break
-            
+
             # Update in preparation for next iteration.
             pm = pm1
-            dm = forward(frq, pm.flatten())
-            dm = np.reshape(dm, (k,1))
+            dm[:, 0] = forward(frq, pm[:, 0])
 
         print(iteration)
         return (frq, pm1.flatten(), np.sqrt(np.abs(np.diag(covpm1pm1))), covpm1pm1)
