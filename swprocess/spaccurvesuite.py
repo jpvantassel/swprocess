@@ -61,7 +61,7 @@ class SpacCurveSuite():
 
         mean = np.mean(data_matrix, axis=1)
         std = np.std(data_matrix, axis=1, ddof=1)
-        cov = np.cov(data_matrix)
+        cov = np.cov(data_matrix, ddof=1)
 
         return (self[0].frequencies, mean, std, cov)
 
@@ -98,13 +98,18 @@ class SpacCurveSuite():
         """
         # Prepare the data (i.e., the SPAC ratios).
         frq, d0, _, covd0d0 = self._calc_spac_ratio_stats()
+        # print(d0)
+        # print(covd0d0)
+
         k = len(frq)
         d0 = np.reshape(d0, (k, 1))
+        # print(frq.shape, d0.shape, covd0d0.shape)
 
         # Prepare the prior parameter information (i.e., on phase velocity).
         j = len(frq)
         p0 = np.ones(j) * p0
         p0 = np.reshape(p0, (j,1))
+
         if covp0p0 is None:
             p0_std = np.ones(j) * p0_std
             covp0p0 = np.empty((j, j))
@@ -134,7 +139,7 @@ class SpacCurveSuite():
                                            dmin=self[0].dmin,
                                            dmax=self[0].dmax):
             ws = 2*np.pi*fs
-            dgdp = np.empty((len(fs), len(pm)))
+            dgdp = np.zeros((len(fs), len(pm)))
             dmax2 = dmax*dmax
             dmin2 = dmin*dmin
             for row, w in enumerate(ws):
@@ -152,32 +157,34 @@ class SpacCurveSuite():
         # print(pm.flatten())
         # Iterate
         for iteration in range(iterations):
-            print(p0.flatten())
-            print(pm.flatten())
+            # print(p0.flatten())
+            # print(pm.flatten())
 
             pm1 = leastsquare_iterativealgorithm(p0, pm, covp0p0,
                                                  d0, dm, covd0d0, dgdp)
-            print(pm1.flatten())
+            # print(pm1.flatten())
 
             # Calculate posteriori covariance matrix.
-            dgdp = calc_partial_derivative_matrix(frq, pm1[:, 0])
+            dgdp = calc_partial_derivative_matrix(frq, pm1.flatten())
             # print(dgdp)
             # covpm1pm1 = leastsquare_posterioricovmatrix(covp0p0, covd0d0, dgdp)
 
             # Error calculation (only done for the mean currently).
-            # error = forward(frq, pm1[:, 0]) - d0[:, 0]
-            # rms = np.sqrt(np.mean(error*error))
+            error = forward(frq, pm1[:, 0]) - d0[:, 0]
+            rms = np.sqrt(np.mean(error*error))
             # print(rms)
             # if rms < tol:
             #     break
 
             # Update in preparation for next iteration.
             pm = pm1
-            dm[:, 0] = forward(frq, pm[:, 0])
-            print()
+            dm[:, 0] = forward(frq, pm.flatten())
+
+            # print()
 
         print(iteration)
         return (frq, pm1.flatten(), np.sqrt(np.abs(np.diag(covp0p0))), covp0p0)
+
         # return (frq, pm1.flatten(), np.sqrt(np.abs(np.diag(covpm1pm1))), covpm1pm1)
 
     # def to_peaksuite(self, rings="all"):
