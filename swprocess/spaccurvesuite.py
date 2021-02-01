@@ -112,7 +112,7 @@ class SpacCurveSuite():
             ws = 2*np.pi*frq
             for row, (w, std) in enumerate(zip(ws, p0_std)):
                 dw = w - ws
-                covp0p0[row] = std*std*np.exp(-0.5*(dw*dw)/omega2)
+                covp0p0[row] = std*std*np.exp((dw*dw)/(-2*omega2))
 
         # # TODO (jpv): Make SpacCurveSuite only for a single ring & component.
         # def calc_partial_derivative_matrix(fs, pm,
@@ -140,37 +140,45 @@ class SpacCurveSuite():
             for row, w in enumerate(ws):
                 a = dmax2 * jv(2, w*dmax/pm)
                 b = dmin2 * jv(2, w*dmin/pm)
-                dgdp[row] = 2/(dmax2 - dmin2)/pm * (a - b)
+                dgdp[row] = (2/(pm*(dmax2 - dmin2))) * (a - b)
             return dgdp
-
+        
         # Prepare iterative fit.
         forward = self[0].theoretical_spac_ratio_function_custom()
         pm = p0
         dm = forward(frq, p0[:, 0]).reshape((k, 1))
         dgdp = calc_partial_derivative_matrix(frq, pm[:, 0])
 
+        # print(pm.flatten())
         # Iterate
         for iteration in range(iterations):
+            print(p0.flatten())
+            print(pm.flatten())
+
             pm1 = leastsquare_iterativealgorithm(p0, pm, covp0p0,
                                                  d0, dm, covd0d0, dgdp)
+            print(pm1.flatten())
 
             # Calculate posteriori covariance matrix.
             dgdp = calc_partial_derivative_matrix(frq, pm1[:, 0])
-            covpm1pm1 = leastsquare_posterioricovmatrix(covp0p0, covd0d0, dgdp)
+            # print(dgdp)
+            # covpm1pm1 = leastsquare_posterioricovmatrix(covp0p0, covd0d0, dgdp)
 
             # Error calculation (only done for the mean currently).
-            error = forward(frq, pm1[:, 0]) - d0[:, 0]
-            rms = np.sqrt(np.mean(error*error))
-            print(rms)
-            if rms < tol:
-                break
+            # error = forward(frq, pm1[:, 0]) - d0[:, 0]
+            # rms = np.sqrt(np.mean(error*error))
+            # print(rms)
+            # if rms < tol:
+            #     break
 
             # Update in preparation for next iteration.
             pm = pm1
             dm[:, 0] = forward(frq, pm[:, 0])
+            print()
 
         print(iteration)
-        return (frq, pm1.flatten(), np.sqrt(np.abs(np.diag(covpm1pm1))), covpm1pm1)
+        return (frq, pm1.flatten(), np.sqrt(np.abs(np.diag(covp0p0))), covp0p0)
+        # return (frq, pm1.flatten(), np.sqrt(np.abs(np.diag(covpm1pm1))), covpm1pm1)
 
     # def to_peaksuite(self, rings="all"):
     #     """Transform `SpacCurveSuite` to `PeaksSuite`.
