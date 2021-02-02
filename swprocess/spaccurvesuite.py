@@ -65,6 +65,12 @@ class SpacCurveSuite():
 
         return (self[0].frequencies, mean, std, cov)
 
+    # def _grid_search(self, crs=np.arange(50, 2000, 10),
+    #                  cls=np.arange(50, 2000, 10),
+    #                  alphas=np.linspace(0, 1, 21))
+    #     # TODO (jpv): Assure suite only has a singular frequency vector.
+    #     for f in self[0].frequencies:
+
     def _to_phase_stat(self, p0=1500, p0_std=500, covp0p0=None,
                        omega=5, iterations=20, tol=0.01):
         """Use non-linear least squares to compute phase velocity stats.
@@ -108,7 +114,7 @@ class SpacCurveSuite():
         # Prepare the prior parameter information (i.e., on phase velocity).
         j = len(frq)
         p0 = np.ones(j) * p0
-        p0 = np.reshape(p0, (j,1))
+        p0 = np.reshape(p0, (j, 1))
 
         if covp0p0 is None:
             p0_std = np.ones(j) * p0_std
@@ -147,7 +153,7 @@ class SpacCurveSuite():
                 b = dmin2 * jv(2, w*dmin/pm)
                 dgdp[row] = (2/(pm*(dmax2 - dmin2))) * (a - b)
             return dgdp
-        
+
         # Prepare iterative fit.
         forward = self[0].theoretical_spac_ratio_function_custom()
         pm = p0
