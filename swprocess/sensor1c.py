@@ -166,7 +166,7 @@ class Sensor1C(ActiveTimeSeries):
         return cls.from_trace(trace,
                               read_header=False,
                               nstacks=int(header[nstack_key])+1,
-                              delay=-int(header["delay_recording_time"])/1000,
+                              delay=int(header["delay_recording_time"])/1000,
                               x=map_x(x),
                               y=map_y(y),
                               z=0)

@@ -131,7 +131,7 @@ class Array1D():
     def nchannels(self):
         """Number of `Sensors` in the array."""
         return len(self.sensors)
-    
+
     @property
     def array_center_distance(self):
         return np.mean(self.offsets)
@@ -141,8 +141,8 @@ class Array1D():
         position = self.position()
         min_spacing = min(np.diff(position))
         max_spacing = max(np.diff(position))
-        if min_spacing == max_spacing:
-            return min_spacing
+        if (max_spacing - min_spacing) < 1E-2:
+            return round(min_spacing, 2)
         else:
             raise ValueError("spacing undefined for non-equally spaced arrays")
 
@@ -612,12 +612,24 @@ class Array1D():
                 return Source(x=x, y=0, z=0)
         elif _format == "SU":
             def parse_source(stats):
+
+                if stats.su.trace_header["coordinate_units"] == 0:
+                    msg = "Coordinate units is unset, assuming length in meters and not degrees minutes seconds."
+                    warnings.warn(msg)
+                elif stats.su.trace_header["coordinate_units"] != 1:
+                    msg = "Coordinate units must be in units of length, not degrees minutes seconds."
+                    raise ValueError(msg)
+
                 scaleco = int(stats.su.trace_header["scalar_to_be_applied_to_all_coordinates"])
+                
                 int_x = int(stats.su.trace_header["source_coordinate_x"])
-                x =  int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
+                x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
+                x = round(x, np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
                 int_y = int(stats.su.trace_header["source_coordinate_y"])
                 y = int_y / abs(scaleco) if scaleco < 0 else int_x * scaleco
+                y = round(y, np.sign(scaleco) * int(np.log10(abs(scaleco))))
+
                 return Source(x=map_x(x), y=map_y(y), z=0)
 
         source = parse_source(trace.stats)
@@ -655,25 +667,28 @@ class Array1D():
     def to_file(self, fname, ftype="su"):
         if ftype != "su":
             raise ValueError(f"ftype = {ftype} not recognized.")
-        
+
         stream = obspy.Stream()
+
+        rint = lambda x: int(round(x))
 
         for sensor in self.sensors:
             trace = obspy.Trace(np.array(sensor.amplitude, dtype=np.float32))
             trace.stats.delta = sensor.dt
-            trace.stats.starttime = obspy.UTCDateTime(2020,12,18,10,0,0)
+            trace.stats.starttime = obspy.UTCDateTime(2020, 12, 18, 10, 0, 0)
 
             if not hasattr(trace.stats, 'su'):
                 trace.stats.su = {}
             trace.stats.su.trace_header = obspy.io.segy.segy.SEGYTraceHeader()
-            trace.stats.su.trace_header.scalar_to_be_applied_to_all_coordinates = int(-1000)
-            trace.stats.su.trace_header.source_coordinate_x = int(self.source._x*1000)
-            trace.stats.su.trace_header.source_coordinate_y = int(self.source._y*1000)
-            trace.stats.su.trace_header.number_of_horizontally_stacked_traces_yielding_this_trace = int(sensor.nstacks-1)
-            trace.stats.su.trace_header.delay_recording_time = int(abs(sensor.delay)*1000)
-            trace.stats.su.trace_header.group_coordinate_x = int(sensor.x*1000)
-            trace.stats.su.trace_header.group_coordinate_y = int(sensor.y*1000)
-            
+            trace.stats.su.trace_header.scalar_to_be_applied_to_all_coordinates = -1000
+            trace.stats.su.trace_header.source_coordinate_x = rint(self.source._x*1000)
+            trace.stats.su.trace_header.source_coordinate_y = rint(self.source._y*1000)
+            trace.stats.su.trace_header.number_of_horizontally_stacked_traces_yielding_this_trace = rint(sensor.nstacks-1)
+            trace.stats.su.trace_header.delay_recording_time = rint(sensor.delay*1000)
+            trace.stats.su.trace_header.group_coordinate_x = rint(sensor.x*1000)
+            trace.stats.su.trace_header.group_coordinate_y = rint(sensor.y*1000)
+            trace.stats.su.trace_header.coordinate_units = 1
+
             stream.append(trace)
 
         stream.write(filename=fname, format="SU")
