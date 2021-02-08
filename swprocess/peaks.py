@@ -116,7 +116,7 @@ class Peaks():
         getall = get_all(time=start_time, wavetype=wavetype)
         count = len(getall.findall(peak_data))
         if len(frqs) != count:  # pragma: no cover
-            msg = f"Missing {count- len(frqs)} dispersion peaks."
+            msg = f"Missing {count - len(frqs)} dispersion peaks."
             raise ValueError(msg)
 
         args = (frqs, vels, start_time)
