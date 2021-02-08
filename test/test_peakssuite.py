@@ -276,37 +276,37 @@ class Test_PeaksSuite(TestCase):
                                                             attribute="wavelength",
                                                             limits=(5, 100))
 
-    def test_plot(self):
-        # Default
-        fname = self.full_path + "data/peak/suite_raw.json"
-        suite = swprocess.PeaksSuite.from_json(fname)
-        fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
-                             ytype=["velocity", "velocity", "slowness"],
-                             )
+    # def test_plot(self):
+    #     # Default
+    #     fname = self.full_path + "data/peak/suite_raw.json"
+    #     suite = swprocess.PeaksSuite.from_json(fname)
+    #     fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
+    #                          ytype=["velocity", "velocity", "slowness"],
+    #                          )
 
-        # With a provided Axes.
-        fig, ax = plt.subplots()
-        result = suite.plot(ax=ax, xtype="frequency", ytype="velocity")
-        self.assertTrue(result is None)
+    #     # With a provided Axes.
+    #     fig, ax = plt.subplots()
+    #     result = suite.plot(ax=ax, xtype="frequency", ytype="velocity")
+    #     self.assertTrue(result is None)
 
-        # With a provided Axes (wrong size).
-        fig, ax = plt.subplots(ncols=3)
-        self.assertRaises(IndexError, suite.plot, ax=ax, xtype="frequency",
-                          ytype="velocity")
+    #     # With a provided Axes (wrong size).
+    #     fig, ax = plt.subplots(ncols=3)
+    #     self.assertRaises(IndexError, suite.plot, ax=ax, xtype="frequency",
+    #                       ytype="velocity")
 
-        # With a provided indices (wrong size).
-        self.assertRaises(IndexError, suite.plot, xtype="frequency",
-                          ytype="velocity", indices=[[0], [1]])
+    #     # With a provided indices (wrong size).
+    #     self.assertRaises(IndexError, suite.plot, xtype="frequency",
+    #                       ytype="velocity", indices=[[0], [1]])
 
-        # With a name provided.
-        fig, ax = plt.subplots()
-        suite.plot(ax=ax, xtype="frequency", ytype="velocity",
-                   plot_kwargs=dict(label="tada"))
-        _, labels = ax.get_legend_handles_labels()
-        self.assertListEqual(["tada"], labels)
+    #     # With a name provided.
+    #     fig, ax = plt.subplots()
+    #     suite.plot(ax=ax, xtype="frequency", ytype="velocity",
+    #                plot_kwargs=dict(label="tada"))
+    #     _, labels = ax.get_legend_handles_labels()
+    #     self.assertListEqual(["tada"], labels)
 
-        plt.show(block=False)
-        plt.close("all")
+    #     plt.show(block=False)
+    #     plt.close("all")
 
     def test_prepare_plot_kwargs(self):
         # Apply to all.
@@ -427,28 +427,28 @@ class Test_PeaksSuite(TestCase):
     #     fig.ginput = MagicMock(side_effect=[ginput_response, on_click])
     #     suite._draw_box(fig=fig)
 
-    def test_statistics(self):
-        # No missing data
-        values = np.array([[1, 2, 3, 4, 5],
-                           [4, 5, 7, 8, 9],
-                           [4, 3, 6, 4, 2]])
-        frq = [1, 2, 3, 4, 5]
-        peaks = [Peaks(frq, values[k], str(k)) for k in range(3)]
-        suite = swprocess.PeaksSuite.from_peaks(peaks)
-        rfrq, rmean, rstd, rcorr = suite.statistics(xtype="frequency",
-                                                    ytype="velocity",
-                                                    xx=frq,
-                                                    ignore_corr=False)
-        self.assertArrayEqual(np.array(frq), rfrq)
-        self.assertArrayEqual(np.mean(values, axis=0), rmean)
-        self.assertArrayEqual(np.std(values, axis=0, ddof=1), rstd)
-        self.assertArrayEqual(np.corrcoef(values.T), rcorr)
+    # def test_statistics(self):
+    #     # No missing data
+    #     values = np.array([[1, 2, 3, 4, 5],
+    #                        [4, 5, 7, 8, 9],
+    #                        [4, 3, 6, 4, 2]])
+    #     frq = [1, 2, 3, 4, 5]
+    #     peaks = [Peaks(frq, values[k], str(k)) for k in range(3)]
+    #     suite = swprocess.PeaksSuite.from_peaks(peaks)
+    #     rfrq, rmean, rstd, rcorr = suite.statistics(xtype="frequency",
+    #                                                 ytype="velocity",
+    #                                                 xx=frq,
+    #                                                 ignore_corr=False)
+    #     self.assertArrayEqual(np.array(frq), rfrq)
+    #     self.assertArrayEqual(np.mean(values, axis=0), rmean)
+    #     self.assertArrayEqual(np.std(values, axis=0, ddof=1), rstd)
+    #     self.assertArrayEqual(np.corrcoef(values.T), rcorr)
 
-        # Fewer than three peaks in PeaksSuite -> ValueError
-        peaks = [Peaks(frq, values[k], str(k)) for k in range(2)]
-        suite = swprocess.PeaksSuite.from_peaks(peaks)
-        self.assertRaises(ValueError, suite.statistics, xtype="frequency",
-                          ytype="velocity", xx=frq)
+    #     # Fewer than three peaks in PeaksSuite -> ValueError
+    #     peaks = [Peaks(frq, values[k], str(k)) for k in range(2)]
+    #     suite = swprocess.PeaksSuite.from_peaks(peaks)
+    #     self.assertRaises(ValueError, suite.statistics, xtype="frequency",
+    #                       ytype="velocity", xx=frq)
 
         # # missing_data_procedure="drop"
         # values = np.array([[np.nan]*6,

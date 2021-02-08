@@ -9,7 +9,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
-from .regex import get_peak_from_max, get_all
+from .regex import get_peak_from_max, get_nmaxima
 
 logger = logging.getLogger("swprocess.peaks")
 
@@ -42,18 +42,18 @@ class Peaks():
                      }
 
     def __init__(self, frequency, velocity, identifier="0", **kwargs):
-        """Create `Peaks` from a iterable of frequency and velocity.
+        """Create `Peaks` from a iterable of frequencies and velocities.
 
         Parameters
         ----------
         frequency, velocity : iterable of floats
             Frequency and velocity (one per peak), respectively.
-        identifiers : str, optional
-            String to uniquely identify the provided frequency-velocity
-            pair, default is "0".
-        **kwargs : iterable of floats
+        identifier : str, optional
+            String to uniquely identify the provided `Peaks`,
+            default is "0".
+        **kwargs : kwargs
             Optional keyword argument(s) these may include
-            additional details about the dispersion peaks such as:
+            additional information about the dispersion peaks such as:
             azimuth (azi), ellipticity (ell), power (pwr), and noise
             (pwr). Will generally not be entered directly.
 
@@ -63,8 +63,8 @@ class Peaks():
             Instantiated `Peaks` object.
 
         """
-        self.frequency = np.array(frequency, dtype=float)
-        self.velocity = np.array(velocity, dtype=float)
+        self.frequency = np.atleast_2d(np.array(frequency, dtype=float))
+        self.velocity = np.atleast_2d(np.array(velocity, dtype=float))
         self.identifier = str(identifier)
         self.attrs = ["frequency", "velocity"] + list(kwargs.keys())
 
@@ -72,7 +72,11 @@ class Peaks():
         logger.debug(f"  {self}.attrs={self.attrs}")
 
         for key, val in kwargs.items():
-            setattr(self, key, np.array(val, dtype=float))
+            setattr(self, key, np.atleast_2d(np.array(val, dtype=float)))
+
+    @property
+    def slowness(self):
+        return 1/self.velocity
 
     @property
     def wavelength(self):
@@ -80,7 +84,7 @@ class Peaks():
 
     @property
     def wavenumber(self):
-        return 2*np.pi/self.wavelength
+        return 2*np.pi*self.frequency/self.velocity
 
     @property
     def extended_attrs(self):
@@ -88,12 +92,8 @@ class Peaks():
         others = ["wavelength", "slowness", "wavenumber"]
         return self.attrs + others
 
-    @property
-    def slowness(self):
-        return 1/self.velocity
-
     @classmethod
-    def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None):
+    def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None, frequencies=None, nmaxima=None):
         """Parse data for a given time block."""
         if start_time is None:
             regex = get_peak_from_max(wavetype=wavetype)
@@ -101,23 +101,46 @@ class Peaks():
 
         getpeak = get_peak_from_max(time=start_time, wavetype=wavetype)
 
-        frqs, vels, azis, ells, nois, pwrs = [], [], [], [], [], []
-        for lineinfo in getpeak.finditer(peak_data):
-            _frq, _slo, _azi, _ell, _noi, _pwr = lineinfo.groups()
+        if frequencies is None:
+            frequencies = []
+            for match in getpeak.finditer(peak_data):
+                _, f, *_ = match.groups()
+                if f in frequencies:
+                    continue
+                else:
+                    frequencies.append(f)
+            nfrequencies = len(frequencies)
 
-            frqs.append(float(_frq))
-            vels.append(1/float(_slo))
-            azis.append(float(_azi))
-            ells.append(float(_ell))
-            nois.append(float(_noi))
-            pwrs.append(float(_pwr))
+        if nmaxima is None:
+            nmaxima = int(get_nmaxima().findall(peak_data)[0])
 
-        # Include for "belt and suspenders".
-        getall = get_all(time=start_time, wavetype=wavetype)
-        count = len(getall.findall(peak_data))
-        if len(frqs) != count:  # pragma: no cover
-            msg = f"Missing {count - len(frqs)} dispersion peaks."
-            raise ValueError(msg)
+        frqs = np.full((nmaxima, nfrequencies), fill_value=np.nan, dtype=float)
+        vels = np.full_like(frqs, fill_value=np.nan, dtype=float)
+        azis = np.full_like(frqs, fill_value=np.nan, dtype=float)
+        ells = np.full_like(frqs, fill_value=np.nan, dtype=float)
+        nois = np.full_like(frqs, fill_value=np.nan, dtype=float)
+        pwrs = np.full_like(frqs, fill_value=np.nan, dtype=float)
+
+        for col, frequency in enumerate(frequencies):
+            getpeak = get_peak_from_max(time=start_time, wavetype=wavetype, frequency=frequency)
+            
+            for row, match in enumerate(getpeak.finditer(peak_data)):
+                _, _frq, _slo, _azi, _ell, _noi, _pwr = match.groups()
+
+                frqs[row, col] = float(_frq)
+                vels[row, col] = 1/float(_slo)
+                azis[row, col] = float(_azi)
+                ells[row, col] = float(_ell)
+                nois[row, col] = float(_noi)
+                pwrs[row, col] = float(_pwr)
+
+        # TODO (jpv): Belt & Suspenders.
+        # # Include for "belt and suspenders".
+        # getall = get_all(time=start_time, wavetype=wavetype)
+        # count = len(getall.findall(peak_data))
+        # if len(frqs) != count:  # pragma: no cover
+        #     msg = f"Missing {count - len(frqs)} dispersion peaks."
+        #     raise ValueError(msg)
 
         args = (frqs, vels, start_time)
         kwargs = dict(azimuth=azis, ellipticity=ells, noise=nois, power=pwrs)
@@ -517,11 +540,11 @@ class Peaks():
             except AttributeError as e:
                 return False
             else:
-                if len(myattr) != len(urattr):
-                    return False
-                for myval, urval in zip(myattr, urattr):
-                    if myval != urval:
+                try:
+                    if not np.allclose(myattr, urattr, equal_nan=True):
                         return False
+                except ValueError:
+                    return False
 
         return True
 

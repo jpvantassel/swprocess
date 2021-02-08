@@ -1,0 +1,224 @@
+# MAX FORMAT RELEASE 1.1
+#
+# BEGIN COMMAND LINE ARGUMENTS
+#
+geopsy-fk -db ../geopsy_db/nz_wghs_c50_forv3.2.0.gpy -param rtbf_c50_n=1.param -group-path 3c -o nz_wghs_c50_rtbf_simple
+#
+# END COMMAND LINE ARGUMENTS
+#
+#
+# BEGIN SOFTWARE VERSION
+#
+  Qt                  5.12.3
+  QGpCoreTools        2.2.0 from geopsypack-3.2.0
+      (built on 20191001095018 commit 9a9aca6fa9a4afe876dea557f2abdfcf2a347b70)
+  QGpCoreMath         1.2.0 from geopsypack-3.2.0
+      (built on 20191001095047 commit ad04568874cdef88ce58bdf0965dea20d9a641ec)
+  DinverCore          1.1.0 from geopsypack-3.2.0
+      (built on 20191001095418 commit c69b0ffa73b98e472e87f259226ef460ce894064)
+  QGpCoreWave         2.0.2 from geopsypack-3.2.0
+      (built on 20191001095156 commit 34923366413bcea517f39b071c9d3e1369dd8036)
+  QGpCompatibility    1.0.1 from geopsypack-3.2.0
+      (built on 20191001095229 commit 99bd677bf34f3a0efaacb7450b6f8d9ce3a968ad)
+  DinverDCCore        2.0.2 from geopsypack-3.2.0
+      (built on 20191001095448 commit 9c22799dfce31a911fec950bc64063b6e6684d6f)
+  GeopsyCore          4.2.0 from geopsypack-3.2.0
+      (built on 20191001095243 commit 2820fdad8839570b8eb6b93977762c6ff192fd9e)
+  QGpCoreStat         1.0.1 from geopsypack-3.2.0
+      (built on 20191001095527 commit 0d96f68c5152ec51a85b51b2319be00666c6e8d5)
+  ArrayCore           3.2.0 from geopsypack-3.2.0
+      (built on 20191001095548 commit b0ebb57817f4915de5a81417e769f0df1cf265e1)
+  geopsy-fk           1.0.0 from geopsypack-3.2.0
+      (built on 20191001095711 commit 223f371e5b3d557510430bd0368dad2d65e1e7ea)
+#
+# END SOFTWARE VERSION
+#
+#
+# BEGIN STATION LIST
+#
+UT_STN11 9.31 47.18 0.00
+UT_STN12 24.42 31.87 0.00
+UT_STN14 17.43 8.34 0.00
+UT_STN15 0.00 0.00 0.00
+UT_STN16 -18.25 7.05 0.00
+UT_STN17 -25.28 27.77 0.00
+UT_STN18 -13.85 46.10 0.00
+UT_STN19 -1.18 24.27 0.00
+UT_STN20 -9.33 29.07 0.00
+#
+# END STATION LIST
+#
+#
+# BEGIN PARAMETERS
+#
+# TYPEs:
+#   - Signal: from the start or to the end of signal (TEXT are useless)
+#   - Delta: a fixed duration counted from the start or the end (e.g. TEXT=1h).
+#   - Pick: from or to a time pick (TEXT=time pick name).
+#   - Absolute: from or to a fixed time (e.g. TEXT=3d5h6m45s)
+FROM_TIME_TYPE=Absolute
+FROM_TIME_TEXT=20170609223200.000000
+# TYPEs: Signal, Delta, Absolute
+TO_TIME_TYPE=Signal
+TO_TIME_TEXT=0s
+REFERENCE=
+# TYPEs: Exactly, AtLeast, FrequencyDependent
+WINDOW_LENGTH_TYPE=Exactly
+WINDOW_MIN_LENGTH(s)=30
+WINDOW_MAX_LENGTH(s)=30
+WINDOW_MAX_COUNT=0
+WINDOW_POWER_OF_TWO (y/n)=n
+BAD_SAMPLE_TOLERANCE (s)=0
+BAD_SAMPLE_GAP (s)=0
+WINDOW_OVERLAP (%)=0
+# TYPEs: NoSampleThreshold, RelativeSampleThreshold, AbsoluteSampleThreshold
+BAD_SAMPLE_THRESHOLD_TYPE=NoSampleThreshold
+ANTI-TRIGGERING_ON_RAW_SIGNAL (y/n)=n
+ANTI-TRIGGERING_ON_FILTERED_SIGNAL (y/n)=n
+# Start a time window for each seismic event available inside the time range.
+SEISMIC_EVENT_TRIGGER (y/n)=n
+SEISMIC_EVENT_TDELAY (s)=-0.1
+MINIMUM_FREQUENCY=1
+MAXIMUM_FREQUENCY=30
+# Either 'log' or 'linear'
+SAMPLING_TYPE_FREQUENCY=Log
+# Number of samples is either set to a fixed value ('Count') or through a step between samples ('Step')'
+STEP_TYPE_FREQUENCY=Count
+SAMPLES_NUMBER_FREQUENCY=30
+# STEP=ratio between two successive samples for 'log' scales
+# STEP=difference between two successive samples for 'linear' scales
+STEP_FREQUENCY=1.12005
+INVERSED_FREQUENCY (y/n)=n
+# Overlap is controled by the WINDOWS parameters, by default non overlapping blocks are selected
+BLOCK_OVERLAP(y/n)=n
+# If BLOCK_COUNT is null, BLOCK_COUNT=BLOCK_COUNT_FACTOR*<number of stations>
+BLOCK_COUNT=0
+BLOCK_COUNT_FACTOR=4
+# If STATISTIC_COUNT is not null, approx. STATISTIC_COUNT estimates par frequency
+STATISTIC_COUNT=30
+# If STATISTIC_MAX_OVERLAP=100%, successive statistics can be computed on overlapping block sets
+# If STATISTIC_MAX_OVERLAP=0%, successive statistics are computed on non-overlapping block sets
+STATISTIC_MAX_OVERLAP(%)=0
+# Gaussian band width from f*(1-bw) to f*(1+bw), f*bw=stddev
+FREQ_BAND_WIDTH=0.05
+# Required when using short and fixed length time windows, avoid classical oblique lines visible in the results
+# when the number of frequency samples is higher than the number of points in the spectra.
+OVER_SAMPLING_FACTOR=1
+# A station is selected for processing only if it is available over a duration greater or equal to
+# SELECT_DURATION_FACTOR*[total required duration]. The factor can vary from 0 to 1
+SELECT_DURATION_FACTOR=0
+# A station is selected for processing only if it is located at less than SELECT_ARRAY_RADIUS
+# from SELECT_ARRAY_CENTER. SELECT_ARRAY_CENTER is the X, Y coordinates of the center.
+SELECT_ARRAY_CENTER=0 0
+SELECT_ARRAY_RADIUS=0
+# Assuming that north of sensors is aligned to the magnetic north and sensor coordinates to UTM grid,
+# relative coordinates between stations are calculated with a correction for the difference between the
+# geographical and the local UTM norths and for the magnetic declination. The later can be, for instance,
+# calculated at https://www.ngdc.noaa.gov/geomag-web/#declination
+# The value must be in degrees.
+MAGNETIC_DECLINATION=0
+OUTPUT_BASE_NAME=nz_wghs_c50_rtbf_simple-
+# Process types:
+#  [All types can be used with vertical or three component datasets]
+#  Keyword                Beamformer    Comments
+#  DirectSteering         Capon         Cross spectrum made of raw components E, N and Z.
+#                                       Radial and transverse projections included in steering matrix.
+#                                       Combined optimum power.
+#  Omni                   Capon         Same cross spectrum as DirectSteering.
+#                                       Ouput power is the sum of power in all directions
+#  RTBF                   Capon         According to Wathelet et al (2018).
+#                                       Cross spectrum made of radial and transverse projections.
+#  PoggiVertical          Capon         According Poggi et al. (2010)
+#                                       k picked from vertical processing
+#  PoggiRadial            Capon         According Poggi et al. (2010)
+#                                       k picked from radial processing
+#  Conventional           Conventional  Conventional FK processing
+#                                       Cross spectrum made of radial and transverse projections.
+#  ActiveRTBF             Capon         High resolution for active source
+#                                       Cross spectrum made of radial and transverse projections.
+#  ActiveDirectSteering   Capon         Cross spectrum made of raw components E, N and Z.
+#                                       Radial and transverse projections included in steering matrix.
+#  ActiveConventional     Conventional  Conventional FK processing
+#                                       Cross spectrum made of radial and transverse projections.
+#  Experimental modes:
+#  DirectSteeringVertical Capon         Cross spectrum made of raw components E, N and Z.
+#                                       Radial and transverse projections included in steering matrix.
+#                                       Radial ellipticity steering.
+#  DirectSteeringRadial   Capon         Cross spectrum made of raw components E, N and Z.
+#                                       Radial and transverse projections included in steering matrix.
+#                                       Vertical ellipticity steering.
+#  DirectSteeringRefined  Capon         Cross spectrum made of raw components E, N and Z.
+#                                       Radial and transverse projections included in steering matrix.
+#                                       Iterative ellitpticity assessment.
+PROCESS_TYPE=RTBF
+# For debug purpose, save a bit of time by skipping Love computation
+SKIP_LOVE(y/n)=n
+# Inversion method used for getting FK peaks: Gradient or RefinedGrid
+INVERSION_METHOD=RefinedGrid
+# Wavenumber fine gridding used as a cache for the FK maps
+CACHE_GRID_STEP (rad/m)=0
+# If CACHE_GRID_STEP is null, GRID_STEP is computed from K_MIN*CACHE_GRID_STEP_FACTOR.
+CACHE_GRID_STEP_FACTOR=0.05
+# Wavenumber coarse gridding used for searching maxima of the FK maps
+GRID_STEP (rad/m)=0
+# If GRID_STEP is null, GRID_STEP is computed from K_MIN*GRID_STEP_FACTOR.
+GRID_STEP_FACTOR=0.1
+GRID_SIZE (rad/m)=0.492824
+# Minimum velocity of the searched maxima of the FK map
+MIN_V (m/s)=100
+# Theoretical Kmin and Kmax computed from array geometry
+# Used only for post-processing (AVIOS project)
+K_MIN (rad/m)=0.103076
+K_MAX (rad/m)=0.246412
+N_MAXIMA=5
+ABSOLUTE_THRESHOLD=0
+RELATIVE_THRESHOLD (%)=0
+EXPORT_ALL_FK_GRIDS=n
+DAMPING_FACTOR=0.05
+# If provided and PROCESS_TYPE==DirectSteering, the ellipticity is forced to the provided curve.
+# The file must contain two columns: frequency and signed ellipticity.
+# Provided sampling must not necessarily match the processing sampling frequency, linear interpolation is used.
+# Better for precision if the two sampling match.
+# To generate a synthetic curve: gpell M2.1.model -one-mode -R 1 -min 0.5 -max 50 -n 187 > curve.txt
+FIXED_ELLIPTICITY_FILE_NAME=
+# Minimum distance between source and receiver (for active source only)
+MINIMUM_DISTANCE=0
+# Maximum distance between source and receiver (for active source only)
+MAXIMUM_DISTANCE=inf
+# Experimental join processing of several arrays
+# Several ARRAY can be defined with a list of station names
+# Number of steps for the computation of radial/transverse projections
+ROTATE_STEP_COUNT=72
+#
+# END PARAMETERS
+#
+#
+# BEGIN DATA
+#
+# abs_time frequency polarization slowness azimuth ellipticity noise power valid
+20170609223200.000000 26.784520720832514229 Rayleigh 0.00044064080294955153012 177.50000000000005684 -1.2835212219205216488 152.96674997467835055 2463.8013029590633778 1
+20170609223200.000000 26.784520720832514229 Rayleigh 0.0012763662626813234401 187.49998532253493977 -1.2585738178223235817 128.87427198994635091 2519.8329025923371773 1
+20170609223200.000000 26.784520720832514229 Rayleigh 0.0018554754628104259268 14.318975454730491492 0 inf 0 1
+20170609223200.000000 26.784520720832514229 Rayleigh 0.0019119225703476687601 177.50000730701185603 -1.2682282110846248013 109.92063122799812902 2496.6312930623334978 1
+20170609223200.000000 26.784520720832514229 Rayleigh 0.0020089380995732563674 172.500005893834782 -1.2534090975373486376 88.077444338856878403 2550.992145563928716 1
+20170609223200.000000 26.784520720832514229 Love 0.00029115549754587567461 87.739498088859406266 0 0 12011.679960801997368 1
+20170609223200.000000 26.784520720832514229 Love 0.00043207429992989045044 277.12494717641357056 0 0 11546.971190157459205 1
+20170609223200.000000 26.784520720832514229 Love 0.0017337158878247839987 252.52538068333049637 0 0 11732.893759720331218 1
+20170609223200.000000 26.784520720832514229 Love 0.0017732284004603061488 257.5000418499657826 0 0 11720.249320476903449 1
+20170609223200.000000 23.913685008156864598 Rayleigh 0.0013561208282169504719 70.419234645692796448 1.3036954612286617561 14.390955273544642878 1981.7273665480092859 1
+20170609223200.000000 23.913685008156864598 Rayleigh 0.0014340767798968641605 67.49998306643504975 1.3039802056832219268 15.605227441520190368 1990.4793978392781355 1
+20170609223200.000000 23.913685008156864598 Rayleigh 0.0015053895558899165526 253.45216818702803607 -1.557792582198923137 15.20393006304617245 1657.9754077649147348 1
+20170609223200.000000 23.913685008156864598 Rayleigh 0.0018395035537608554581 7.5000072149355645479 1.3617627738707753782 44.286587306097260353 1903.0904207139415121 1
+20170609223200.000000 23.913685008156864598 Rayleigh 0.002440084807681723502 32.496219432324629395 1.4667227006006877676 28.485396527324127192 1748.8009513793842871 1
+20170609223200.000000 23.913685008156864598 Love 0.00041015861386643466622 107.49992653302450663 0 0 8520.2537708401850978 1
+20170609223200.000000 23.913685008156864598 Love 0.0025212789868065714136 287.499971789706251 0 0 8216.9935128688957775 1
+20170609223200.000000 23.913685008156864598 Love 0.0025738202653293163445 102.50002490049365633 0 0 8418.2950168287316046 1
+20170609223200.000000 23.913685008156864598 Love 0.0026026439385376048084 77.500066250889162234 0 0 8252.2379643690310331 1
+20170609223200.000000 23.913685008156864598 Love 0.0026927760861519532166 101.23903045509462117 0 0 8427.4496579544120323 1
+20170609223200.000000 21.350553053747969301 Rayleigh 0.001527775617867937032 109.2988319695299424 1.131527655213898198 21.872058145630756343 2510.4329818193991741 1
+20170609223200.000000 21.350553053747969301 Rayleigh 0.0027988655571692792369 297.21017311184601795 -1.0197422638566873143 29.497459186511147067 2836.4407455188634231 1
+20170609223200.000000 21.350553053747969301 Love 0.0013447768142910287038 77.499973508051027693 0 0 8308.1587873613480042 1
+20170609223200.000000 21.350553053747969301 Love 0.0017783817872268831758 127.22001364723973893 0 0 8236.2178831921646633 1
+20170609223200.000000 21.350553053747969301 Love 0.002784535817942773283 328.69810710812362231 0 0 8139.5755462971201268 1
+20170609223200.000000 21.350553053747969301 Love 0.0030741228860816606147 148.7592218154971988 0 0 8560.9479441394742025 1
+20170609223200.000000 21.350553053747969301 Love 0.0031181432554524975663 82.500016639358207726 0 0 8278.375813237085822 1

@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from swprocess.peaks import Peaks
 import swprocess
@@ -27,28 +28,49 @@ class Test_Peaks(TestCase):
         cls.noi = [10., 15, 20, 35, 12, 20]
         cls.pwr = [10., 15, 20, 35, 13, 20]
 
+        cls._id2 = "10m"
+        cls.frq2 = [[80., 60, 20],
+                    [75., 65, 30]]
+        cls.vel2 = [[50., 70, 85],
+                    [55., 80, 75]]
+        cls.azi2 = [[10., 15, 20],
+                    [35, 10, 20]]
+        cls.ell2 = [[11., 15, 20],
+                    [35, 11, 20]]
+        cls.noi2 = [[12., 15, 20],
+                    [35, 12, 20]]
+        cls.pwr2 = [[13., 15, 20],
+                    [35, 13, 20]]
+
     def test_init(self):
-        # Basic Case: No keyword arguments
-        peaks = Peaks(frequency=self.frq,
-                      velocity=self.vel,
-                      identifier=self._id)
+        # 1D: No keyword arguments
+        peaks = Peaks(self.frq, self.vel, identifier=self._id)
         self.assertArrayEqual(np.array(self.frq), peaks.frequency)
         self.assertArrayEqual(np.array(self.vel), peaks.velocity)
         self.assertEqual(self._id, peaks.identifier)
 
-        # Advanced Case: Four keyword arguments
-        identifier = "-5m"
-        my_peaks = Peaks(frequency=self.frq,
-                         velocity=self.vel,
-                         identifier=self._id,
-                         azi=self.azi,
-                         ell=self.ell,
-                         noi=self.noi,
-                         pwr=self.pwr)
-        self.assertArrayEqual(np.array(self.azi), my_peaks.azi)
-        self.assertArrayEqual(np.array(self.ell), my_peaks.ell)
-        self.assertArrayEqual(np.array(self.noi), my_peaks.noi)
-        self.assertArrayEqual(np.array(self.pwr), my_peaks.pwr)
+        # 1D: Four keyword arguments
+        peaks = Peaks(self.frq, self.vel, identifier=self._id, azi=self.azi,
+                      ell=self.ell, noi=self.noi, pwr=self.pwr)
+        self.assertArrayEqual(np.array(self.frq), peaks.frequency)
+        self.assertArrayEqual(np.array(self.vel), peaks.velocity)
+        self.assertEqual(self._id, peaks.identifier)
+        self.assertArrayEqual(np.array(self.azi), peaks.azi)
+        self.assertArrayEqual(np.array(self.ell), peaks.ell)
+        self.assertArrayEqual(np.array(self.noi), peaks.noi)
+        self.assertArrayEqual(np.array(self.pwr), peaks.pwr)
+
+        # 2D: Four keyword arguments
+        peaks = Peaks(self.frq2, self.vel2, identifier=self._id2,
+                      azi=self.azi2, ell=self.ell2, noi=self.noi2,
+                      pwr=self.pwr2)
+        self.assertArrayEqual(np.array(self.frq2), peaks.frequency)
+        self.assertArrayEqual(np.array(self.vel2), peaks.velocity)
+        self.assertEqual(self._id2, peaks.identifier)
+        self.assertArrayEqual(np.array(self.azi2), peaks.azi)
+        self.assertArrayEqual(np.array(self.ell2), peaks.ell)
+        self.assertArrayEqual(np.array(self.noi2), peaks.noi)
+        self.assertArrayEqual(np.array(self.pwr2), peaks.pwr)
 
     def test_properties(self):
         peaks = Peaks(self.frq, self.vel, self._id, azimuth=self.azi)
@@ -64,8 +86,8 @@ class Test_Peaks(TestCase):
         self.assertListEqual(expected, returned)
 
         # Wavenumber
-        self.assertArrayEqual(2*np.pi/peaks.wavelength,
-                              peaks.wavenumber)
+        self.assertArrayAlmostEqual(2*np.pi/peaks.wavelength,
+                                    peaks.wavenumber)
 
     def test_prepare_types(self):
         # Acceptable (will cast)
@@ -93,12 +115,12 @@ class Test_Peaks(TestCase):
 
         # Standard
         fig, ax = plt.subplots()
-        peaks._plot(ax=ax, xtype="frequency", ytype="velocity")        
+        peaks._plot(ax=ax, xtype="frequency", ytype="velocity")
 
         # Bad Attribute
         fig, ax = plt.subplots()
         self.assertRaises(AttributeError, peaks._plot, ax=ax,
-                          xtype="magic", ytype="size_of_unicorn")        
+                          xtype="magic", ytype="size_of_unicorn")
 
         plt.show(block=False)
         plt.close("all")
@@ -304,41 +326,69 @@ class Test_Peaks(TestCase):
         self.assertEqual(expected, returned)
 
     def test_from_max(self):
-        # Check rayleigh (2 lines)
-        fname = self.full_path + "data/mm/test_hfk_line2_0.max"
-        peaks = Peaks.from_max(fname=fname, wavetype="rayleigh")
-        self.assertArrayEqual(peaks.frequency, np.array([20.000000000000106581,
-                                                         19.282217609815102577]))
-        self.assertArrayEqual(peaks.velocity, 1/np.array([0.0068859013683322750979,
-                                                          0.0074117944332218188563]))
-        self.assertArrayEqual(peaks.azimuth, np.array([144.53791572557310019,
-                                                       143.1083743693494057]))
-        self.assertArrayEqual(peaks.ellipticity, np.array([1.0214647665926679387,
-                                                           1.022287917081338593]))
-        self.assertArrayEqual(peaks.noise, np.array([8.9773778053801098764,
-                                                     7.3044365524672443257]))
-        self.assertArrayEqual(peaks.power, np.array([2092111.2367646128405,
-                                                     2074967.9391639579553]))
-        self.assertEqual("16200", peaks.identifier)
+        # rayleigh, nmaxima=1, nblocksets=1, samples=30
+        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
+        fname_csv = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1_r_parsed.csv"
 
-        # Check love (2 lines)
-        fname = self.full_path+"data/mm/test_hfk_line2_0.max"
-        peaks = Peaks.from_max(fname=fname, wavetype="love")
-        self.assertArrayEqual(peaks.frequency, np.array([20.000000000000106581,
-                                                         19.282217609815102577]))
-        self.assertArrayEqual(peaks.velocity, np.array([1/0.0088200863560403078983,
-                                                        1/0.0089530611050798007688]))
-        self.assertArrayEqual(peaks.azimuth, np.array([252.05441718438927978,
-                                                       99.345595852002077208]))
-        self.assertArrayEqual(peaks.ellipticity, np.array([0, 0]))
-        self.assertArrayEqual(peaks.noise, np.array([0, 0]))
-        self.assertArrayEqual(peaks.power, np.array([3832630.8840260845609,
-                                                     4039408.6602126094513]))
-        self.assertEqual("16200", peaks.identifier)
+        peaks = Peaks.from_max(fname=fname_max, wavetype="rayleigh")
+        df = pd.read_csv(fname_csv)
+        for attr in ["frequency", "slowness", "azimuth", "ellipticity", "noise", "power"]:
+            self.assertArrayAlmostEqual(getattr(df, attr).to_numpy(),
+                                        getattr(peaks, attr))
+
+        # love, nmaxima=1, nblocksets=1, samples=30
+        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
+        fname_csv = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1_l_parsed.csv"
+
+        peaks = Peaks.from_max(fname=fname_max, wavetype="love")
+        df = pd.read_csv(fname_csv)
+        for attr in ["frequency", "slowness", "azimuth", "ellipticity", "noise", "power"]:
+            self.assertArrayAlmostEqual(getattr(df, attr).to_numpy(),
+                                        getattr(peaks, attr))
+
+        # rayleigh, nmaxima=5, nblocksets=1, samples=3
+        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
+        peaks = Peaks.from_max(fname=fname_max, wavetype="rayleigh")
+
+        frequency = np.array([[26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, np.nan],
+                              [26.78452072, 23.91368501, np.nan],
+                              [26.78452072, 23.91368501, np.nan]])
+        self.assertArrayAlmostEqual(frequency, peaks.frequency, equal_nan=True)
+
+        slowness = np.array([[0.000440641, 0.001356121, 0.001527776],
+                            [0.001276366, 0.001434077, 0.002798866],
+                            [0.001855475, 0.00150539, np.nan],
+                            [0.001911923, 0.001839504, np.nan],
+                            [0.002008938, 0.002440085, np.nan]])
+        self.assertArrayAlmostEqual(slowness, peaks.slowness, equal_nan=True)
+
+        # TODO (jpv): Extend check to other attrs.
+
+        # love, nmaxima=5, nblocksets=1, samples=3
+        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
+        peaks = Peaks.from_max(fname=fname_max, wavetype="love")
+
+        frequency = np.array([[26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, 21.35055305],
+                              [np.nan, 23.91368501, 21.35055305]])
+        self.assertArrayAlmostEqual(frequency, peaks.frequency, equal_nan=True)
+
+        slowness = np.array([[0.000291155, 0.000410159, 0.001344777],
+                            [0.000432074, 0.002521279, 0.001778382],
+                            [0.001733716, 0.00257382, 0.002784536],
+                            [0.001773228, 0.002602644, 0.003074123],
+                            [np.nan, 0.002692776, 0.003118143]])
+        self.assertArrayAlmostEqual(slowness, peaks.slowness, equal_nan=True)
+
+        # TODO (jpv): Extend check to other attrs.
 
         # Bad wavetype
         self.assertRaises(ValueError, Peaks.from_max,
-                          fname, wavetype="incorrect")
+                          fname_max, wavetype="incorrect")
 
     def test__eq__(self):
         peaks_a = Peaks(self.frq, self.vel, self._id,
