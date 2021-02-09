@@ -317,7 +317,7 @@ class PeaksSuite():
             Peaks._configure_axes(ax=_ax, xtype=_xtype, ytype=_ytype,
                                   defaults=Peaks.axes_defaults)
 
-        # Return fig, ax if generated on-the-fly.
+        # Return (fig, ax) if generated on-the-fly.
         if ax_was_none:
             return (fig, ax)
 
@@ -842,6 +842,7 @@ class PeaksSuite():
 
             regex = get_nmaxima()
             nmaxima = int(regex.search(peak_data).groups()[0])
+            nmaxima = 1 if nmaxima <= 0 else nmaxima
 
             regex = get_peak_from_max(wavetype=wavetype)
             frequencies = []

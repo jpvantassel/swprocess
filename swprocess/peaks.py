@@ -113,6 +113,7 @@ class Peaks():
         if nmaxima is None:
             regex = get_nmaxima()
             nmaxima = int(regex.search(peak_data).groups()[0])
+            nmaxima = 1 if nmaxima <= 0 else nmaxima
 
         frqs = np.full((nmaxima, nfrequencies), fill_value=np.nan, dtype=float)
         vels = np.full_like(frqs, fill_value=np.nan, dtype=float)
@@ -277,8 +278,8 @@ class Peaks():
         indices = Ellipsis if indices is None else indices
 
         try:
-            ax.plot(getattr(self, xtype)[indices],
-                    getattr(self, ytype)[indices],
+            ax.plot(getattr(self, xtype).flatten()[indices],
+                    getattr(self, ytype).flatten()[indices],
                     **plot_kwargs)
         except AttributeError as e:
             msg = f"{xtype} and/or {ytype} is/are not attribute(s). "

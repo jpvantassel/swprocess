@@ -277,37 +277,38 @@ class Test_PeaksSuite(TestCase):
                                                             attribute="wavelength",
                                                             limits=(5, 100))
 
-    # def test_plot(self):
-    #     # Default
-    #     fname = self.full_path + "data/peak/suite_raw.json"
-    #     suite = swprocess.PeaksSuite.from_json(fname)
-    #     fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
-    #                          ytype=["velocity", "velocity", "slowness"],
-    #                          )
+    def test_plot(self):
+        # Default
+        fname = self.full_path + "data/peak/suite_raw.json"
+        suite = swprocess.PeaksSuite.from_json(fname)
 
-    #     # With a provided Axes.
-    #     fig, ax = plt.subplots()
-    #     result = suite.plot(ax=ax, xtype="frequency", ytype="velocity")
-    #     self.assertTrue(result is None)
+        fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
+                             ytype=["velocity", "velocity", "slowness"],
+                             )
 
-    #     # With a provided Axes (wrong size).
-    #     fig, ax = plt.subplots(ncols=3)
-    #     self.assertRaises(IndexError, suite.plot, ax=ax, xtype="frequency",
-    #                       ytype="velocity")
+        # With a provided Axes.
+        fig, ax = plt.subplots()
+        result = suite.plot(ax=ax, xtype="frequency", ytype="velocity")
+        self.assertTrue(result is None)
 
-    #     # With a provided indices (wrong size).
-    #     self.assertRaises(IndexError, suite.plot, xtype="frequency",
-    #                       ytype="velocity", indices=[[0], [1]])
+        # With a provided Axes (wrong size).
+        fig, ax = plt.subplots(ncols=3)
+        self.assertRaises(IndexError, suite.plot, ax=ax, xtype="frequency",
+                          ytype="velocity")
 
-    #     # With a name provided.
-    #     fig, ax = plt.subplots()
-    #     suite.plot(ax=ax, xtype="frequency", ytype="velocity",
-    #                plot_kwargs=dict(label="tada"))
-    #     _, labels = ax.get_legend_handles_labels()
-    #     self.assertListEqual(["tada"], labels)
+        # With a provided indices (wrong size).
+        self.assertRaises(IndexError, suite.plot, xtype="frequency",
+                          ytype="velocity", indices=[[0], [1]])
 
-    #     plt.show(block=False)
-    #     plt.close("all")
+        # With a name provided.
+        fig, ax = plt.subplots()
+        suite.plot(ax=ax, xtype="frequency", ytype="velocity",
+                   plot_kwargs=dict(label="tada"))
+        _, labels = ax.get_legend_handles_labels()
+        self.assertListEqual(["tada"], labels)
+
+        plt.show(block=False)
+        plt.close("all")
 
     def test_prepare_plot_kwargs(self):
         # Apply to all.
@@ -364,7 +365,8 @@ class Test_PeaksSuite(TestCase):
 
         with patch("swprocess.peakssuite.PeaksSuite._draw_box", side_effect=_draw_box_responses):
             with patch('builtins.input', return_value="0"):
-                suite.interactive_trimming(xtype="frequency", ytype="velocity")
+                suite.interactive_trimming(xtype="frequency",
+                                           ytype="velocity")
         self.assertArrayEqual(np.array([0.5, 0.5]), peaks_a.frequency)
         self.assertArrayEqual(np.array([0.5, 1.5]), peaks_a.velocity)
         self.assertArrayEqual(np.array([1.5]), peaks_b.frequency)
@@ -383,8 +385,8 @@ class Test_PeaksSuite(TestCase):
             with patch("builtins.input", side_effect=_input_responses):
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    suite.interactive_trimming(
-                        xtype="frequency", ytype="velocity")
+                    suite.interactive_trimming(xtype="frequency",
+                                               ytype="velocity")
 
         # Redefine generator for _draw_box()
         pick_generator = response_generator([response_1])
@@ -395,7 +397,8 @@ class Test_PeaksSuite(TestCase):
         with patch("swprocess.peakssuite.PeaksSuite._draw_box", side_effect=_draw_box_responses):
             with patch("builtins.input", return_value="0"):
                 with patch("swprocess.peakssuite.PeaksSuite.plot_resolution_limits", side_effect=mock):
-                    suite.interactive_trimming(xtype="frequency", ytype="velocity",
+                    suite.interactive_trimming(xtype="frequency",
+                                               ytype="velocity",
                                                resolution_limits=["wavelength", (1, 10)])
                     mock.assert_called()
 
@@ -568,9 +571,11 @@ class Test_PeaksSuite(TestCase):
         # rayleigh, nmaxima=3, nblocksets=3, samples=10
         path = self.full_path + "data/rtbf/"
         fname_max = path + "rtbf_nblockset=3_nmaxima=3.max"
-        fname_csvs = [path + f"rtbf_nblockset=3_nmaxima=3_r_bs{bs}_parsed.csv" for bs in range(3)]
+        fname_csvs = [
+            path + f"rtbf_nblockset=3_nmaxima=3_r_bs{bs}_parsed.csv" for bs in range(3)]
 
-        peaksuite = swprocess.PeaksSuite.from_max(fname_max, wavetype="rayleigh")
+        peaksuite = swprocess.PeaksSuite.from_max(
+            fname_max, wavetype="rayleigh")
         for peak, fname_csv in zip(peaksuite, fname_csvs):
             df = pd.read_csv(fname_csv)
             for attr in ["frequency", "slowness", "azimuth", "ellipticity", "noise", "power"]:
@@ -580,13 +585,15 @@ class Test_PeaksSuite(TestCase):
                     if np.isnan(returned):
                         continue
                     else:
-                        self.assertAlmostEqual(expected[index], returned, places=4)
+                        self.assertAlmostEqual(
+                            expected[index], returned, places=4)
                         index += 1
 
         # love, nmaxima=3, nblocksets=3, samples=10
         path = self.full_path + "data/rtbf/"
         fname_max = path + "rtbf_nblockset=3_nmaxima=3.max"
-        fname_csvs = [path + f"rtbf_nblockset=3_nmaxima=3_l_bs{bs}_parsed.csv" for bs in range(3)]
+        fname_csvs = [
+            path + f"rtbf_nblockset=3_nmaxima=3_l_bs{bs}_parsed.csv" for bs in range(3)]
 
         peaksuite = swprocess.PeaksSuite.from_max(fname_max, wavetype="love")
         for peak, fname_csv in zip(peaksuite, fname_csvs):
@@ -598,7 +605,8 @@ class Test_PeaksSuite(TestCase):
                     if np.isnan(returned):
                         continue
                     else:
-                        self.assertAlmostEqual(expected[index], returned, places=4)
+                        self.assertAlmostEqual(
+                            expected[index], returned, places=4)
                         index += 1
 
     def test_from_peakssuite(self):
