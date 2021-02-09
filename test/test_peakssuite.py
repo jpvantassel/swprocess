@@ -8,6 +8,7 @@ from unittest.mock import patch, MagicMock, call
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import swprocess
 from swprocess.peaks import Peaks
@@ -564,75 +565,41 @@ class Test_PeaksSuite(TestCase):
         self.assertEqual(peaks, suite[0])
 
     def test_from_max(self):
-        # Check Rayleigh (2 files, 2 lines per file)
-        fnames = [self.full_path +
-                  f"data/mm/test_hfk_line2_{x}.max" for x in range(2)]
-        returned = swprocess.PeaksSuite.from_max(fnames=fnames,
-                                                 wavetype="rayleigh")
+        # rayleigh, nmaxima=3, nblocksets=3, samples=10
+        path = self.full_path + "data/rtbf/"
+        fname_max = path + "rtbf_nblockset=3_nmaxima=3.max"
+        fname_csvs = [path + f"rtbf_nblockset=3_nmaxima=3_r_bs{bs}_parsed.csv" for bs in range(3)]
 
-        r0 = {"16200": {"frequency": [20.000000000000106581, 19.282217609815102577],
-                        "velocity": [1/0.0068859013683322750979, 1/0.0074117944332218188563],
-                        "azimuth": [144.53791572557310019, 143.1083743693494057],
-                        "ellipticity": [1.0214647665926679387, 1.022287917081338593],
-                        "noise": [8.9773778053801098764, 7.3044365524672443257],
-                        "power": [2092111.2367646128405, 2074967.9391639579553],
-                        }}
+        peaksuite = swprocess.PeaksSuite.from_max(fname_max, wavetype="rayleigh")
+        for peak, fname_csv in zip(peaksuite, fname_csvs):
+            df = pd.read_csv(fname_csv)
+            for attr in ["frequency", "slowness", "azimuth", "ellipticity", "noise", "power"]:
+                expected = getattr(df, attr).to_numpy()
+                index = 0
+                for returned in getattr(peak, attr).flatten(order="F"):
+                    if np.isnan(returned):
+                        continue
+                    else:
+                        self.assertAlmostEqual(expected[index], returned, places=4)
+                        index += 1
 
-        r1 = {"20700": {"frequency": [5.0000000000000266454],
-                        "velocity": [1/0.0062049454559321261596],
-                        "azimuth": [336.6469768619966203],
-                        "ellipticity": [-1.6318692462645167929],
-                        "noise": [0],
-                        "power": [6040073199.9762010574],
-                        }}
+        # love, nmaxima=3, nblocksets=3, samples=10
+        path = self.full_path + "data/rtbf/"
+        fname_max = path + "rtbf_nblockset=3_nmaxima=3.max"
+        fname_csvs = [path + f"rtbf_nblockset=3_nmaxima=3_l_bs{bs}_parsed.csv" for bs in range(3)]
 
-        r2 = {"20760.040000000000873": {"frequency": [5.0000000000000266454],
-                                        "velocity": [1/0.005256207300441733711],
-                                        "azimuth": [77.740031601074633727],
-                                        "ellipticity": [-1.8969709764459561363],
-                                        "noise": [0],
-                                        "power": [17030488659.287288666],
-                                        }}
-
-        ray_dicts = [r0, r1, r2]
-        expected = swprocess.PeaksSuite.from_dict(ray_dicts)
-
-        self.assertEqual(expected, returned)
-
-        # Check Love (2 files, 2 lines per file)
-        fnames = [self.full_path +
-                  f"data/mm/test_hfk_line2_{x}.max" for x in range(2)]
-        returned = swprocess.PeaksSuite.from_max(fnames=fnames,
-                                                 wavetype="love")
-
-        l0 = {"16200": {"frequency": [20.000000000000106581, 19.282217609815102577],
-                        "velocity": [1/0.0088200863560403078983, 1/0.0089530611050798007688],
-                        "azimuth": [252.05441718438927978, 99.345595852002077208],
-                        "ellipticity": [0, 0],
-                        "noise": [0, 0],
-                        "power": [3832630.8840260845609, 4039408.6602126094513],
-                        }}
-
-        l1 = {"20700": {"frequency": [5.0000000000000266454],
-                        "velocity": [1/0.001522605285544077541],
-                        "azimuth": [92.499974198256211366],
-                        "ellipticity": [0],
-                        "noise": [0],
-                        "power": [232295.4010567846417],
-                        }}
-
-        l2 = {"20760.040000000000873": {"frequency": [5.0000000000000266454],
-                                        "velocity": [1/0.004102623000517897911],
-                                        "azimuth": [174.33483725071613435],
-                                        "ellipticity": [0],
-                                        "noise": [0],
-                                        "power": [422413.79929310601437],
-                                        }}
-
-        lov_dicts = [l0, l1, l2]
-        expected = swprocess.PeaksSuite.from_dict(lov_dicts)
-
-        self.assertEqual(expected, returned)
+        peaksuite = swprocess.PeaksSuite.from_max(fname_max, wavetype="love")
+        for peak, fname_csv in zip(peaksuite, fname_csvs):
+            df = pd.read_csv(fname_csv)
+            for attr in ["frequency", "slowness", "azimuth", "ellipticity", "noise", "power"]:
+                expected = getattr(df, attr).to_numpy()
+                index = 0
+                for returned in getattr(peak, attr).flatten(order="F"):
+                    if np.isnan(returned):
+                        continue
+                    else:
+                        self.assertAlmostEqual(expected[index], returned, places=4)
+                        index += 1
 
     def test_from_peakssuite(self):
         frq = [0, 1, 2, 3]

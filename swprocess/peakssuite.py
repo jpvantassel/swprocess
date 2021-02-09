@@ -12,7 +12,7 @@ from matplotlib.widgets import Cursor
 
 from .wavefieldtransforms import AbstractWavefieldTransform as AWTransform
 from .peaks import Peaks
-from .regex import get_nmaxima
+from .regex import get_nmaxima, get_peak_from_max
 
 logger = logging.getLogger("swprocess.peakssuite")
 
@@ -832,21 +832,27 @@ class PeaksSuite():
             Initialized `PeaksSuite` object.
 
         """
+        if isinstance(fnames, str):
+            fnames = [fnames]
+
         peaks = []
         for fname in fnames:
             with open(fname, "r") as f:
                 peak_data = f.read()
 
-            nmaxima = int(get_nmaxima().findall(peak_data)[0])
+            regex = get_nmaxima()
+            nmaxima = int(regex.search(peak_data).groups()[0])
 
-            found_frequencies = []
-            for f, *_ in getpeak.finditer(peak_data):
-                if f in found_frequencies:
+            regex = get_peak_from_max(wavetype=wavetype)
+            frequencies = []
+            for match in regex.finditer(peak_data):
+                _, f, *_ = match.groups()
+                if f in frequencies:
                     continue
                 else:
-                    found_frequencies.append(f)
+                    frequencies.append(f)
 
-            regex = get_all(wavetype=wavetype)
+            regex = get_peak_from_max(wavetype=wavetype)
             found_times = []
             for found in regex.finditer(peak_data):
                 start_time = found.groups()[0]
@@ -856,7 +862,7 @@ class PeaksSuite():
                 peak = Peaks._parse_peaks(peak_data,
                                           wavetype=wavetype,
                                           start_time=start_time, 
-                                          frequencies=found_frequencies,
+                                          frequencies=frequencies,
                                           nmaxima=nmaxima)
                 peaks.append(peak)
 

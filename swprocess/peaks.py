@@ -37,8 +37,8 @@ class Peaks():
                                   "scale": "linear"},
                      "slowness": {"label": "Slowness (s/m)",
                                   "scale": "log"},
-                     "azimuth" : {"label": "Azimuth (deg)",
-                                  "scale": "linear"}
+                     "azimuth": {"label": "Azimuth (deg)",
+                                 "scale": "linear"}
                      }
 
     def __init__(self, frequency, velocity, identifier="0", **kwargs):
@@ -94,25 +94,25 @@ class Peaks():
 
     @classmethod
     def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None, frequencies=None, nmaxima=None):
-        """Parse data for a given time block."""
+        """Parse data for a given blockset."""
         if start_time is None:
             regex = get_peak_from_max(wavetype=wavetype)
             start_time, *_ = regex.search(peak_data).groups()
 
-        getpeak = get_peak_from_max(time=start_time, wavetype=wavetype)
-
         if frequencies is None:
+            regex = get_peak_from_max(time=start_time, wavetype=wavetype)
             frequencies = []
-            for match in getpeak.finditer(peak_data):
+            for match in regex.finditer(peak_data):
                 _, f, *_ = match.groups()
                 if f in frequencies:
                     continue
                 else:
                     frequencies.append(f)
-            nfrequencies = len(frequencies)
+        nfrequencies = len(frequencies)
 
         if nmaxima is None:
-            nmaxima = int(get_nmaxima().findall(peak_data)[0])
+            regex = get_nmaxima()
+            nmaxima = int(regex.search(peak_data).groups()[0])
 
         frqs = np.full((nmaxima, nfrequencies), fill_value=np.nan, dtype=float)
         vels = np.full_like(frqs, fill_value=np.nan, dtype=float)
@@ -122,8 +122,9 @@ class Peaks():
         pwrs = np.full_like(frqs, fill_value=np.nan, dtype=float)
 
         for col, frequency in enumerate(frequencies):
-            getpeak = get_peak_from_max(time=start_time, wavetype=wavetype, frequency=frequency)
-            
+            getpeak = get_peak_from_max(time=start_time, wavetype=wavetype,
+                                        frequency=frequency)
+
             for row, match in enumerate(getpeak.finditer(peak_data)):
                 _, _frq, _slo, _azi, _ell, _noi, _pwr = match.groups()
 
@@ -142,9 +143,8 @@ class Peaks():
         #     msg = f"Missing {count - len(frqs)} dispersion peaks."
         #     raise ValueError(msg)
 
-        args = (frqs, vels, start_time)
-        kwargs = dict(azimuth=azis, ellipticity=ells, noise=nois, power=pwrs)
-        return cls(*args, **kwargs)
+        return cls(frqs, vels, identifier=start_time, azimuth=azis,
+                   ellipticity=ells, noise=nois, power=pwrs)
 
     def plot(self, xtype="frequency", ytype="velocity", plot_kwargs=None,
              indices=None):
