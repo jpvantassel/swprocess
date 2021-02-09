@@ -54,8 +54,8 @@ class Peaks():
         **kwargs : kwargs
             Optional keyword argument(s) these may include
             additional information about the dispersion peaks such as:
-            azimuth (azi), ellipticity (ell), power (pwr), and noise
-            (pwr). Will generally not be entered directly.
+            azimuth, ellipticity, power, and noise. Will generally not
+            be entered directly.
 
         Returns
         -------
@@ -63,16 +63,27 @@ class Peaks():
             Instantiated `Peaks` object.
 
         """
-        self.frequency = np.atleast_2d(np.array(frequency, dtype=float))
-        self.velocity = np.atleast_2d(np.array(velocity, dtype=float))
+        self._frequency = np.array(frequency, dtype=float)
+        self._velocity = np.array(velocity, dtype=float)
+        self._valid = ~np.isnan(self._velocity)
         self.identifier = str(identifier)
         self.attrs = ["frequency", "velocity"] + list(kwargs.keys())
 
         logger.debug(f"Creating {self}")
         logger.debug(f"  {self}.attrs={self.attrs}")
 
+        _getattr = lambda attr: getattr(self, f"_{attr}")[self._valid]
         for key, val in kwargs.items():
-            setattr(self, key, np.atleast_2d(np.array(val, dtype=float)))
+            setattr(self, f"_{key}", np.array(val, dtype=float))
+            setattr(self, key, _getattr(attr=key))
+
+    @property
+    def frequency(self):
+        return self._frequency[self._valid]
+
+    @property
+    def velocity(self):
+        return self._velocity[self._valid]
 
     @property
     def slowness(self):
@@ -475,8 +486,8 @@ class Peaks():
 
         Returns
         -------
-        None
-            Reads `Peaks` object from disk.
+        Peaks
+            Initialized `Peaks` object.
 
         """
         with open(fname, "r") as f:
@@ -494,10 +505,6 @@ class Peaks():
     def from_max(cls, fname, wavetype="rayleigh"):
         """Initialize a `Peaks` object from a `.max` file.
 
-        If the results from multiple time windows are in the same .max
-        file, as is most often the case, this method ignores all but the
-        first instance found.
-
         Parameters
         ----------
         fname : str
@@ -511,11 +518,17 @@ class Peaks():
         Peaks
             Initialized `Peaks` object.
 
+        Notes
+        -----
+        If the results from multiple time windows are in the same .max
+        file, as is most often the case, this method ignores all but the
+        first instance found.
+
         """
         with open(fname, "r") as f:
             peak_data = f.read()
 
-        return cls._parse_peaks(peak_data, wavetype=wavetype, start_time=None)
+        return cls._parse_peaks(peak_data, wavetype=wavetype)
 
     def __eq__(self, other):
         if not isinstance(other, Peaks):

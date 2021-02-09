@@ -393,7 +393,7 @@ class PeaksSuite():
         # Prepare xtype, ytype.
         xtype, ytype = Peaks._prepare_types(xtype=xtype, ytype=ytype)
 
-        # Create fig, ax and plot data
+        # Create (fig, ax) and plot data
         fig, ax = self.plot(xtype=xtype, ytype=ytype, plot_kwargs=plot_kwargs)
 
         # Store minimum and maximum axes limits
@@ -418,7 +418,7 @@ class PeaksSuite():
         fig.show()
 
         _continue = 1
-        master_indices = [np.array([], dtype=int) for _ in self.peaks]
+        main_indices = [np.array([], dtype=int) for _ in self.peaks]
         err_bar = None
         while _continue:
 
@@ -441,8 +441,7 @@ class PeaksSuite():
                           plot_kwargs=dict(color="#bbbbbb", label=None),
                           indices=rejection_ids)
 
-                master_indices = [np.union1d(master, slave) for master, slave in zip(
-                    master_indices, rejection_ids)]
+                main_indices = [np.union1d(main, sub) for main, sub in zip(main_indices, rejection_ids)]
             # If latest rejection box is empty, ask user for input.
             else:
                 while True:
@@ -458,11 +457,10 @@ class PeaksSuite():
                         _continue = int(_continue)
                         break
 
-                # If continue or quit, reject points and reset master_indices.
+                # If continue or quit, reject points and reset main_indices.
                 if _continue in [0, 1]:
-                    self._reject(master_indices)
-                    master_indices = [np.array([], dtype=int)
-                                      for _ in self.peaks]
+                    self._reject(main_indices)
+                    main_indices = [np.array([], dtype=int) for _ in self.peaks]
 
                 # Clear, set axis limits, and lock axis.
                 for _ax, pxlim, pylim in zip(ax, pxlims, pylims):
@@ -486,7 +484,6 @@ class PeaksSuite():
                                                     plot_kwargs=resolution_limits_plot_kwargs)
 
     # TODO (jpv): To be refactored. Place in interact module?
-
     def _draw_box(self, fig):
         """Prompt user to define a rectangular box on figure.
 
@@ -862,7 +859,7 @@ class PeaksSuite():
                 found_times.append(start_time)
                 peak = Peaks._parse_peaks(peak_data,
                                           wavetype=wavetype,
-                                          start_time=start_time, 
+                                          start_time=start_time,
                                           frequencies=frequencies,
                                           nmaxima=nmaxima)
                 peaks.append(peak)

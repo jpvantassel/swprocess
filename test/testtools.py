@@ -50,5 +50,5 @@ class TestCase(unittest.TestCase):
         try:
             self.assertTrue(np.allclose(array1, array2, **kwargs))
         except AssertionError as e:
-            msg = f"\nExpected:\n{array1}\nReturned:\n{array2})"
+            msg = f"\nExpected:\n{array1}\nReturned:\n{array2}"
             raise AssertionError(msg) from e
