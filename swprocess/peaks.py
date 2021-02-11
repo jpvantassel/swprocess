@@ -72,7 +72,7 @@ class Peaks():
         logger.debug(f"Creating {self}")
         logger.debug(f"  {self}.attrs={self.attrs}")
 
-        _getattr = lambda attr: getattr(self, f"_{attr}")[self._valid]
+        def _getattr(attr): return getattr(self, f"_{attr}")[self._valid]
         for key, val in kwargs.items():
             setattr(self, f"_{key}", np.array(val, dtype=float))
             setattr(self, key, _getattr(attr=key))
@@ -307,11 +307,8 @@ class Peaks():
         for key, value in defaults.get(ytype, {}).items():
             getattr(ax, f"set_y{key}")(value)
 
-    def blitz(self, attr, limits):
-        """Reject peaks outside the stated boundary.
-
-        This method is similar to `reject`, however it is more expensive
-        and therefore should only be called once on a dataset.
+    def reject_outside(self, attr, limits):
+        """Reject peaks outside the stated bounds.
 
         Parameters
         ----------
@@ -328,13 +325,33 @@ class Peaks():
         None
             Updates the `Peaks` object's state.
 
-        """
-        values = getattr(self, attr)
-        _min, _max = limits
-        reject_ids = self._reject_outside_ids(values, _min, _max)
-        self._reject(reject_ids)
+        Notes
+        -----
+        This method is somewhat similar to
+        :meth:`swprocess.Peaks.reject_inside`, but is more
+        computationally expensive.
 
-    def reject(self, xtype, xlims, ytype, ylims):
+        """
+        _attr = getattr(self, f"_{attr}")
+        _min, _max = limits
+
+        bool_array = np.zeros_like(_attr, dtype=bool)
+        if _min is None and _max is None:
+            msg = "`reject_outside` called, but limits were both `None`, "
+            msg += "therefore no values were rejected."
+            warnings.warn(msg)
+        elif _min is None:
+            np.greater(_attr, _max, out=bool_array, where=self._valid)
+        elif _max is None:
+            np.less(_attr, _min, out=bool_array, where=self._valid)
+        else:
+            np.greater(_attr, _max, out=bool_array, where=self._valid)
+            np.less(_attr, _min, out=bool_array,
+                    where=np.logical_and(self._valid, ~bool_array))
+
+        self._reject(bool_array)
+
+    def reject_inside(self, xtype, xlims, ytype, ylims):
         """Reject peaks inside the stated boundaries.
 
         Parameters
@@ -386,24 +403,9 @@ class Peaks():
         condition2 = np.logical_and(d2 > d2_min, d2 < d2_max)
         return np.flatnonzero(np.logical_and(condition1, condition2))
 
-    @staticmethod
-    def _reject_outside_ids(values, _min, _max):
-        if _min is None and _max is None:
-            msg = "blitz called, but limits are `None`, so no values rejected."
-            warnings.warn(msg)
-            condition = np.zeros_like(values, dtype=int)
-        elif _min is None:
-            condition = values > _max
-        elif _max is None:
-            condition = values < _min
-        else:
-            condition = np.logical_or(values > _max, values < _min)
-        return np.flatnonzero(condition)
-
-    def _reject(self, reject_ids):
-        """Reject peaks with the given ids."""
-        for attr in self.attrs:
-            setattr(self, attr, np.delete(getattr(self, attr), reject_ids))
+    def _reject(self, bool_array):
+        """Reject peaks according to the provided boolean array."""
+        self._valid[bool_array] = False
 
     @classmethod
     def from_dict(cls, data_dict, identifier="0"):

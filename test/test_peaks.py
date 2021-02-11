@@ -55,7 +55,7 @@ class Test_Peaks(TestCase):
                      [35, 12, np.nan]]
         cls.pwr2n = [[np.nan, 15, 20],
                      [35, 13, np.nan]]
-        cls.valid = np.array([[False, True, True],[True, True, False]])
+        cls.valid = np.array([[False, True, True], [True, True, False]])
 
     def test_init(self):
         # 1D: No keyword arguments
@@ -91,7 +91,8 @@ class Test_Peaks(TestCase):
         peaks = Peaks(self.frq2n, self.vel2n, identifier=self._id2n,
                       azi=self.azi2n, ell=self.ell2n, noi=self.noi2n,
                       pwr=self.pwr2n)
-        self.assertArrayEqual(np.array(self.frq2n)[self.valid], peaks.frequency)
+        self.assertArrayEqual(np.array(self.frq2n)[
+                              self.valid], peaks.frequency)
         self.assertArrayEqual(np.array(self.vel2n)[self.valid], peaks.velocity)
         self.assertEqual(self._id2n, peaks.identifier)
         self.assertArrayEqual(np.array(self.azi2n)[self.valid], peaks.azi)
@@ -177,47 +178,39 @@ class Test_Peaks(TestCase):
         ax.set_ylabel.assert_not_called()
         ax.set_yscale.assert_not_called()
 
-    # def test_blitz(self):
-    #     xs = np.array([1, 5, 9, 3, 5, 7, 4, 6, 2, 8])
-    #     ys = np.array([1, 9, 4, 5, 6, 8, 5, 2, 1, 4])
+    def test_reject_outside(self):
+        fs = np.array([1, 5, 9, np.nan, 3, 5, 7, 4, 6, 2, 8])
+        vs = np.array([1, 9, 4, np.nan, 5, 6, 8, 5, 2, 1, 4])
 
-    #     # Remove all above 4.5
-    #     _min, _max = None, 4.5
-    #     expected = np.array([1, 2, 4, 5, 7, 9])
-    #     returned = Peaks._reject_outside_ids(xs, _min, _max)
-    #     self.assertArrayEqual(expected, returned)
+        # None
+        peaks = swprocess.Peaks(fs, vs)
+        limits = None, None
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            peaks.reject_outside("frequency", limits)
+        self.assertArrayEqual(fs[np.isfinite(fs)], peaks.frequency)
+        self.assertArrayEqual(vs[np.isfinite(vs)], peaks.velocity)
 
-    #     # Remove all below 4.5
-    #     _min, _max = 4.5, None
-    #     expected = np.array([0, 3, 6, 8])
-    #     returned = Peaks._reject_outside_ids(xs, _min, _max)
-    #     self.assertArrayEqual(expected, returned)
+        # Remove all above 4.5
+        peaks = swprocess.Peaks(fs, vs)
+        limits = None, 4.5
+        peaks.reject_outside("frequency", limits)
+        self.assertArrayEqual(np.array([1., 3, 4, 2]), peaks.frequency)
+        self.assertArrayEqual(np.array([1., 5, 5, 1]), peaks.velocity)
 
-    #     # Remove all below 1.5 and above 6.5
-    #     _min, _max = 1.5, 6.5
-    #     expected = np.array([0, 2, 5, 9])
-    #     returned = Peaks._reject_outside_ids(xs, _min, _max)
-    #     self.assertArrayEqual(expected, returned)
+        # Remove all below 4.5
+        peaks = swprocess.Peaks(fs, vs)
+        limits = 4.5, None
+        peaks.reject_outside("frequency", limits)
+        self.assertArrayEqual(np.array([5., 9, 5, 7, 6, 8]), peaks.frequency)
+        self.assertArrayEqual(np.array([9., 4, 6, 8, 2, 4]), peaks.velocity)
 
-    #     # None
-    #     _min, _max = None, None
-    #     expected = np.array([])
-    #     with warnings.catch_warnings():
-    #         warnings.simplefilter("ignore")
-    #         returned = Peaks._reject_outside_ids(xs, _min, _max)
-    #     self.assertArrayEqual(expected, returned)
-
-    #     # Remove all below 0.5 and above 6.5
-    #     limits = (0.5, 6.5)
-
-    #     other = np.arange(10)
-    #     peaks = Peaks(frequency=xs, velocity=ys, other=other)
-    #     peaks.blitz("frequency", limits)
-
-    #     keep_ids = [0, 1, 3, 4, 6, 7, 8]
-    #     attrs = dict(frequency=xs, velocity=ys, other=other)
-    #     for attr, value in attrs.items():
-    #         self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
+        # Remove all below 1.5 and above 6.5
+        peaks = swprocess.Peaks(fs, vs)
+        limits = 1.5, 6.5
+        peaks.reject_outside("frequency", limits)
+        self.assertArrayEqual(np.array([5., 3, 5, 4, 6, 2]), peaks.frequency)
+        self.assertArrayEqual(np.array([9., 5, 6, 5, 2, 1]), peaks.velocity)
 
     # def test_reject(self):
     #     xs = np.array([1, 2, 4, 5, 1, 2, 6, 4, 9, 4])
