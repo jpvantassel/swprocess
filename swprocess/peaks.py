@@ -147,13 +147,12 @@ class Peaks():
                 nois[row, col] = float(_noi)
                 pwrs[row, col] = float(_pwr)
 
-        # TODO (jpv): Belt & Suspenders.
-        # # Include for "belt and suspenders".
-        # getall = get_all(time=start_time, wavetype=wavetype)
-        # count = len(getall.findall(peak_data))
-        # if len(frqs) != count:  # pragma: no cover
-        #     msg = f"Missing {count - len(frqs)} dispersion peaks."
-        #     raise ValueError(msg)
+        # Include for "belt and suspenders".
+        getall = get_all(time=start_time, wavetype=wavetype)
+        count = len(getall.findall(peak_data))
+        if np.sum(~np.isnan(frqs)) != count:  # pragma: no cover
+            msg = f"Missing {count - len(frqs)} dispersion peaks."
+            raise ValueError(msg)
 
         return cls(frqs, vels, identifier=start_time, azimuth=azis,
                    ellipticity=ells, noise=nois, power=pwrs)
