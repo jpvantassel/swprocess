@@ -9,7 +9,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
-from .regex import get_peak_from_max, get_nmaxima
+from .regex import get_peak_from_max, get_all, get_nmaxima
 
 logger = logging.getLogger("swprocess.peaks")
 
@@ -433,30 +433,6 @@ class Peaks():
         """Reject peaks according to the provided boolean array."""
         self._valid[bool_array] = False
 
-    @classmethod
-    def from_dict(cls, data_dict, identifier="0"):
-        """Initialize `Peaks` from `dict`.
-
-        Parameters
-        ----------
-        data_dict: dict
-            Of the form
-            `{"frequency":freq, "velocity":vel, "kwarg1": kwarg1}`
-            where `freq` is a list of floats denoting frequency values.
-            `vel` is a list of floats denoting velocity values.
-            `kwarg1` is an optional keyword argument denoting some
-            additional parameter (may include more than one).
-        identifiers : str
-            String to uniquely identify the provided `Peaks` object.
-
-        Returns
-        -------
-        Peaks
-            Initialized `Peaks` instance.
-
-        """
-        return cls(identifier=identifier, **data_dict)
-
     def to_json(self, fname, append=False):
         """Write `Peaks` to json file.
 
@@ -477,7 +453,8 @@ class Peaks():
         """
         data = {}
         for attr in self.attrs:
-            data[attr] = getattr(self, attr).tolist()
+            data[attr] = getattr(self, f"_{attr}").tolist()
+        data["valid"] = self._valid.tolist()
 
         # Assumes dict of the form {"id0":{data}, "id1":{data} ... }
         if append:
@@ -495,11 +472,6 @@ class Peaks():
             data = {self.identifier: data}
             with open(fname, "w") as f:
                 json.dump(data, f)
-
-    def write_peak_json(self, fname):
-        msg = ".write_peak_json is deprecated use .to_json instead."
-        warnings.warn(msg, DeprecationWarning)
-        self.to_json(fname)
 
     @classmethod
     def from_json(cls, fname):
@@ -527,6 +499,41 @@ class Peaks():
             warnings.warn(msg)
 
         return cls.from_dict(data[key_list[0]], identifier=key_list[0])
+
+    @classmethod
+    def from_dict(cls, data_dict, identifier="0"):
+        """Initialize `Peaks` from `dict`.
+
+        Parameters
+        ----------
+        data_dict: dict
+            Of the form
+            `{"frequency":freq, "velocity":vel, "kwarg1": kwarg1}`
+            where `freq` is a list of floats denoting frequency values.
+            `vel` is a list of floats denoting velocity values.
+            `kwarg1` is an optional keyword argument denoting some
+            additional parameter (may include more than one).
+        identifiers : str
+            String to uniquely identify the provided `Peaks` object.
+
+        Returns
+        -------
+        Peaks
+            Initialized `Peaks` instance.
+
+        """
+        valid = data_dict.get("valid")
+        try:
+            del data_dict["valid"]
+        except KeyError:
+            pass
+
+        obj = cls(identifier=identifier, **data_dict)
+
+        if valid is not None:
+            obj._valid = np.array(valid, dtype=bool)
+
+        return obj
 
     @classmethod
     def from_max(cls, fname, wavetype="rayleigh"):

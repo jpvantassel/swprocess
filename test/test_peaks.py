@@ -239,10 +239,10 @@ class Test_Peaks(TestCase):
             self.assertArrayEqual(value[keep_ids], getattr(peaks, attr))
 
         # Reject on wavelength and slowness.
-        ws = np.array([   1, 5, 8, np.nan, 6, 4, 7, 7, 1, 3, 5])
-        ps = np.array([   1, 5, 9, np.nan, 4, 5, 6, 7, 8, 1, 7])
+        ws = np.array([1, 5, 8, np.nan, 6, 4, 7, 7, 1, 3, 5])
+        ps = np.array([1, 5, 9, np.nan, 4, 5, 6, 7, 8, 1, 7])
         power = np.array([0, 1, 2, np.nan, 4, 5, 6, 7, 8, 9, 10])
-        
+
         xs = 1/(ws*ps)
         ys = 1/ps
 
@@ -255,154 +255,165 @@ class Test_Peaks(TestCase):
         for attr, value in attrs.items():
             self.assertArrayEqual(value[keep_ids], getattr(peaks, attr))
 
-    # def test_from_dict(self):
-    #     # Basic Case: No keyword arguments
-    #     data = {"frequency": self.frq, "velocity": self.vel}
-    #     peaks = Peaks.from_dict(data, identifier=self._id)
-    #     self.assertArrayEqual(np.array(self.frq), peaks.frequency)
-    #     self.assertArrayEqual(np.array(self.vel), peaks.velocity)
-    #     self.assertEqual(self._id, peaks.identifier)
+    def test_to_and_from_json(self):
+        # Standard to_json and from_json.
+        fname = "test_0.json"
+        expected = swprocess.Peaks(self.frq, self.vel, self._id,
+                                   azimuth=self.azi, power=self.pwr)
+        expected.to_json(fname)
+        returned = swprocess.Peaks.from_json(fname)
+        self.assertEqual(expected, returned)
+        os.remove(fname)
 
-    #     # Advanced Case: Four keyword arguments
-    #     data = {"frequency": self.frq, "velocity": self.vel,
-    #             "azi": self.azi, "ell": self.ell, "noi": self.noi,
-    #             "pwr": self.pwr}
-    #     peaks = Peaks.from_dict(data, identifier=self._id)
-    #     self.assertArrayEqual(np.array(self.azi), peaks.azi)
-    #     self.assertArrayEqual(np.array(self.ell), peaks.ell)
-    #     self.assertArrayEqual(np.array(self.noi), peaks.noi)
-    #     self.assertArrayEqual(np.array(self.pwr), peaks.pwr)
+        # Create and append with to_json, read the original with from_json.
+        fname = "test_1.json"
+        expected = swprocess.Peaks(self.frq, self.vel, "org")
+        expected.to_json(fname)
 
-    #     # Advanced Case: Two keyword arguments
-    #     data = {"frequency": self.frq, "velocity": self.vel,
-    #             "azi": self.azi, "pwr": self.pwr}
-    #     peaks = Peaks.from_dict(data, identifier=self._id)
-    #     self.assertArrayEqual(np.array(self.azi), peaks.azi)
-    #     self.assertArrayEqual(np.array(self.pwr), peaks.pwr)
+        append = swprocess.Peaks(self.frq2, self.vel2, "app")
+        append.to_json(fname, append=True)
 
-    #     # Bad: missing frequency or velocity
-    #     del data["frequency"]
-    #     self.assertRaises(TypeError, Peaks.from_dict, data)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            returned = swprocess.Peaks.from_json(fname)
+        self.assertEqual(expected, returned)
+        os.remove(fname)
 
-    # def test_to_and_from_json(self):
-    #     # Standard to_json and from_json
-    #     fname = "test.json"
-    #     expected = swprocess.Peaks(self.frq, self.vel, self._id,
-    #                      azi=self.azi, pwr=self.pwr)
-    #     expected.to_json(fname)
-    #     returned = Peaks.from_json(fname)
-    #     self.assertEqual(expected, returned)
-    #     os.remove(fname)
+        # Append using to_json but data already exists.
+        fname = "test_2.json"
+        peaks = swprocess.Peaks(self.frq, self.vel, "org")
+        peaks.to_json(fname)
+        self.assertRaises(KeyError, peaks.to_json, fname, append=True)
+        os.remove(fname)
 
-    #     # Deprecated write_peak_json
-    #     expected = swprocess.Peaks(self.frq, self.vel, self._id,
-    #                      azi=self.azi, pwr=self.pwr)
-    #     fname = "test_1.json"
-    #     with warnings.catch_warnings():
-    #         warnings.simplefilter("ignore")
-    #         expected.write_peak_json(fname)
-    #     returned = Peaks.from_json(fname)
-    #     self.assertEqual(expected, returned)
-    #     os.remove(fname)
+        # Write and overwrite using to_json, read overwrite with from_json.
+        fname = "test_3.json"
+        expected = swprocess.Peaks(self.frq, self.vel, "org")
+        expected.to_json(fname)
+        expected.identifier = "app"
+        expected.to_json(fname, append=False)
+        returned = swprocess.Peaks.from_json(fname)
+        self.assertEqual(expected, returned)
+        os.remove(fname)
 
-    #     # to_json append data does not exist
-    #     fname = "test_2.json"
-    #     peaks = swprocess.Peaks(self.frq, self.vel, "org")
-    #     peaks.to_json(fname)
-    #     peaks.identifier = "app"
-    #     peaks.to_json(fname, append=True)
-    #     suite = swprocess.PeaksSuite.from_json(fname)
-    #     for _peaks, _id in zip(suite, suite.ids):
-    #         peaks.identifier = _id
-    #         self.assertEqual(peaks, _peaks)
+    def test_from_dict(self):
+        # 1D: No keyword arguments.
+        data = {"frequency": self.frq, "velocity": self.vel}
+        peaks = swprocess.Peaks.from_dict(data, identifier=self._id)
+        self.assertArrayEqual(np.array(self.frq), peaks.frequency)
+        self.assertArrayEqual(np.array(self.vel), peaks.velocity)
+        self.assertEqual(self._id, peaks.identifier)
 
-    #     # to_json append data already exists
-    #     self.assertRaises(KeyError, peaks.to_json, fname, append=True)
-    #     os.remove(fname)
+        # 1D: Four keyword arguments.
+        data = {"frequency": self.frq, "velocity": self.vel,
+                "azimuth": self.azi, "ellipticity": self.ell,
+                "noise": self.noi, "power": self.pwr}
+        peaks = swprocess.Peaks.from_dict(data, identifier=self._id)
+        self.assertArrayEqual(np.array(self.frq), peaks.frequency)
+        self.assertArrayEqual(np.array(self.vel), peaks.velocity)
+        self.assertArrayEqual(np.array(self.azi), peaks.azimuth)
+        self.assertArrayEqual(np.array(self.ell), peaks.ellipticity)
+        self.assertArrayEqual(np.array(self.noi), peaks.noise)
+        self.assertArrayEqual(np.array(self.pwr), peaks.power)
 
-    #     # to_json overwrite
-    #     fname = "test_3.json"
-    #     peaks = swprocess.Peaks(self.frq, self.vel, "org")
-    #     peaks.to_json(fname)
-    #     peaks.identifier = "app"
-    #     peaks.to_json(fname, append=False)
-    #     returned = Peaks.from_json(fname)
-    #     self.assertEqual(peaks, returned)
-    #     os.remove(fname)
+        # 2D: Four keyword arguments.
+        data = {"frequency": self.frq2, "velocity": self.vel2,
+                "azimuth": self.azi2, "ellipticity": self.ell2,
+                "noise": self.noi2, "power": self.pwr2}
+        peaks = swprocess.Peaks.from_dict(data, identifier=self._id2)
+        self.assertArrayEqual(np.array(self.frq2).flatten(), peaks.frequency)
+        self.assertArrayEqual(np.array(self.vel2).flatten(), peaks.velocity)
+        self.assertArrayEqual(np.array(self.azi2).flatten(), peaks.azimuth)
+        self.assertArrayEqual(np.array(self.ell2).flatten(), peaks.ellipticity)
+        self.assertArrayEqual(np.array(self.noi2).flatten(), peaks.noise)
+        self.assertArrayEqual(np.array(self.pwr2).flatten(), peaks.power)
 
-    #     # from_json ignore multiple data
-    #     fname = self.full_path + "data/peak/peaks_c2.json"
-    #     peak_suite = swprocess.PeaksSuite.from_json(fname)
-    #     with warnings.catch_warnings():
-    #         warnings.simplefilter("ignore")
-    #         returned = Peaks.from_json(fname)
-    #     expected = peak_suite[peak_suite.ids.index(returned.identifier)]
-    #     self.assertEqual(expected, returned)
+        # 2D: Four keyword arguments with nan.
+        data = {"frequency": self.frq2n, "velocity": self.vel2n,
+                "azimuth": self.azi2n, "ellipticity": self.ell2n,
+                "noise": self.noi2n, "power": self.pwr2n}
+        peaks = swprocess.Peaks.from_dict(data, identifier=self._id2)
+        self.assertArrayAlmostEqual(np.array(self.frq2n), peaks._frequency,
+                                    equal_nan=True)
+        self.assertArrayAlmostEqual(np.array(self.vel2n), peaks._velocity,
+                                    equal_nan=True)
+        self.assertArrayAlmostEqual(np.array(self.azi2n), peaks._azimuth,
+                                    equal_nan=True)
+        self.assertArrayAlmostEqual(np.array(self.ell2n), peaks._ellipticity,
+                                    equal_nan=True)
+        self.assertArrayAlmostEqual(np.array(self.noi2n), peaks._noise,
+                                    equal_nan=True)
+        self.assertArrayAlmostEqual(np.array(self.pwr2n), peaks._power,
+                                    equal_nan=True)
 
-    # def test_from_max(self):
-    #     # rayleigh, nmaxima=1, nblocksets=1, samples=30
-    #     fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
-    #     fname_csv = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1_r_parsed.csv"
+        # Bad: missing frequency or velocity
+        del data["frequency"]
+        self.assertRaises(TypeError, swprocess.Peaks.from_dict, data)
 
-    #     peaks = Peaks.from_max(fname=fname_max, wavetype="rayleigh")
-    #     df = pd.read_csv(fname_csv)
-    #     for attr in ["frequency", "slowness", "azimuth", "ellipticity", "noise", "power"]:
-    #         self.assertArrayAlmostEqual(getattr(df, attr).to_numpy(),
-    #                                     getattr(peaks, attr))
+    def test_from_max(self):
+        # rayleigh, nmaxima=1, nblocksets=1, samples=30
+        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
+        fname_csv = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1_r_parsed.csv"
 
-    #     # love, nmaxima=1, nblocksets=1, samples=30
-    #     fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
-    #     fname_csv = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1_l_parsed.csv"
+        peaks = swprocess.Peaks.from_max(fname=fname_max, wavetype="rayleigh")
+        df = pd.read_csv(fname_csv)
+        for attr in ["frequency", "slowness", "azimuth", "ellipticity", "noise", "power"]:
+            self.assertArrayAlmostEqual(getattr(df, attr).to_numpy(),
+                                        getattr(peaks, f"_{attr}"))
 
-    #     peaks = Peaks.from_max(fname=fname_max, wavetype="love")
-    #     df = pd.read_csv(fname_csv)
-    #     for attr in ["frequency", "slowness", "azimuth", "ellipticity", "noise", "power"]:
-    #         self.assertArrayAlmostEqual(getattr(df, attr).to_numpy(),
-    #                                     getattr(peaks, attr))
+        # love, nmaxima=1, nblocksets=1, samples=30
+        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
+        fname_csv = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1_l_parsed.csv"
 
-    #     # rayleigh, nmaxima=5, nblocksets=1, samples=3
-    #     fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
-    #     peaks = Peaks.from_max(fname=fname_max, wavetype="rayleigh")
+        peaks = swprocess.Peaks.from_max(fname=fname_max, wavetype="love")
+        df = pd.read_csv(fname_csv)
+        for attr in ["frequency", "slowness", "azimuth", "ellipticity", "noise", "power"]:
+            self.assertArrayAlmostEqual(getattr(df, attr).to_numpy(),
+                                        getattr(peaks, f"_{attr}"))
 
-    #     frequency = np.array([[26.78452072, 23.91368501, 21.35055305],
-    #                           [26.78452072, 23.91368501, 21.35055305],
-    #                           [26.78452072, 23.91368501, np.nan],
-    #                           [26.78452072, 23.91368501, np.nan],
-    #                           [26.78452072, 23.91368501, np.nan]])
-    #     self.assertArrayAlmostEqual(frequency, peaks.frequency, equal_nan=True)
+        # rayleigh, nmaxima=5, nblocksets=1, samples=3
+        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
+        peaks = swprocess.Peaks.from_max(fname=fname_max, wavetype="rayleigh")
 
-    #     slowness = np.array([[0.000440641, 0.001356121, 0.001527776],
-    #                         [0.001276366, 0.001434077, 0.002798866],
-    #                         [0.001855475, 0.00150539, np.nan],
-    #                         [0.001911923, 0.001839504, np.nan],
-    #                         [0.002008938, 0.002440085, np.nan]])
-    #     self.assertArrayAlmostEqual(slowness, peaks.slowness, equal_nan=True)
+        frequency = np.array([[26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, np.nan],
+                              [26.78452072, 23.91368501, np.nan],
+                              [26.78452072, 23.91368501, np.nan]])
+        self.assertArrayAlmostEqual(frequency, peaks._frequency, equal_nan=True)
 
-    #     # TODO (jpv): Extend check to other attrs.
+        slowness = np.array([[0.000440641, 0.001356121, 0.001527776],
+                            [0.001276366, 0.001434077, 0.002798866],
+                            [0.001855475, 0.00150539, np.nan],
+                            [0.001911923, 0.001839504, np.nan],
+                            [0.002008938, 0.002440085, np.nan]])
+        self.assertArrayAlmostEqual(slowness, peaks._slowness, equal_nan=True)
 
-    #     # love, nmaxima=5, nblocksets=1, samples=3
-    #     fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
-    #     peaks = Peaks.from_max(fname=fname_max, wavetype="love")
+        # TODO (jpv): Extend check to other attrs.
 
-    #     frequency = np.array([[26.78452072, 23.91368501, 21.35055305],
-    #                           [26.78452072, 23.91368501, 21.35055305],
-    #                           [26.78452072, 23.91368501, 21.35055305],
-    #                           [26.78452072, 23.91368501, 21.35055305],
-    #                           [np.nan, 23.91368501, 21.35055305]])
-    #     self.assertArrayAlmostEqual(frequency, peaks.frequency, equal_nan=True)
+        # love, nmaxima=5, nblocksets=1, samples=3
+        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
+        peaks = swprocess.Peaks.from_max(fname=fname_max, wavetype="love")
 
-    #     slowness = np.array([[0.000291155, 0.000410159, 0.001344777],
-    #                         [0.000432074, 0.002521279, 0.001778382],
-    #                         [0.001733716, 0.00257382, 0.002784536],
-    #                         [0.001773228, 0.002602644, 0.003074123],
-    #                         [np.nan, 0.002692776, 0.003118143]])
-    #     self.assertArrayAlmostEqual(slowness, peaks.slowness, equal_nan=True)
+        frequency = np.array([[26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, 21.35055305],
+                              [26.78452072, 23.91368501, 21.35055305],
+                              [np.nan, 23.91368501, 21.35055305]])
+        self.assertArrayAlmostEqual(frequency, peaks._frequency, equal_nan=True)
 
-    #     # TODO (jpv): Extend check to other attrs.
+        slowness = np.array([[0.000291155, 0.000410159, 0.001344777],
+                            [0.000432074, 0.002521279, 0.001778382],
+                            [0.001733716, 0.00257382, 0.002784536],
+                            [0.001773228, 0.002602644, 0.003074123],
+                            [np.nan, 0.002692776, 0.003118143]])
+        self.assertArrayAlmostEqual(slowness, peaks._slowness, equal_nan=True)
 
-    #     # Bad wavetype
-    #     self.assertRaises(ValueError, Peaks.from_max,
-    #                       fname_max, wavetype="incorrect")
+        # TODO (jpv): Extend check to other attrs.
+
+        # Bad wavetype
+        self.assertRaises(ValueError, swprocess.Peaks.from_max,
+                          fname_max, wavetype="incorrect")
 
     def test__eq__(self):
         peaks_a = swprocess.Peaks(self.frq, self.vel, self._id,
