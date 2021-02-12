@@ -541,42 +541,22 @@ class PeaksSuite():
             and all other points.
 
         """
-        xx, data_matrix = self._create_data_matrix(xtype, ytype, xx)
-
-        xx, data_matrix = self._drop(xx, data_matrix.T,
-                                     drop_sample_if_fewer_percent=0.,
-                                     drop_observation_if_fewer_percent=0.,
-                                     drop_sample_if_fewer_count=drop_sample_if_fewer_count)
-        data_matrix = data_matrix.T
-
-        mean = np.nanmean(data_matrix, axis=1)
-        std = np.nanstd(data_matrix, axis=1, ddof=1)
-        corr = None if ignore_corr else np.corrcoef(data_matrix)
-
-        return (xx, mean, std, corr)
-
-    def _create_data_matrix(self, xtype, ytype, xx):
         npeaks = len(self.peaks)
         if npeaks < 3:
             msg = f"Cannot calculate statistics on fewer than 3 `Peaks`."
             raise ValueError(msg)
 
-        xx = np.array(xx)
-        data_matrix = np.empty((len(xx), npeaks))
+        xx, data_matrix = self.to_array(xtype, ytype, xx)
 
-        for col, _peaks in enumerate(self.peaks):
-            # TODO (jpv): Allow assume_sorted should improve speed.
-            try:
-                interpfxn = interp1d(getattr(_peaks, xtype),
-                                     getattr(_peaks, ytype),
-                                     copy=False, bounds_error=False,
-                                     fill_value=np.nan)
-            except ValueError:
-                data_matrix[:, col] = np.nan
-            else:
-                data_matrix[:, col] = interpfxn(xx)
+        xx, data_matrix = self._drop(xx, data_matrix,
+                                     drop_sample_if_fewer_percent=0.,
+                                     drop_observation_if_fewer_percent=0.,
+                                     drop_sample_if_fewer_count=drop_sample_if_fewer_count)
+        mean = np.nanmean(data_matrix, axis=0)
+        std = np.nanstd(data_matrix, axis=0, ddof=1)
+        corr = None if ignore_corr else np.corrcoef(data_matrix.T)
 
-        return (xx, data_matrix)
+        return (xx, mean, std, corr)
 
     def to_array(self, xtype, ytype, xx):
         """Create an array representation of the `PeaksSuite`.
@@ -607,9 +587,9 @@ class PeaksSuite():
         for row, _peaks in enumerate(self.peaks):
             # TODO (jpv): Allow assume_sorted should improve speed.
             try:
-                interpfxn = interp1d(getattr(_peaks, xtype),
-                                     getattr(_peaks, ytype),
-                                     copy=False, bounds_error=False,
+                interpfxn = interp1d(_peaks.simplify_mpeaks(xtype),
+                                     _peaks.simplify_mpeaks(ytype),
+                                     copy=True, bounds_error=False,
                                      fill_value=np.nan)
             except ValueError:
                 array[row, :] = np.nan

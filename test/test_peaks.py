@@ -28,7 +28,7 @@ class Test_Peaks(TestCase):
         cls.pwr = [10., 15, 20, 35, 13, 20]
 
         cls._id2 = "10m"
-        cls.frq2 = [[80., 60, 20],
+        cls.frq2 = [[75., 65, 20],
                     [75., 65, 30]]
         cls.vel2 = [[50., 70, 85],
                     [55., 80, 75]]
@@ -42,7 +42,7 @@ class Test_Peaks(TestCase):
                     [35, 13, 20]]
 
         cls._id2n = "nan"
-        cls.frq2n = [[np.nan, 60, 20],
+        cls.frq2n = [[np.nan, 65, 20],
                      [75., 65, np.nan]]
         cls.vel2n = [[np.nan, 70, 85],
                      [55., 80, np.nan]]
@@ -255,6 +255,51 @@ class Test_Peaks(TestCase):
         for attr, value in attrs.items():
             self.assertArrayEqual(value[keep_ids], getattr(peaks, attr))
 
+    def test_simplify_mpeaks(self):
+        # 1D: Four attributes.
+        peaks = swprocess.Peaks(self.frq, self.vel, identifier=self._id,
+                                azimuth=self.azi, power=self.pwr,
+                                ellipticity=self.ell, noise=self.noi)
+        for attr in ["frequency", "velocity", "azimuth", "power", "ellipticity", "noise"]:
+            simplified_attr = peaks.simplify_mpeaks(attr)
+            self.assertArrayEqual(getattr(peaks, f"{attr}"), simplified_attr)
+
+        # 2D: No attributes with nan.
+        peaks = swprocess.Peaks(self.frq2n, self.vel2n, identifier=self._id2n)
+        row, col = np.array([1, 0, 0]), np.array([0, 1, 2])
+        for attr in ["frequency", "velocity"]:
+            simplified_attr = peaks.simplify_mpeaks(attr)
+            self.assertArrayEqual(getattr(peaks, f"_{attr}")[row, col],
+                                  simplified_attr)
+
+        # 2D: Four attributes with nan.
+        peaks = swprocess.Peaks(self.frq2n, self.vel2n, identifier=self._id2n,
+                                azimuth=self.azi2n, power=self.pwr2n,
+                                ellipticity=self.ell2n, noise=self.noi2n)
+        row, col = np.array([1, 0, 0]), np.array([0, 1, 2])
+        for attr in ["frequency", "velocity", "azimuth", "power", "ellipticity", "noise"]:
+            simplified_attr = peaks.simplify_mpeaks(attr)
+            self.assertArrayEqual(getattr(peaks, f"_{attr}")[row, col],
+                                  simplified_attr)
+
+        # 2D: Power attribute with nan.
+        frequency = np.array([[1, 3, 5, 7, 9, np.nan],
+                              [1, 3, np.nan, np.nan, 9, 2],
+                              [np.nan, np.nan, np.nan, 7, 9, 2]])
+        velocity = np.array([[1, 3, 5, 7, 9, np.nan],
+                             [3, 9, np.nan, np.nan, 9, 2],
+                             [np.nan, np.nan, np.nan, 7, 9, 2]])
+        power = np.array([[2, 6, 1, 8, 2, np.nan],
+                          [5, 1, np.nan, np.nan, 9, 1],
+                          [np.nan, np.nan, np.nan, 1, 1, 9]])
+        peaks = swprocess.Peaks(frequency, velocity,
+                                identifier=self._id2n, power=power)
+        row, col = np.array([1, 0, 0, 0, 1, 2]), np.array([0, 1, 2, 3, 4, 5])
+        for attr in ["frequency", "velocity", "power"]:
+            simplified_attr = peaks.simplify_mpeaks(attr)
+            self.assertArrayEqual(getattr(peaks, f"_{attr}")[row, col],
+                                  simplified_attr)
+
     def test_to_and_from_json(self):
         # Standard to_json and from_json.
         fname = "test_0.json"
@@ -380,13 +425,14 @@ class Test_Peaks(TestCase):
                               [26.78452072, 23.91368501, np.nan],
                               [26.78452072, 23.91368501, np.nan],
                               [26.78452072, 23.91368501, np.nan]])
-        self.assertArrayAlmostEqual(frequency, peaks._frequency, equal_nan=True)
+        self.assertArrayAlmostEqual(
+            frequency, peaks._frequency, equal_nan=True)
 
         slowness = np.array([[0.000440641, 0.001356121, 0.001527776],
-                            [0.001276366, 0.001434077, 0.002798866],
-                            [0.001855475, 0.00150539, np.nan],
-                            [0.001911923, 0.001839504, np.nan],
-                            [0.002008938, 0.002440085, np.nan]])
+                             [0.001276366, 0.001434077, 0.002798866],
+                             [0.001855475, 0.00150539, np.nan],
+                             [0.001911923, 0.001839504, np.nan],
+                             [0.002008938, 0.002440085, np.nan]])
         self.assertArrayAlmostEqual(slowness, peaks._slowness, equal_nan=True)
 
         # TODO (jpv): Extend check to other attrs.
@@ -400,13 +446,14 @@ class Test_Peaks(TestCase):
                               [26.78452072, 23.91368501, 21.35055305],
                               [26.78452072, 23.91368501, 21.35055305],
                               [np.nan, 23.91368501, 21.35055305]])
-        self.assertArrayAlmostEqual(frequency, peaks._frequency, equal_nan=True)
+        self.assertArrayAlmostEqual(
+            frequency, peaks._frequency, equal_nan=True)
 
         slowness = np.array([[0.000291155, 0.000410159, 0.001344777],
-                            [0.000432074, 0.002521279, 0.001778382],
-                            [0.001733716, 0.00257382, 0.002784536],
-                            [0.001773228, 0.002602644, 0.003074123],
-                            [np.nan, 0.002692776, 0.003118143]])
+                             [0.000432074, 0.002521279, 0.001778382],
+                             [0.001733716, 0.00257382, 0.002784536],
+                             [0.001773228, 0.002602644, 0.003074123],
+                             [np.nan, 0.002692776, 0.003118143]])
         self.assertArrayAlmostEqual(slowness, peaks._slowness, equal_nan=True)
 
         # TODO (jpv): Extend check to other attrs.

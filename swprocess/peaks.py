@@ -437,6 +437,49 @@ class Peaks():
         """Reject peaks according to the provided boolean array."""
         self._valid[bool_array] = False
 
+    def simplify_mpeaks(self, attr):
+        """Produce desired attribute with multiple peaks removed.
+
+        Parameters
+        ----------
+        attr : {"frequency", "velocity", "azimuth", "power", "ellipticity", "noise"}
+            Attribute of interest.
+
+        Returns
+        -------
+        ndarray
+            With the attribute of interest simplified to remove
+            duplicate peaks.
+
+        """
+        # If 1D, return valid.
+        if getattr(self, f"_{attr}").ndim == 1:
+            return getattr(self, f"{attr}")
+
+        # If 2D and has power, return values based on maximum.
+        elif hasattr(self, "_power"):
+            attr = getattr(self, f"_{attr}")
+            decide = self._power
+
+        # If 2D and missing power, return first available value.
+        else:
+            attr = getattr(self, f"_{attr}")
+            decide = self._frequency
+
+        values = np.empty(attr.shape[1], dtype=float)
+        for cindex, (colvals, valids) in enumerate(zip(decide.T, self._valid.T)):
+            mindex = 0
+            mval = -np.inf
+            for rindex, (rowval, valid) in enumerate(zip(colvals, valids)):
+                if not valid:
+                    continue
+                if rowval > mval:
+                    mindex = rindex
+                    mval = rowval
+            values[cindex] = attr[mindex, cindex]
+
+        return values
+
     def to_json(self, fname, append=False):
         """Write `Peaks` to json file.
 

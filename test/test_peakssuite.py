@@ -423,104 +423,104 @@ class Test_PeaksSuite(TestCase):
     #     fig.ginput = MagicMock(side_effect=[ginput_response, on_click])
     #     suite._draw_box(fig=fig)
 
-    # def test_statistics(self):
-    #     # No missing data
-    #     values = np.array([[1, 2, 3, 4, 5],
-    #                        [4, 5, 7, 8, 9],
-    #                        [4, 3, 6, 4, 2]])
-    #     frq = [1, 2, 3, 4, 5]
-    #     peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(3)]
-    #     suite = swprocess.PeaksSuite.from_peaks(peaks)
-    #     rfrq, rmean, rstd, rcorr = suite.statistics(xtype="frequency",
-    #                                                 ytype="velocity",
-    #                                                 xx=frq,
-    #                                                 ignore_corr=False)
-    #     self.assertArrayEqual(np.array(frq), rfrq)
-    #     self.assertArrayEqual(np.mean(values, axis=0), rmean)
-    #     self.assertArrayEqual(np.std(values, axis=0, ddof=1), rstd)
-    #     self.assertArrayEqual(np.corrcoef(values.T), rcorr)
+    def test_statistics(self):
+        # No missing data
+        values = np.array([[1, 2, 3, 4, 5],
+                           [4, 5, 7, 8, 9],
+                           [4, 3, 6, 4, 2]])
+        frq = [1, 2, 3, 4, 5]
+        peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(3)]
+        suite = swprocess.PeaksSuite.from_peaks(peaks)
+        rfrq, rmean, rstd, rcorr = suite.statistics(xtype="frequency",
+                                                    ytype="velocity",
+                                                    xx=frq,
+                                                    ignore_corr=False)
+        self.assertArrayEqual(np.array(frq), rfrq)
+        self.assertArrayEqual(np.mean(values, axis=0), rmean)
+        self.assertArrayEqual(np.std(values, axis=0, ddof=1), rstd)
+        self.assertArrayEqual(np.corrcoef(values.T), rcorr)
 
-    #     # Fewer than three peaks in PeaksSuite -> ValueError
-    #     peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(2)]
-    #     suite = swprocess.PeaksSuite.from_peaks(peaks)
-    #     self.assertRaises(ValueError, suite.statistics, xtype="frequency",
-    #                       ytype="velocity", xx=frq)
+        # Fewer than three peaks in PeaksSuite -> ValueError
+        peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(2)]
+        suite = swprocess.PeaksSuite.from_peaks(peaks)
+        self.assertRaises(ValueError, suite.statistics, xtype="frequency",
+                          ytype="velocity", xx=frq)
 
-    #     # missing_data_procedure="drop"
-    #     values = np.array([[np.nan]*6,
-    #                        [np.nan, 1, 2, 3, 4, 5],
-    #                        [0, 4, 5, 7, 8, 9],
-    #                        [0, 4, 3, 6, 4, 2]])
-    #     frq = [0.2, 1, 2, 3, 4, 5]
+        # # missing_data_procedure="drop"
+        # values = np.array([[np.nan]*6,
+        #                    [np.nan, 1, 2, 3, 4, 5],
+        #                    [0, 4, 5, 7, 8, 9],
+        #                    [0, 4, 3, 6, 4, 2]])
+        # frq = [0.2, 1, 2, 3, 4, 5]
 
-    #     valid = np.array([[1, 2, 3, 4, 5],
-    #                       [4, 5, 7, 8, 9],
-    #                       [4, 3, 6, 4, 2]])
-    #     valid_frq = frq[1:]
-    #     peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(4)]
-    #     suite = swprocess.PeaksSuite.from_peaks(peaks)
-    #     rfrq, rmean, rstd, rcorr = suite.statistics(frq,
-    #                                                 xtype="frequency",
-    #                                                 ytype="velocity",
-    #                                                 missing_data_procedure="drop")
-    #     self.assertArrayEqual(np.array(valid_frq), rfrq)
-    #     self.assertArrayEqual(np.mean(valid, axis=0), rmean)
-    #     self.assertArrayEqual(np.std(valid, axis=0, ddof=1), rstd)
-    #     self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
+        # valid = np.array([[1, 2, 3, 4, 5],
+        #                   [4, 5, 7, 8, 9],
+        #                   [4, 3, 6, 4, 2]])
+        # valid_frq = frq[1:]
+        # peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(4)]
+        # suite = swprocess.PeaksSuite.from_peaks(peaks)
+        # rfrq, rmean, rstd, rcorr = suite.statistics(xtype="frequency",
+        #                                             ytype="velocity",
+        #                                             xx = frq,
+        #                                             ignore_corr=False)
+        # self.assertArrayEqual(np.array(valid_frq), rfrq)
+        # self.assertArrayEqual(np.mean(valid, axis=0), rmean)
+        # self.assertArrayEqual(np.std(valid, axis=0, ddof=1), rstd)
+        # self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
 
-    # def test_plot_statistics(self):
-    #     # Mock ax
-    #     ax = MagicMock(spec=plt.Axes)
-    #     suite = swprocess.PeaksSuite(Peaks([1, 2, 3], [0, 1, 2]))
-    #     suite.plot_statistics(ax, [1, 2, 3], [0, 1, 2], [4, 5, 6])
-    #     ax.errorbar.assert_called_once()
+    def test_plot_statistics(self):
+        # Mock ax
+        ax = MagicMock(spec=plt.Axes)
+        suite = swprocess.PeaksSuite(swprocess.Peaks([1, 2, 3], [0, 1, 2]))
+        suite.plot_statistics(ax, [1, 2, 3], [0, 1, 2], [4, 5, 6])
+        ax.errorbar.assert_called_once()
 
-    # def test_drop(self):
-    #     # Full matrix -> No drop
-    #     xx = np.array([1, 2, 3])
-    #     data_matrix = np.array([[1, 2, 3],
-    #                             [4, 5, 6],
-    #                             [7, 8, 9],
-    #                             [0, 1, 2]])
-    #     rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix)
-    #     self.assertArrayEqual(xx, rxx)
-    #     self.assertArrayEqual(data_matrix, rdata_matrix)
+    def test_drop(self):
+        # Full matrix -> No drop
+        xx = np.array([1, 2, 3])
+        data_matrix = np.array([[1, 2, 3],
+                                [4, 5, 6],
+                                [7, 8, 9],
+                                [0, 1, 2]])
+        rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix)
+        self.assertArrayEqual(xx, rxx)
+        self.assertArrayEqual(data_matrix, rdata_matrix)
 
-    #     # Remove single empty column regardless of threshold.
-    #     xx = np.array([1, 2, 3, 4])
-    #     data_matrix = np.array([[1, 2, 3, np.nan],
-    #                             [4, 5, 6, np.nan],
-    #                             [7, 8, 9, np.nan],
-    #                             [0, 1, 2, np.nan]])
-    #     for drop_observation in [0., 0.5, 1.]:
-    #         rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix,
-    #                                                        drop_observation_if_fewer_percent=drop_observation)
-    #         self.assertArrayEqual(xx[:-1], rxx)
-    #         self.assertArrayEqual(data_matrix[:, :-1], rdata_matrix)
+        # Remove single empty column regardless of threshold.
+        xx = np.array([1, 2, 3, 4])
+        data_matrix = np.array([[1, 2, 3, np.nan],
+                                [4, 5, 6, np.nan],
+                                [7, 8, 9, np.nan],
+                                [0, 1, 2, np.nan]])
+        for drop_observation in [0., 0.5, 1.]:
+            rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix,
+                                                           drop_observation_if_fewer_percent=drop_observation)
+            self.assertArrayEqual(xx[:-1], rxx)
+            self.assertArrayEqual(data_matrix[:, :-1], rdata_matrix)
 
-    #     # Remove single bad observation.
-    #     xx = np.array([1, 2, 3])
-    #     data_matrix = np.array([[1, 2, 3],
-    #                             [7, 8, 9],
-    #                             [0, 1, 2],
-    #                             [np.nan, np.nan, np.nan]])
+        # Remove single bad observation.
+        xx = np.array([1, 2, 3])
+        data_matrix = np.array([[1, 2, 3],
+                                [7, 8, 9],
+                                [0, 1, 2],
+                                [np.nan, np.nan, np.nan]])
 
-    #     for drop_observation in [0.1, 0.5, 1.]:
-    #         rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix,
-    #                                                        drop_observation_if_fewer_percent=drop_observation)
-    #         self.assertArrayEqual(xx, rxx)
-    #         self.assertArrayEqual(data_matrix[:-1, :], rdata_matrix)
+        for drop_observation in [0.1, 0.5, 1.]:
+            rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix,
+                                                           drop_observation_if_fewer_percent=drop_observation)
+            self.assertArrayEqual(xx, rxx)
+            self.assertArrayEqual(data_matrix[:-1, :], rdata_matrix)
 
-    #     # Remove sample b/c too few data points.
-    #     xx = np.array([1, 2, 3, 4, 5])
-    #     data_matrix = np.array([[1, 2, 3, 4, 5],
-    #                             [7, 8, 9, 0, 1],
-    #                             [1, 2, 3, 4, np.nan]])
+        # Remove sample b/c too few data points.
+        xx = np.array([1, 2, 3, 4, 5])
+        data_matrix = np.array([[1, 2, 3, 4, 5],
+                                [7, 8, 9, 0, 1],
+                                [1, 2, 3, 4, np.nan]])
 
-    #     rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix,
-    #                                                    drop_sample_if_fewer_count=3)
-    #     self.assertArrayEqual(xx[:-1], rxx)
-    #     self.assertArrayEqual(data_matrix[:, :-1], rdata_matrix)
+        rxx, rdata_matrix = swprocess.PeaksSuite._drop(xx, data_matrix,
+                                                       drop_sample_if_fewer_count=3)
+        self.assertArrayEqual(xx[:-1], rxx)
+        self.assertArrayEqual(data_matrix[:, :-1], rdata_matrix)
 
     def test_to_and_from_json(self):
         # 2D: Two keyword arguments with nan.
