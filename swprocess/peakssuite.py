@@ -65,8 +65,8 @@ class PeaksSuite():
         self.peaks.append(peaks)
         self.ids.append(peaks.identifier)
 
-    def blitz(self, attribute, limits):
-        """Reject peaks outside the stated boundary.
+    def reject_limits_outside(self, attribute, limits):
+        """Reject peaks outside the stated limits.
 
         Parameters
         ----------
@@ -85,10 +85,10 @@ class PeaksSuite():
 
         """
         for peak in self.peaks:
-            peak.blitz(attribute, limits)
+            peak.reject_limits_outside(attribute, limits)
 
-    def reject(self, xtype, xlims, ytype, ylims):
-        """Reject peaks inside the stated boundaries.
+    def reject_box_inside(self, xtype, xlims, ytype, ylims):
+        """Reject peaks inside the stated limits.
 
         Parameters
         ----------
@@ -105,35 +105,7 @@ class PeaksSuite():
 
         """
         for peak in self.peaks:
-            peak.reject(xtype, xlims, ytype, ylims)
-
-    def reject_ids(self, xtype, xlims, ytype, ylims):
-        """Determine rejection ids.
-
-        Parameters
-        ----------
-        xtype, ytype : {"frequency", "velocity", "slowness", "wavelength"}
-            Parameter domain in which the limits are defined.
-        xlims, ylims : tuple
-            Tuple with the lower and upper limits for each of the
-            boundaries.
-
-        Returns
-        -------
-        list of ndarray
-            Containing the indices for rejection for each member of the
-            suite.
-
-        """
-        rejection_ids = []
-        for peak in self.peaks:
-            rejection_ids.append(peak.reject_ids(xtype, xlims, ytype, ylims))
-        return rejection_ids
-
-    def _reject(self, reject_ids):
-        """Reject peaks with the given ids."""
-        for _peak, _reject_ids in zip(self.peaks, reject_ids):
-            _peak._reject(_reject_ids)
+            peak.reject_box_inside(xtype, xlims, ytype, ylims)
 
     @staticmethod
     def calc_resolution_limits(xtype, attribute, ytype, limits, xs, ys):
@@ -229,7 +201,7 @@ class PeaksSuite():
                 plot_kwargs["label"] = None
 
     def plot(self, xtype="frequency", ytype="velocity", ax=None,
-             plot_kwargs=None, indices=None):
+             plot_kwargs=None, mask=None):
         """Plot dispersion data in `Peaks` object.
 
         Parameters
@@ -249,9 +221,10 @@ class PeaksSuite():
             `plot_kwargs = {"key":[value_peaks0, value_peaks1, ... ]}`,
             default is `None` indicating the predefined settings should
             be used.
-        indices : list of ndarray, optional
-            Indices to plot from each `Peaks` object in the `PeaksSuite`
-            , default is `None` so all points will be plotted.
+        mask : list of ndarray, optional
+            Boolean array mask for each `Peaks` object in the
+            `PeaksSuite` to control which points will be plotted,
+            default is `None` so no mask is applied.
 
         Returns
         -------
@@ -270,11 +243,11 @@ class PeaksSuite():
         plot_kwargs = self._prepare_plot_kwargs(plot_kwargs, len(self))
 
         # Prepare indices argument.
-        if indices is None:
-            indices = [None]*len(self)
+        if mask is None:
+            mask = [None]*len(self)
         else:
-            if len(indices) != len(self):
-                msg = f"len(indices)={len(indices)} must equal "
+            if len(mask) != len(self):
+                msg = f"len(mask)={len(mask)} must equal "
                 msg += f"len(self)={len(self)}."
                 raise IndexError(msg)
 
@@ -283,7 +256,7 @@ class PeaksSuite():
             ax_was_none = True
             fig, ax = self.peaks[0].plot(xtype=xtype, ytype=ytype,
                                          plot_kwargs=plot_kwargs[0],
-                                         indices=indices[0])
+                                         mask=mask[0])
         else:
             ax_was_none = False
 
@@ -296,11 +269,11 @@ class PeaksSuite():
             for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
                 self.peaks[0]._plot(ax=_ax, xtype=_xtype, ytype=_ytype,
                                     plot_kwargs=plot_kwargs[0],
-                                    indices=indices[0])
+                                    mask=mask[0])
 
         # Plot the remaining Peaks from the PeaksSuite (if they exist).
         if len(self.peaks) > 1:
-            for _peak, _plot_kwargs, _indices in zip(self.peaks[1:], plot_kwargs[1:], indices[1:]):
+            for _peak, _plot_kwargs, _mask in zip(self.peaks[1:], plot_kwargs[1:], mask[1:]):
                 label = _plot_kwargs.get("label", None)
                 for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
 
@@ -310,7 +283,7 @@ class PeaksSuite():
                         _plot_kwargs["label"] = None
 
                     _peak._plot(xtype=_xtype, ytype=_ytype, ax=_ax,
-                                plot_kwargs=_plot_kwargs, indices=_indices)
+                                plot_kwargs=_plot_kwargs, mask=_mask)
 
         # Configure Axes.
         for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
@@ -418,7 +391,8 @@ class PeaksSuite():
         fig.show()
 
         _continue = 1
-        main_indices = [np.array([], dtype=int) for _ in self.peaks]
+        rejection_bool_arrays = [np.zeros_like(
+            peak._valid, dtype=bool) for peak in self.peaks]
         err_bar = None
         while _continue:
 
@@ -426,22 +400,19 @@ class PeaksSuite():
             (xlims, ylims, axclicked) = self._draw_box(fig)
 
             # Find all points inside the box.
-            rejection_ids = self.reject_ids(xtype[axclicked], xlims,
-                                            ytype[axclicked], ylims)
-
-            # Count number of rejected points.
             rejection_count = 0
-            for _rejection_id in rejection_ids:
-                rejection_count += _rejection_id.size
+            for index, peak in enumerate(self.peaks):
+                rejection_mask = peak._reject_box_inside_bool_array(
+                    xtype[axclicked], xlims, ytype[axclicked], ylims)
+                rejection_count += np.sum(rejection_mask)
+                rejection_bool_arrays[index][rejection_mask] = True
             logging.debug(f"\trejection_count = {rejection_count}")
 
             # If latest rejection box has points, store and continue.
             if rejection_count > 0:
                 self.plot(xtype=xtype, ytype=ytype, ax=ax,
                           plot_kwargs=dict(color="#bbbbbb", label=None),
-                          indices=rejection_ids)
-
-                main_indices = [np.union1d(main, sub) for main, sub in zip(main_indices, rejection_ids)]
+                          mask=rejection_bool_arrays)
             # If latest rejection box is empty, ask user for input.
             else:
                 while True:
@@ -457,10 +428,13 @@ class PeaksSuite():
                         _continue = int(_continue)
                         break
 
-                # If continue or quit, reject points and reset main_indices.
+                # If continue or quit, reject points.
                 if _continue in [0, 1]:
-                    self._reject(main_indices)
-                    main_indices = [np.array([], dtype=int) for _ in self.peaks]
+                    for peak, bool_array in zip(self.peaks, rejection_bool_arrays):
+                        peak._reject(bool_array)
+
+                # If continue, quit, or undo, reset boolean arrays.
+                rejection_bool_arrays = [np.zeros_like(peak._valid, dtype=bool) for peak in self.peaks]
 
                 # Clear, set axis limits, and lock axis.
                 for _ax, pxlim, pylim in zip(ax, pxlims, pylims):
@@ -556,7 +530,7 @@ class PeaksSuite():
             default is `True`.
         drop_sample_if_fewer_count : int, optional
             Remove statistic sample if the number of valid entries
-            is fewer than the specified number, default is 3.   
+            is fewer than the specified number, default is 3.
 
         Returns
         -------
@@ -670,14 +644,14 @@ class PeaksSuite():
         drop_observation_if_fewer_percent : {0. - 1.}, optional
             Remove observations if the number of valid entries is
             fewer than the specified fraction times the total
-            possible, default is 0.8.  
+            possible, default is 0.8.
         drop_sample_if_fewer_percent : {0. - 1.}, optional
             Remove statistic sample if the number of valid entries
             is fewer than the specified fraction times the total
             possible, default is 0.4.
         drop_sample_if_fewer_count : int, optional
             Remove statistic sample if the number of valid entries
-            is fewer than the specified number, default is 3.   
+            is fewer than the specified number, default is 3.
 
         Returns
         -------

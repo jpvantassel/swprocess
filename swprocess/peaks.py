@@ -184,7 +184,7 @@ class Peaks():
                    ellipticity=ells, noise=nois, power=pwrs)
 
     def plot(self, xtype="frequency", ytype="velocity", plot_kwargs=None,
-             indices=None):
+             mask=None):
         """Plot dispersion data in `Peaks` object.
 
         Parameters
@@ -198,8 +198,9 @@ class Peaks():
         plot_kwargs : dict, optional
             Keyword arguments to pass along to `ax.plot`, default is
             `None` indicating the predefined settings should be used.
-        indices : ndarray, optional
-            Indices to plot, default is `None` so all points will be
+        mask : ndarray, optional
+            Boolean array mask to determine which points are to be
+            plotted, default is `None` so all valid points will be
             plotted.
 
         Returns
@@ -221,7 +222,7 @@ class Peaks():
         for _ax, _xtype, _ytype in zip(ax, xtype, ytype):
             # Plot Peaks.
             self._plot(ax=_ax, xtype=_xtype, ytype=_ytype,
-                       plot_kwargs=plot_kwargs, indices=indices)
+                       plot_kwargs=plot_kwargs, mask=mask)
             # Configure Axes
             self._configure_axes(ax=_ax, xtype=_xtype, ytype=_ytype,
                                  defaults=self.axes_defaults)
@@ -276,7 +277,7 @@ class Peaks():
 
         return kwargs.values()
 
-    def _plot(self, ax, xtype, ytype, plot_kwargs=None, indices=None):
+    def _plot(self, ax, xtype, ytype, plot_kwargs=None, mask=None):
         """Plot `Peaks` data to provided `Axes`.
 
         Parameters
@@ -290,8 +291,9 @@ class Peaks():
         plot_kwargs : kwargs, optional
             Keyword arguments to pass along to `ax.plot`, default is
             `None` indicating the predefined settings should be used.
-        indices : ndarray, optional
-            Indices to plot, default is `None` so all points will be
+        mask : ndarray, optional
+            Boolean array mask to determine which points are to be
+            plotted, default is `None` so all valid points will be
             plotted.
 
         Returns
@@ -305,17 +307,19 @@ class Peaks():
             If `xtype` and/or `ytype` are invalid attributes.
 
         """
+        # Organize plot kwargs.
         default_plot_kwargs = dict(linestyle="", marker="o", color="b",
                                    markersize=1, markerfacecolor="none",
                                    label=self.identifier)
         plot_kwargs = {} if plot_kwargs is None else plot_kwargs
         plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
 
-        indices = Ellipsis if indices is None else indices
+        # Handle presense or absence of mask.
+        mask = self._valid if mask is None else mask
 
         try:
-            ax.plot(getattr(self, xtype).flatten()[indices],
-                    getattr(self, ytype).flatten()[indices],
+            ax.plot(getattr(self, f"_{xtype}")[mask],
+                    getattr(self, f"_{ytype}")[mask],
                     **plot_kwargs)
         except AttributeError as e:
             msg = f"{xtype} and/or {ytype} is/are not attribute(s). "
