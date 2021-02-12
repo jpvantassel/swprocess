@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from swprocess.peaks import Peaks
 import swprocess
 from testtools import unittest, TestCase, get_full_path
 
@@ -59,49 +58,51 @@ class Test_Peaks(TestCase):
 
     def test_init(self):
         # 1D: No keyword arguments
-        peaks = Peaks(self.frq, self.vel, identifier=self._id)
+        peaks = swprocess.Peaks(self.frq, self.vel, identifier=self._id)
         self.assertArrayEqual(np.array(self.frq), peaks.frequency)
         self.assertArrayEqual(np.array(self.vel), peaks.velocity)
         self.assertEqual(self._id, peaks.identifier)
 
         # 1D: Four keyword arguments
-        peaks = Peaks(self.frq, self.vel, identifier=self._id, azi=self.azi,
-                      ell=self.ell, noi=self.noi, pwr=self.pwr)
+        peaks = swprocess.Peaks(self.frq, self.vel, identifier=self._id,
+                                azimuth=self.azi, ellipticity=self.ell,
+                                noise=self.noi, power=self.pwr)
         self.assertArrayEqual(np.array(self.frq), peaks.frequency)
         self.assertArrayEqual(np.array(self.vel), peaks.velocity)
         self.assertEqual(self._id, peaks.identifier)
-        self.assertArrayEqual(np.array(self.azi), peaks.azi)
-        self.assertArrayEqual(np.array(self.ell), peaks.ell)
-        self.assertArrayEqual(np.array(self.noi), peaks.noi)
-        self.assertArrayEqual(np.array(self.pwr), peaks.pwr)
+        self.assertArrayEqual(np.array(self.azi), peaks.azimuth)
+        self.assertArrayEqual(np.array(self.ell), peaks.ellipticity)
+        self.assertArrayEqual(np.array(self.noi), peaks.noise)
+        self.assertArrayEqual(np.array(self.pwr), peaks.power)
 
         # 2D: Four keyword arguments
-        peaks = Peaks(self.frq2, self.vel2, identifier=self._id2,
-                      azi=self.azi2, ell=self.ell2, noi=self.noi2,
-                      pwr=self.pwr2)
+        peaks = swprocess.Peaks(self.frq2, self.vel2, identifier=self._id2,
+                                azimuth=self.azi2, ellipticity=self.ell2,
+                                noise=self.noi2, power=self.pwr2)
         self.assertArrayEqual(np.array(self.frq2).flatten(), peaks.frequency)
         self.assertArrayEqual(np.array(self.vel2).flatten(), peaks.velocity)
         self.assertEqual(self._id2, peaks.identifier)
-        self.assertArrayEqual(np.array(self.azi2).flatten(), peaks.azi)
-        self.assertArrayEqual(np.array(self.ell2).flatten(), peaks.ell)
-        self.assertArrayEqual(np.array(self.noi2).flatten(), peaks.noi)
-        self.assertArrayEqual(np.array(self.pwr2).flatten(), peaks.pwr)
+        self.assertArrayEqual(np.array(self.azi2).flatten(), peaks.azimuth)
+        self.assertArrayEqual(np.array(self.ell2).flatten(), peaks.ellipticity)
+        self.assertArrayEqual(np.array(self.noi2).flatten(), peaks.noise)
+        self.assertArrayEqual(np.array(self.pwr2).flatten(), peaks.power)
 
         # 2D: Four keyword arguments with nans
-        peaks = Peaks(self.frq2n, self.vel2n, identifier=self._id2n,
-                      azi=self.azi2n, ell=self.ell2n, noi=self.noi2n,
-                      pwr=self.pwr2n)
+        peaks = swprocess.Peaks(self.frq2n, self.vel2n, identifier=self._id2n,
+                                azimuth=self.azi2n, ellipticity=self.ell2n,
+                                noise=self.noi2n, power=self.pwr2n)
         self.assertArrayEqual(np.array(self.frq2n)[
                               self.valid], peaks.frequency)
         self.assertArrayEqual(np.array(self.vel2n)[self.valid], peaks.velocity)
         self.assertEqual(self._id2n, peaks.identifier)
-        self.assertArrayEqual(np.array(self.azi2n)[self.valid], peaks.azi)
-        self.assertArrayEqual(np.array(self.ell2n)[self.valid], peaks.ell)
-        self.assertArrayEqual(np.array(self.noi2n)[self.valid], peaks.noi)
-        self.assertArrayEqual(np.array(self.pwr2n)[self.valid], peaks.pwr)
+        self.assertArrayEqual(np.array(self.azi2n)[self.valid], peaks.azimuth)
+        self.assertArrayEqual(np.array(self.ell2n)[
+                              self.valid], peaks.ellipticity)
+        self.assertArrayEqual(np.array(self.noi2n)[self.valid], peaks.noise)
+        self.assertArrayEqual(np.array(self.pwr2n)[self.valid], peaks.power)
 
     def test_properties(self):
-        peaks = Peaks(self.frq, self.vel, self._id, azimuth=self.azi)
+        peaks = swprocess.Peaks(self.frq, self.vel, self._id, azimuth=self.azi)
 
         # Wavelength
         self.assertArrayEqual(np.array(self.vel)/np.array(self.frq),
@@ -120,26 +121,28 @@ class Test_Peaks(TestCase):
     def test_prepare_types(self):
         # Acceptable (will cast)
         kwargs = dict(xtype="frequency", ytype="velocity")
-        returned_xtype, returned_ytype = Peaks._prepare_types(**kwargs)
+        returned_xtype, returned_ytype = swprocess.Peaks._prepare_types(
+            **kwargs)
         self.assertListEqual(["frequency"], returned_xtype)
         self.assertListEqual(["velocity"], returned_ytype)
 
         # Acceptable (no cast)
         kwargs = dict(xtype=["frequency"], ytype=["velocity"])
-        returned_xtype, returned_ytype = Peaks._prepare_types(**kwargs)
+        returned_xtype, returned_ytype = swprocess.Peaks._prepare_types(
+            **kwargs)
         self.assertListEqual(["frequency"], returned_xtype)
         self.assertListEqual(["velocity"], returned_ytype)
 
         # Unacceptable (raise TypeError)
         kwargs = dict(xtype=5, ytype="velocity")
-        self.assertRaises(TypeError, Peaks._prepare_types, **kwargs)
+        self.assertRaises(TypeError, swprocess.Peaks._prepare_types, **kwargs)
 
         # Unacceptable (raise IndexError)
         kwargs = dict(xtype=["frequency", "wavelength"], ytype="velocity")
-        self.assertRaises(IndexError, Peaks._prepare_types, **kwargs)
+        self.assertRaises(IndexError, swprocess.Peaks._prepare_types, **kwargs)
 
     def test__plot(self):
-        peaks = Peaks(self.frq, self.vel, self._id)
+        peaks = swprocess.Peaks(self.frq, self.vel, self._id)
 
         # Standard
         fig, ax = plt.subplots()
@@ -154,7 +157,7 @@ class Test_Peaks(TestCase):
         plt.close("all")
 
     def test_configure_axes(self):
-        peaks = Peaks(self.frq, self.vel, self._id)
+        peaks = swprocess.Peaks(self.frq, self.vel, self._id)
         defaults = {"frequency": {"label": "frq",
                                   "scale": "linear"},
                     "velocity": {"label": "vel",
@@ -178,7 +181,7 @@ class Test_Peaks(TestCase):
         ax.set_ylabel.assert_not_called()
         ax.set_yscale.assert_not_called()
 
-    def test_reject_outside(self):
+    def test_reject_limits_outside(self):
         fs = np.array([1, 5, 9, np.nan, 3, 5, 7, 4, 6, 2, 8])
         vs = np.array([1, 9, 4, np.nan, 5, 6, 8, 5, 2, 1, 4])
 
@@ -187,79 +190,70 @@ class Test_Peaks(TestCase):
         limits = None, None
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            peaks.reject_outside("frequency", limits)
+            peaks.reject_limits_outside("frequency", limits)
         self.assertArrayEqual(fs[np.isfinite(fs)], peaks.frequency)
         self.assertArrayEqual(vs[np.isfinite(vs)], peaks.velocity)
 
         # Remove all above 4.5
         peaks = swprocess.Peaks(fs, vs)
         limits = None, 4.5
-        peaks.reject_outside("frequency", limits)
+        peaks.reject_limits_outside("frequency", limits)
         self.assertArrayEqual(np.array([1., 3, 4, 2]), peaks.frequency)
         self.assertArrayEqual(np.array([1., 5, 5, 1]), peaks.velocity)
 
         # Remove all below 4.5
         peaks = swprocess.Peaks(fs, vs)
         limits = 4.5, None
-        peaks.reject_outside("frequency", limits)
+        peaks.reject_limits_outside("frequency", limits)
         self.assertArrayEqual(np.array([5., 9, 5, 7, 6, 8]), peaks.frequency)
         self.assertArrayEqual(np.array([9., 4, 6, 8, 2, 4]), peaks.velocity)
 
         # Remove all below 1.5 and above 6.5
         peaks = swprocess.Peaks(fs, vs)
         limits = 1.5, 6.5
-        peaks.reject_outside("frequency", limits)
+        peaks.reject_limits_outside("frequency", limits)
         self.assertArrayEqual(np.array([5., 3, 5, 4, 6, 2]), peaks.frequency)
         self.assertArrayEqual(np.array([9., 5, 6, 5, 2, 1]), peaks.velocity)
 
-    # def test_reject(self):
-    #     xs = np.array([1, 2, 4, 5, 1, 2, 6, 4, 9, 4])
-    #     ys = np.array([1, 5, 8, 6, 4, 7, 7, 1, 3, 5])
+    def test_reject_box_inside(self):
+        xs = np.array([1, 2, 4, np.nan, 5, 1, 2, 6, 4, 9, 4])
+        ys = np.array([1, 5, 8, np.nan, 6, 4, 7, 7, 1, 3, 5])
+        power = np.array([0, 1, 2, np.nan, 4, 5, 6, 7, 8, 9, 10])
 
-    #     xlims = (4.5, 7.5)
-    #     xmin, xmax = xlims
-    #     ylims = (3.5, 8.5)
-    #     ymin, ymax = ylims
+        # Reject on frequency and velocity.
+        peaks = swprocess.Peaks(xs, ys, power=power)
+        peaks.reject_box_inside(xtype="frequency", xlims=(4.5, 7.5),
+                                ytype="velocity", ylims=(3.5, 8.5))
+        keep_ids = [0, 1, 2, 5, 6, 8, 9, 10]
+        attrs = dict(frequency=xs, velocity=ys, power=power)
+        for attr, value in attrs.items():
+            self.assertArrayEqual(value[keep_ids], getattr(peaks, attr))
 
-    #     # test_reject_inside_ids
-    #     returned = Peaks._reject_inside_ids(xs, xmin, xmax, ys, ymin, ymax)
-    #     expected = np.array([3, 6])
-    #     self.assertArrayEqual(expected, returned)
+        # Reject on frequency and power.
+        peaks = swprocess.Peaks(xs, ys, power=power)
+        peaks.reject_box_inside(xtype="frequency", xlims=(4.5, 7.5),
+                                ytype="power", ylims=(3.5, 8.5))
+        keep_ids = [0, 1, 2, 5, 6, 8, 9, 10]
+        attrs = dict(frequency=xs, velocity=ys, power=power)
+        for attr, value in attrs.items():
+            self.assertArrayEqual(value[keep_ids], getattr(peaks, attr))
 
-    #     # Method -> Reject on frequency and velocity
-    #     other = np.arange(10)
-    #     peaks = Peaks(xs, ys, other=other)
-    #     peaks.reject(xtype="frequency", xlims=xlims,
-    #                  ytype="velocity", ylims=ylims)
+        # Reject on wavelength and slowness.
+        ws = np.array([   1, 5, 8, np.nan, 6, 4, 7, 7, 1, 3, 5])
+        ps = np.array([   1, 5, 9, np.nan, 4, 5, 6, 7, 8, 1, 7])
+        power = np.array([0, 1, 2, np.nan, 4, 5, 6, 7, 8, 9, 10])
+        
+        xs = 1/(ws*ps)
+        ys = 1/ps
 
-    #     keep_ids = [0, 1, 2, 4, 5, 7, 8, 9]
-    #     attrs = dict(frequency=xs, velocity=ys, other=other)
-    #     for attr, value in attrs.items():
-    #         self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
+        peaks = swprocess.Peaks(xs, ys, power=power)
+        peaks.reject_box_inside(xtype="wavelength", xlims=(3.2, 8.5),
+                                ytype="slowness", ylims=(4.5, 7.5))
 
-    #     # Method -> Reject on frequency and other
-    #     other = np.arange(10)
-    #     peaks = Peaks(xs, ys, other=other)
-    #     peaks.reject(xtype="frequency", xlims=xlims,
-    #                  ytype="other", ylims=ylims)
-
-    #     keep_ids = [0, 1, 2, 3, 4, 5, 7, 8, 9]
-    #     attrs = dict(frequency=xs, velocity=ys, other=other)
-    #     for attr, value in attrs.items():
-    #         self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
-
-    #     # Method -> Reject on slowness and velocity
-    #     xs = np.array([1, 5, 8, 6, 4, 7, 7, 1, 3, 5])
-    #     ys = 1/np.array([1, 5, 9, 4, 5, 6, 7, 8, 1, 7])
-
-    #     peaks = Peaks(xs, ys)
-    #     peaks.reject(xtype="frequency", xlims=(0, 10),
-    #                  ytype="slowness", ylims=(4.5, 7.5))
-
-    #     keep_ids = [0, 2, 3, 7, 8]
-    #     attrs = dict(frequency=xs, velocity=ys)
-    #     for attr, value in attrs.items():
-    #         self.assertArrayEqual(getattr(peaks, attr), value[keep_ids])
+        keep_ids = [0, 2, 4, 8, 9]
+        attrs = dict(frequency=xs, velocity=ys, power=power)
+        for attr, value in attrs.items():
+            self.assertArrayEqual(value[keep_ids], getattr(peaks, attr))
 
     # def test_from_dict(self):
     #     # Basic Case: No keyword arguments
@@ -293,7 +287,7 @@ class Test_Peaks(TestCase):
     # def test_to_and_from_json(self):
     #     # Standard to_json and from_json
     #     fname = "test.json"
-    #     expected = Peaks(self.frq, self.vel, self._id,
+    #     expected = swprocess.Peaks(self.frq, self.vel, self._id,
     #                      azi=self.azi, pwr=self.pwr)
     #     expected.to_json(fname)
     #     returned = Peaks.from_json(fname)
@@ -301,7 +295,7 @@ class Test_Peaks(TestCase):
     #     os.remove(fname)
 
     #     # Deprecated write_peak_json
-    #     expected = Peaks(self.frq, self.vel, self._id,
+    #     expected = swprocess.Peaks(self.frq, self.vel, self._id,
     #                      azi=self.azi, pwr=self.pwr)
     #     fname = "test_1.json"
     #     with warnings.catch_warnings():
@@ -313,7 +307,7 @@ class Test_Peaks(TestCase):
 
     #     # to_json append data does not exist
     #     fname = "test_2.json"
-    #     peaks = Peaks(self.frq, self.vel, "org")
+    #     peaks = swprocess.Peaks(self.frq, self.vel, "org")
     #     peaks.to_json(fname)
     #     peaks.identifier = "app"
     #     peaks.to_json(fname, append=True)
@@ -328,7 +322,7 @@ class Test_Peaks(TestCase):
 
     #     # to_json overwrite
     #     fname = "test_3.json"
-    #     peaks = Peaks(self.frq, self.vel, "org")
+    #     peaks = swprocess.Peaks(self.frq, self.vel, "org")
     #     peaks.to_json(fname)
     #     peaks.identifier = "app"
     #     peaks.to_json(fname, append=False)
@@ -411,22 +405,22 @@ class Test_Peaks(TestCase):
     #                       fname_max, wavetype="incorrect")
 
     def test__eq__(self):
-        peaks_a = Peaks(self.frq, self.vel, self._id,
-                        azimuth=self.azi)
+        peaks_a = swprocess.Peaks(self.frq, self.vel, self._id,
+                                  azimuth=self.azi)
         peaks_b = "I am not even a Peaks object"
-        peaks_c = Peaks(self.frq, self.vel, "diff", azimuth=self.azi)
-        peaks_d = Peaks(self.frq[:-2], self.vel[:-2], self._id,
-                        azimuth=self.azi[:-2])
-        peaks_e = Peaks(np.zeros_like(self.frq), self.vel, self._id,
-                        azimuth=self.azi)
-        peaks_f = Peaks(np.zeros_like(self.frq), self.vel, self._id)
-        peaks_g = Peaks(self.frq, self.vel, self._id,
-                        azimuth=self.azi)
+        peaks_c = swprocess.Peaks(self.frq, self.vel, "diff", azimuth=self.azi)
+        peaks_d = swprocess.Peaks(self.frq[:-2], self.vel[:-2], self._id,
+                                  azimuth=self.azi[:-2])
+        peaks_e = swprocess.Peaks(np.zeros_like(self.frq), self.vel, self._id,
+                                  azimuth=self.azi)
+        peaks_f = swprocess.Peaks(np.zeros_like(self.frq), self.vel, self._id)
+        peaks_g = swprocess.Peaks(self.frq, self.vel, self._id,
+                                  azimuth=self.azi)
         del peaks_g.identifier
-        peaks_h = Peaks(self.frq, self.vel, self._id,
-                        noise=self.noi)
-        peaks_i = Peaks(self.frq, self.vel, self._id,
-                        azimuth=self.azi)
+        peaks_h = swprocess.Peaks(self.frq, self.vel, self._id,
+                                  noise=self.noi)
+        peaks_i = swprocess.Peaks(self.frq, self.vel, self._id,
+                                  azimuth=self.azi)
 
         self.assertTrue(peaks_a == peaks_a)
         self.assertFalse(peaks_a == peaks_b)

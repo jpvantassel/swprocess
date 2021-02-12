@@ -72,10 +72,8 @@ class Peaks():
         logger.debug(f"Creating {self}")
         logger.debug(f"  {self}.attrs={self.attrs}")
 
-        def _getattr(attr): return getattr(self, f"_{attr}")[self._valid]
         for key, val in kwargs.items():
             setattr(self, f"_{key}", np.array(val, dtype=float))
-            setattr(self, key, _getattr(attr=key))
 
     @property
     def frequency(self):
@@ -86,16 +84,44 @@ class Peaks():
         return self._velocity[self._valid]
 
     @property
+    def azimuth(self):
+        return self._azimuth[self._valid]
+
+    @property
+    def ellipticity(self):
+        return self._ellipticity[self._valid]
+
+    @property
+    def noise(self):
+        return self._noise[self._valid]
+
+    @property
+    def power(self):
+        return self._power[self._valid]
+
+    @property
     def slowness(self):
         return 1/self.velocity
+
+    @property
+    def _slowness(self):
+        return 1/self._velocity
 
     @property
     def wavelength(self):
         return self.velocity/self.frequency
 
     @property
+    def _wavelength(self):
+        return self._velocity/self._frequency
+
+    @property
     def wavenumber(self):
         return 2*np.pi*self.frequency/self.velocity
+
+    @property
+    def _wavenumber(self):
+        return 2*np.pi*self._frequency/self._velocity
 
     @property
     def extended_attrs(self):
@@ -307,7 +333,7 @@ class Peaks():
         for key, value in defaults.get(ytype, {}).items():
             getattr(ax, f"set_y{key}")(value)
 
-    def reject_outside(self, attr, limits):
+    def reject_limits_outside(self, attr, limits):
         """Reject peaks outside the stated bounds.
 
         Parameters
@@ -351,8 +377,8 @@ class Peaks():
 
         self._reject(bool_array)
 
-    def reject_inside(self, xtype, xlims, ytype, ylims):
-        """Reject peaks inside the stated boundaries.
+    def reject_box_inside(self, xtype, xlims, ytype, ylims):
+        """Reject peaks inside the stated limits.
 
         Parameters
         ----------
@@ -368,11 +394,12 @@ class Peaks():
             Updates the `Peaks` object's state.
 
         """
-        reject_ids = self.reject_ids(xtype, xlims, ytype, ylims)
-        self._reject(reject_ids)
+        bool_array = self._reject_box_inside_bool_array(xtype, xlims,
+                                                        ytype, ylims)
+        self._reject(bool_array)
 
-    def reject_ids(self, xtype, xlims, ytype, ylims):
-        """Determine rejection ids.
+    def _reject_box_inside_bool_array(self, xtype, xlims, ytype, ylims):
+        """Boolean array to describe which peaks should be rejected.
 
         Parameters
         ----------
@@ -388,20 +415,19 @@ class Peaks():
             Containing the indices for rejection.
 
         """
-        xs = getattr(self, xtype)
+        xs = getattr(self, f"_{xtype}")
         x_min, x_max = min(xlims), max(xlims)
 
-        ys = getattr(self, ytype)
+        ys = getattr(self, f"_{ytype}")
         y_min, y_max = min(ylims), max(ylims)
 
-        return self._reject_inside_ids(xs, x_min, x_max,
-                                       ys, y_min, y_max)
+        bool_array = np.zeros_like(xs, dtype=bool)
+        np.greater(xs, x_min, out=bool_array, where=self._valid)
+        np.less(xs, x_max, out=bool_array, where=bool_array)
+        np.greater(ys, y_min, out=bool_array, where=bool_array)
+        np.less(ys, y_max, out=bool_array, where=bool_array)
 
-    @staticmethod
-    def _reject_inside_ids(d1, d1_min, d1_max, d2, d2_min, d2_max):
-        condition1 = np.logical_and(d1 > d1_min, d1 < d1_max)
-        condition2 = np.logical_and(d2 > d2_min, d2 < d2_max)
-        return np.flatnonzero(np.logical_and(condition1, condition2))
+        return bool_array
 
     def _reject(self, bool_array):
         """Reject peaks according to the provided boolean array."""
