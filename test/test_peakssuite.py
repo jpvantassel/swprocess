@@ -424,7 +424,7 @@ class Test_PeaksSuite(TestCase):
     #     suite._draw_box(fig=fig)
 
     def test_statistics(self):
-        # No missing data
+        # 1D: no missing data.
         values = np.array([[1, 2, 3, 4, 5],
                            [4, 5, 7, 8, 9],
                            [4, 3, 6, 4, 2]])
@@ -440,33 +440,85 @@ class Test_PeaksSuite(TestCase):
         self.assertArrayEqual(np.std(values, axis=0, ddof=1), rstd)
         self.assertArrayEqual(np.corrcoef(values.T), rcorr)
 
-        # Fewer than three peaks in PeaksSuite -> ValueError
+        # 1D: fewer than three Peaks in PeaksSuite -> ValueError.
         peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(2)]
         suite = swprocess.PeaksSuite.from_peaks(peaks)
         self.assertRaises(ValueError, suite.statistics, xtype="frequency",
                           ytype="velocity", xx=frq)
 
-        # # missing_data_procedure="drop"
-        # values = np.array([[np.nan]*6,
-        #                    [np.nan, 1, 2, 3, 4, 5],
-        #                    [0, 4, 5, 7, 8, 9],
-        #                    [0, 4, 3, 6, 4, 2]])
-        # frq = [0.2, 1, 2, 3, 4, 5]
+        # 1D: drop_sample_if_fewer_count = 3.
+        values = np.array([[np.nan]*6,
+                           [np.nan, 1, 2, 3, 4, 5],
+                           [0, 4, 5, 7, 8, 9],
+                           [0, 4, 3, 6, 4, 2]])
+        frq = [0.2, 1, 2, 3, 4, 5]
 
-        # valid = np.array([[1, 2, 3, 4, 5],
-        #                   [4, 5, 7, 8, 9],
-        #                   [4, 3, 6, 4, 2]])
-        # valid_frq = frq[1:]
-        # peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(4)]
-        # suite = swprocess.PeaksSuite.from_peaks(peaks)
-        # rfrq, rmean, rstd, rcorr = suite.statistics(xtype="frequency",
-        #                                             ytype="velocity",
-        #                                             xx = frq,
-        #                                             ignore_corr=False)
-        # self.assertArrayEqual(np.array(valid_frq), rfrq)
-        # self.assertArrayEqual(np.mean(valid, axis=0), rmean)
-        # self.assertArrayEqual(np.std(valid, axis=0, ddof=1), rstd)
-        # self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
+        valid = np.array([[1, 2, 3, 4, 5],
+                          [4, 5, 7, 8, 9],
+                          [4, 3, 6, 4, 2]])
+        valid_frq = frq[1:]
+        peaks = [swprocess.Peaks(frq, values[k], str(k)) for k in range(4)]
+        suite = swprocess.PeaksSuite.from_peaks(peaks)
+
+        rfrq, rmean, rstd, rcorr = suite.statistics(xtype="frequency",
+                                                    ytype="velocity",
+                                                    xx=frq,
+                                                    ignore_corr=False)
+        self.assertArrayEqual(np.array(valid_frq), rfrq)
+        self.assertArrayEqual(np.mean(valid, axis=0), rmean)
+        self.assertArrayEqual(np.std(valid, axis=0, ddof=1), rstd)
+        self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
+
+        # 2D: with missing data.
+        f0 = [[1, 3, 5, 7, np.nan],
+              [np.nan, 3, 5, 7, 9],
+              [1, 3, 5, 7, 9]]
+        v0 = [[4, 6, 7, 1, np.nan],
+              [np.nan, 3, 2, 5, 4],
+              [1, 3, 5, 1, 2]]
+        p0 = [[4, 3, 5, 1, np.nan],
+              [np.nan, 3, 7, 5, 4],
+              [1, 6, 7, 1, 2]]
+        # --> 4, 3, 2, 5, 4
+        peaks0 = swprocess.Peaks(f0, v0, identifier="0", power=p0)
+
+        f1 = [[1, 3, 5, 7, np.nan],
+              [np.nan, 3, 5, 7, 9],
+              [1, 3, 5, 7, 9]]
+        v1 = [[8, 8, 7, 7, np.nan],
+              [np.nan, 2, 1, 3, 8],
+              [4, 1, 4, 1, 4]]
+        p1 = [[4, 6, 7, 1, np.nan],
+              [np.nan, 3, 7, 5, 4],
+              [1, 3, 5, 1, 2]]
+        # --> 8, 8, 7, 3, 8
+        peaks1 = swprocess.Peaks(f1, v1, identifier="1", power=p1)
+
+        f2 = [[1, 3, 5, 7, np.nan],
+              [np.nan, 3, 5, 7, 9],
+              [1, 3, 5, 7, 9]]
+        v2 = [[2, 4, 1, 1, np.nan],
+              [np.nan, 8, 1, 3, 2],
+              [5, 2, 9, 4, 8]]
+        p2 = [[4, 6, 7, 1, np.nan],
+              [np.nan, 3, 7, 5, 4],
+              [1, 3, 5, 1, 2]]
+        # --> 2, 4, 1, 3, 2
+        peaks2 = swprocess.Peaks(f2, v2, identifier="2", power=p2)
+
+        suite = swprocess.PeaksSuite.from_peaks([peaks0, peaks1, peaks2])
+        valid = np.array([[4, 3, 2, 5, 4],
+                          [8, 8, 7, 3, 8],
+                          [2, 4, 1, 3, 2]], dtype=float)
+        frq = [1, 3, 5, 7, 9]
+        rfrq, rmean, rstd, rcorr = suite.statistics(xtype="frequency",
+                                                    ytype="velocity",
+                                                    xx=frq,
+                                                    ignore_corr=False)
+        self.assertArrayEqual(np.array(frq), rfrq)
+        self.assertArrayEqual(np.mean(valid, axis=0), rmean)
+        self.assertArrayEqual(np.std(valid, axis=0, ddof=1), rstd)
+        self.assertArrayEqual(np.corrcoef(valid.T), rcorr)
 
     def test_plot_statistics(self):
         # Mock ax

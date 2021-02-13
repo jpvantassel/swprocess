@@ -549,9 +549,10 @@ class PeaksSuite():
         xx, data_matrix = self.to_array(xtype, ytype, xx)
 
         xx, data_matrix = self._drop(xx, data_matrix,
-                                     drop_sample_if_fewer_percent=0.,
-                                     drop_observation_if_fewer_percent=0.,
+                                     drop_sample_if_fewer_percent=0.01,
+                                     drop_observation_if_fewer_percent=0.01,
                                      drop_sample_if_fewer_count=drop_sample_if_fewer_count)
+
         mean = np.nanmean(data_matrix, axis=0)
         std = np.nanstd(data_matrix, axis=0, ddof=1)
         corr = None if ignore_corr else np.corrcoef(data_matrix.T)
@@ -586,9 +587,12 @@ class PeaksSuite():
 
         for row, _peaks in enumerate(self.peaks):
             # TODO (jpv): Allow assume_sorted should improve speed.
+            x = _peaks.simplify_mpeaks(xtype)
+            y = _peaks.simplify_mpeaks(ytype)
+            if np.sum(np.isnan(x)) + np.sum(np.isnan(y)):
+                raise ValueError("NaN in x and or y!")
             try:
-                interpfxn = interp1d(_peaks.simplify_mpeaks(xtype),
-                                     _peaks.simplify_mpeaks(ytype),
+                interpfxn = interp1d(x, y,
                                      copy=True, bounds_error=False,
                                      fill_value=np.nan)
             except ValueError:

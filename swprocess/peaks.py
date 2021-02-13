@@ -466,7 +466,7 @@ class Peaks():
             attr = getattr(self, f"_{attr}")
             decide = self._frequency
 
-        values = np.empty(attr.shape[1], dtype=float)
+        values = []
         for cindex, (colvals, valids) in enumerate(zip(decide.T, self._valid.T)):
             mindex = 0
             mval = -np.inf
@@ -476,7 +476,9 @@ class Peaks():
                 if rowval > mval:
                     mindex = rindex
                     mval = rowval
-            values[cindex] = attr[mindex, cindex]
+            
+            if mval != -np.inf:
+                values.append(attr[mindex, cindex])
 
         return values
 
