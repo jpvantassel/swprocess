@@ -12,14 +12,14 @@ with open('README.md', encoding="utf8") as f:
 setup(
     name='swprocess',
     version=meta['__version__'],
-    description='Package for Surface-Wave Processing',
+    description='Package for Surface Wave Processing',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/jpvantassel/swprocess',
     author='Joseph P. Vantassel',
     author_email='jvantassel@utexas.edu',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
 
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
@@ -36,8 +36,8 @@ setup(
     ],
     keywords='surface-wave dispersion processing geopsy active passive masw mam',
     packages=find_packages(),
-    python_requires = '>3.6',
-    install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy", "pandas", "xlrd", "PyQt5"],
+    python_requires = '>=3.6, <3.9',
+    install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy>=0.3.0", "pandas", "xlrd", "PyQt5"],
     extras_require={
         'dev': ['sphinx', 'sphinx_rtd_theme'],
     },
@@ -50,6 +50,6 @@ setup(
     project_urls={
         'Bug Reports': 'https://github.com/jpvantassel/swprocess/issues',
         'Source': 'https://github.com/jpvantassel/swprocess',
-        # 'Docs': 'https://swprocess.readthedocs.io/en/latest/?badge=latest',
+        'Docs': 'https://swprocess.readthedocs.io/en/latest/?badge=latest',
     },
 )
