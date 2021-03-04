@@ -1,0 +1,97 @@
+version: 2.1
+
+orbs:
+  coverage-reporter: codacy/coverage-reporter@7.6.7
+  codecov: codecov/codecov@1.0.2
+
+workflows:
+  build:
+    jobs:
+      - test-36:
+          context:
+            - docker          
+      - test-37:
+          context:
+            - docker
+      - test-38:
+          context:
+            - docker
+      # - test-39:
+      #     context:
+      #       - docker
+
+jobs:
+  test-36: &test-template
+    docker:
+      - image: circleci/python:3.6.9
+        auth:
+          username: jpvantassel
+          password: $DOCKER_PASS
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: Create virtualenv
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            mkdir test-results
+      - run:
+          name: Install numpy
+          command: |
+            . venv/bin/activate
+            pip install numpy
+      - run:
+          name: Install sigpropy from source
+          command: |
+            . venv/bin/activate
+            pip install git+ssh://git@github.com/jpvantassel/sigpropy.git
+      - run:
+          name: Install swprocess and dependencies
+          command: |
+            . venv/bin/activate
+            pip install -e .[dev]
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            cd test
+            coverage run --source=../swprocess -m unittest
+      - run:
+          name: Create coverage xml
+          command: |
+            . venv/bin/activate
+            mv test/.coverage test-results
+            cd test-results
+            coverage xml -o cobertura.xml
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+      - codecov/upload:
+          file: test-results/cobertura.xml
+      - coverage-reporter/send_report
+
+  test-37:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.7.5
+        auth:
+          username: jpvantassel
+          password: $DOCKER_PASS
+
+  test-38:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.8.0
+        auth:
+          username: jpvantassel
+          password: $DOCKER_PASS
+
+  # test-39:
+  #   <<: *test-template
+  #   docker:
+  #     - image: circleci/python:3.9.0
+  #       auth:
+  #         username: jpvantassel
+  #         password: $DOCKER_PASS
