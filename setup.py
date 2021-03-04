@@ -39,7 +39,7 @@ setup(
     python_requires = '>=3.6, <3.9',
     install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy>=0.3.0", "pandas", "xlrd", "PyQt5"],
     extras_require={
-        'dev': ['sphinx', 'sphinx_rtd_theme'],
+        'dev': ['sphinx', 'sphinx_rtd_theme', 'coverage'],
     },
     package_data={
     },
