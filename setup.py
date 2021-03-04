@@ -37,7 +37,7 @@ setup(
     keywords='surface-wave dispersion processing geopsy active passive masw mam',
     packages=find_packages(),
     python_requires = '>=3.6, <3.9',
-    install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy>=0.3.0", "pandas", "xlrd", "PyQt5"],
+    install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy>=0.3.0", "pandas", "PyQt5"],
     extras_require={
         'dev': ['sphinx', 'sphinx_rtd_theme', 'coverage'],
     },
