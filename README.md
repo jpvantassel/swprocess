@@ -1,3 +1,116 @@
-# swprocess
+# `swprocess` - A Python Package for Surface Wave Processing
 
-> Joseph Vantassel, University of Texas at Austin
+> Joseph P. Vantassel, The University of Texas at Austin
+
+<!-- [![DOI](https://zenodo.org/badge/218571161.svg)](https://zenodo.org/badge/latestdoi/218571161)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/jpvantassel/sigpropy/blob/master/LICENSE.txt)
+[![CircleCI](https://circleci.com/gh/jpvantassel/sigpropy.svg?style=svg)](https://circleci.com/gh/jpvantassel/sigpropy)
+[![Documentation Status](https://readthedocs.org/projects/sigpropy/badge/?version=latest)](https://sigpropy.readthedocs.io/en/latest/?badge=latest)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/jpvantassel/sigpropy.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jpvantassel/sigpropy/context:python)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/1a9c785e79214a0db457797f6d5f82f0)](https://www.codacy.com/manual/jpvantassel/sigpropy?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jpvantassel/sigpropy&amp;utm_campaign=Badge_Grade)
+[![codecov](https://codecov.io/gh/jpvantassel/sigpropy/branch/master/graph/badge.svg)](https://codecov.io/gh/jpvantassel/sigpropy)
+[![Maintainability](https://api.codeclimate.com/v1/badges/6a3d16f9a406a5367a67/maintainability)](https://codeclimate.com/github/jpvantassel/sigpropy/maintainability) -->
+
+## Table of Contents
+
+-   [About _swprocess_](#about-swprocess)
+-   [Why use _swprocess_](#why-use-swprocess)
+-   [Examples](#examples)
+-   [Getting Started](#getting-started)
+
+## About _swprocess_
+
+`swprocess` is a Python package for surface wave processing. `swprocess` was
+developed by Joseph P. Vantassel under the supervision of Professor Brady R. Cox
+at The University of Texas at Austin.
+
+If you use _swprocess_ in your research or consulting, we ask you please cite
+the following:
+
+> Vantassel, J. P. (2020). jpvantassel/swprocess: latest (Concept). Zenodo.
+> [Forthcoming](https://github.com/jpvantassel/)
+
+> Vantassel, J. P. & Cox, B. R. (2021). "SWprocess: A workflow for developing robust
+> estimates of surface wave dispersion uncertainty" Submitted to a special edition of the
+> Journal of Seismology organized by the Consortium of Organizations for Strong Motion
+> Observation Systems (COSMOS)
+
+_Note: For software, version specific citations should be preferred to
+general concept citations, such as that listed above. To generate a version
+specific citation for `swprocess`, please use the citation tool on the `swprocess`
+[archive](https://github.com/jpvantassel/)._
+
+## Why use _swprocess_
+
+_swprocess_ contains features not currently available in any other open-source
+software, including:
+
+- Multiple pre-processing workflows for active-source [i.e., Multichannel
+Analysis of Surface Waves (MASW)] measurements including:
+  - time-domain muting,
+  - frequency-domain stacking, and
+  - time-domain stacking.
+- Multiple wavefield transformations for active-source (i.e., MASW) measurements
+including:
+  - frequency-wavenumber (Nolet and Panza, 1976),
+  - phase-shift (Park, 1998),
+  - slant-stack (McMechan and Yedlin, 1981), and
+  - frequency domain beamformer (Zywicki 1999).
+- Post-processing of active-source and passive-wavefield [i.e., microtremor
+array measurements (MAM)] data from _swprocess_ and _Geopsy_, respectively.
+- Interactive trimming to remove low quality dispersion data.
+- Rigorous calculation of dispersion statistics to quantify epistemic and
+aleatory uncertainty in surface wave measurements.
+
+## Examples
+
+### Active-source processing
+
+<img src="https://github.com/jpvantassel/swprocess/blob/main/figs/nz_wghs_rayleigh_56.0m.png?raw=true" width="775">
+
+### Interactive trimming
+
+<img src="https://github.com/jpvantassel/swprocess/blob/main/figs/nz_wghs_rayleigh_masw_int-trim.gif?raw=true" width="775">
+
+### Calculation of dispersion statistics
+
+<img src="https://github.com/jpvantassel/swprocess/blob/main/figs/nz_wghs_rayleigh_masw.png?raw=true" width="775">
+
+## Getting Started
+
+---
+
+### Installing or Upgrading _swprocess_
+
+1.  If you do not have Python 3.6 or later installed, you will need to do
+so. A detailed set of instructions can be found
+[here](https://jpvantassel.github.io/python3-course/#/intro/installing_python).
+
+2.  If you have not installed `swprocess` previously use `pip install swprocess`.
+If you are not familiar with `pip`, a useful tutorial can be found
+[here](https://jpvantassel.github.io/python3-course/#/intro/pip). If you have
+an earlier version and would like to upgrade to the latest version of
+`swprocess` use `pip install swprocess --upgrade`.
+
+3.  Confirm that `swprocess` has installed/updated successfully by examining the
+last few lines of the text displayed in the console.
+
+### Using _swprocess_
+
+1.  Download the contents of the
+  [examples](https://github.com/jpvantassel/swprocess/tree/master/examples)
+  directory to any location of your choice.
+
+2.  Start by processing the provided active-source data using the
+  Jupyter notebook (`masw.ipynb`). If you have not installed `Jupyter`,
+  detailed instructions can be found
+  [here](https://jpvantassel.github.io/python3-course/#/intro/installing_jupyter).
+
+3.  Post-process the provided passive-wavefield data using the
+  Jupyter notebook (`mam-fk.ipynb`).
+
+4.  Perform interactive trimming and calculate dispersion statistics for the
+  example data using the Jupyter notebook (`stats.ipynb`). Compare your results
+  to those shown in the figure above.
+
+5.  Enjoy!
