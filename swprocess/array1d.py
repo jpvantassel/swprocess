@@ -643,7 +643,7 @@ class Array1D():
                     stream = obspy.read(fname)
                 nsource = parse_source(stream[0].stats)
                 if nsource != source:
-                    msg = f"fname = {fname} has an incompatable source."
+                    msg = f"fname = {fname} has an incompatible source."
                     raise ValueError(msg)
                 for sensor, trace in zip(obj.sensors, stream.traces):
                     new_sensor = Sensor1C.from_trace(trace)

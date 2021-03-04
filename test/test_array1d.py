@@ -482,7 +482,7 @@ class Test_Array1D(TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             known = obspy.read(fname)
-        test = swprocess.Array1D.from_files(fname)
+            test = swprocess.Array1D.from_files(fname)
         self.assertArrayEqual(known.traces[0].data,
                               test.timeseriesmatrix()[0, :])
 
@@ -496,7 +496,7 @@ class Test_Array1D(TestCase):
                 tmp = obspy.read(fname).traces[0]
                 expected += tmp.data
             expected /= len(fnames)
-        returned = swprocess.Array1D.from_files(fnames)[0].amplitude
+            returned = swprocess.Array1D.from_files(fnames)[0].amplitude
         self.assertArrayAlmostEqual(expected, returned, places=2)
 
         # Bad : incompatible sources
