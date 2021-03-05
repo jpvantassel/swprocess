@@ -1,0 +1,2 @@
+folder name,array name,station number,start year,start month,start date,start hour,start minute,start second,end year,end month,end date,end hour,end minute,end second,notes
+ex_array_3,array_3,1,2020,12,31,1,0,0,2020,12,31,0,0,0,bad endtime

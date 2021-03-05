@@ -17,7 +17,7 @@ class Test_Utils(TestCase):
         cls.full_path = get_full_path(__file__)
 
     def test_extract_mseed(self):
-        startend_fname = self.full_path + "data/utils/extract_startandend.xlsx"
+        startend_fname = self.full_path + "data/utils/extract_startandend.csv"
         utils.extract_mseed(startend_fname=startend_fname,
                             network="NW",
                             data_dir=self.full_path + "data/utils/data_dir/",
@@ -44,14 +44,14 @@ class Test_Utils(TestCase):
             shutil.rmtree(self.full_path + "data/utils/" + array)
 
         # Bad start and end time
-        startend_fname_bad = self.full_path + "data/utils/extract_startandend_bad.xlsx"
+        startend_fname_bad = self.full_path + "data/utils/extract_startandend_bad.csv"
         self.assertRaises(ValueError, utils.extract_mseed,
                           startend_fname=startend_fname_bad, network="NW",
                           data_dir=self.full_path + "data/utils/data_dir/",
                           output_dir=self.full_path + "data/utils/")
 
         # Bad file type
-        startend_fname_csv = self.full_path + "data/utils/extract_startandend.csv"
+        startend_fname_csv = self.full_path + "data/utils/extract_startandend.xlsx"
         self.assertRaises(NotImplementedError, utils.extract_mseed,
                           startend_fname=startend_fname_csv, network="NW",
                           data_dir=self.full_path + "data/utils/data_dir/",

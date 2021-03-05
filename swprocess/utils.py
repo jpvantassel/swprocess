@@ -25,8 +25,8 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
     Parameters
     ----------
     startend_fname : str
-        Name of .xlsx or .csv file with start and end times. An example
-        file is provided here TODO (jpv): Add link to example file.
+        Name of .csv file with start and end times. An example file is
+        provided `here <https://github.com/jpvantassel/swprocess/blob/main/examples/extract/extract_startandend.csv>`_
     network : str
         Short string of characters to identify the network. Exported
         files will utilize this network code as its prefix.
@@ -46,12 +46,18 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
 
     """
     # Read start and end times.
+    dtype = {"folder name": str, "array name": str, "station number": int,
+             "start year": int, "start month": int, "start day": int,
+             "start hour": int, "start minute": int, "start second": int,
+             "end year": int, "end month": int, "end day": int,
+             "end hour": int, "end minute": int, "end second": int,
+             "notes": str}
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            df = pd.read_excel(startend_fname)
+            df = pd.read_csv(startend_fname, dtype=dtype)
     except:
-        raise NotImplementedError("To implement .csv parsing")
+        raise NotImplementedError("File type not recognized.")
 
     # Loop through across defined timeblocks.
     logger.info("Begin iteration across dataframe ...")
