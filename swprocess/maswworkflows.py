@@ -18,7 +18,9 @@ class AbstractMaswWorkflow(ABC):
     """Abstract base class (ABC) defining an MASW workflow."""
 
     def __init__(self, fnames=None, settings=None, map_x=None, map_y=None):
-        """Perform initialization common to all `MaswWorkflow`s."""
+        """Perform initialization common to all MaswWorkflows.
+        
+        """
         # Set objects state
         self.fnames = fnames
         self.settings = settings

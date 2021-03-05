@@ -1,6 +1,6 @@
 .. sensor1c:
 
-sensor1C
+sensor1c
 ========
 
 .. automodule:: swprocess.sensor1c

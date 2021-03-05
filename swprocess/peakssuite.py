@@ -720,7 +720,7 @@ class PeaksSuite():
 
     @classmethod
     def from_dict(cls, dicts):
-        """Instantiate `PeaksSuite` from `list` of `dict`s.
+        """Instantiate `PeaksSuite` from `list` of `dict`.
 
         Parameters
         ----------

@@ -18,9 +18,7 @@ logger = logging.getLogger("swprocess.wavefieldtransforms")
 
 
 class AbstractWavefieldTransform(ABC):
-    """Wavefield transformation of an `Array1D`.
-
-    """
+    """Wavefield transformation of an `Array1D`."""
 
     def __init__(self, frequencies, velocities, power):
         """Define AbstractWavefieldTransform."""
