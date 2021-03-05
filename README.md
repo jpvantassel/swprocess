@@ -66,7 +66,7 @@ aleatory uncertainty in surface wave measurements.
 
 ### Active-source processing
 
-<img src="https://github.com/jpvantassel/swprocess/blob/main/figs/nz_wghs_rayleigh_56.0m.png?raw=true" width="775">
+<img src="https://github.com/jpvantassel/swprocess/blob/main/figs/nz_wghs_rayleigh_-20.0m.png?raw=true" width="775">
 
 ### Interactive trimming
 
