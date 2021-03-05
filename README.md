@@ -5,11 +5,7 @@
 <!-- [![DOI](https://zenodo.org/badge/218571161.svg)](https://zenodo.org/badge/latestdoi/218571161) -->
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/jpvantassel/sigpropy/blob/master/LICENSE.txt)
 [![CircleCI](https://circleci.com/gh/jpvantassel/swprocess.svg?style=svg)](https://circleci.com/gh/jpvantassel/swprocess)
-
-
-<!-- [![Documentation Status](https://readthedocs.org/projects/sigpropy/badge/?version=latest)](https://sigpropy.readthedocs.io/en/latest/?badge=latest)
- -->
-
+[![Documentation Status](https://readthedocs.org/projects/swprocess/badge/?version=latest)](https://swprocess.readthedocs.io/en/latest/?badge=latest)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/jpvantassel/swprocess.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jpvantassel/swprocess/context:python)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/8faa1913edd84e4b9ba77807ab5583fd)](https://www.codacy.com/gh/jpvantassel/swprocess/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jpvantassel/swprocess&amp;utm_campaign=Badge_Grade)
 [![codecov](https://codecov.io/gh/jpvantassel/swprocess/branch/main/graph/badge.svg?token=XCDW6HMGBR)](https://codecov.io/gh/jpvantassel/swprocess)
@@ -77,7 +73,7 @@ aleatory uncertainty in surface wave measurements.
 
 ### Calculation of dispersion statistics
 
-<img src="https://github.com/jpvantassel/swprocess/blob/main/figs/nz_wghs_rayleigh_masw.png?raw=true" width="775">
+<img src="https://github.com/jpvantassel/swprocess/blob/main/figs/nz_wghs_rayleigh.png?raw=true" width="775">
 
 ## Getting Started
 
