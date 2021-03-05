@@ -2,7 +2,7 @@
 
 > Joseph P. Vantassel, The University of Texas at Austin
 
-<!-- [![DOI](https://zenodo.org/badge/218571161.svg)](https://zenodo.org/badge/latestdoi/218571161) -->
+[![DOI](https://zenodo.org/badge/202217252.svg)](https://zenodo.org/badge/latestdoi/202217252)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/jpvantassel/sigpropy/blob/master/LICENSE.txt)
 [![CircleCI](https://circleci.com/gh/jpvantassel/swprocess.svg?style=svg)](https://circleci.com/gh/jpvantassel/swprocess)
 [![Documentation Status](https://readthedocs.org/projects/swprocess/badge/?version=latest)](https://swprocess.readthedocs.io/en/latest/?badge=latest)
@@ -27,7 +27,7 @@ If you use _swprocess_ in your research or consulting, we ask you please cite
 the following:
 
 > Vantassel, J. P. (2020). jpvantassel/swprocess: latest (Concept). Zenodo.
-> [Forthcoming](https://github.com/jpvantassel/)
+> [https://doi.org/10.5281/zenodo.4584128](https://doi.org/10.5281/zenodo.4584128)
 
 > Vantassel, J. P. & Cox, B. R. (2021). "SWprocess: A workflow for developing robust
 > estimates of surface wave dispersion uncertainty" Submitted to a special edition of the
@@ -37,7 +37,7 @@ the following:
 _Note: For software, version specific citations should be preferred to
 general concept citations, such as that listed above. To generate a version
 specific citation for `swprocess`, please use the citation tool on the `swprocess`
-[archive](https://github.com/jpvantassel/)._
+[archive](https://doi.org/10.5281/zenodo.4584128)._
 
 ## Why use _swprocess_
 
