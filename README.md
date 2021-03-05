@@ -12,6 +12,7 @@
 
 ## Table of Contents
 
+
 -   [About _swprocess_](#about-swprocess)
 -   [Why use _swprocess_](#why-use-swprocess)
 -   [Examples](#examples)
@@ -76,8 +77,6 @@ aleatory uncertainty in surface wave measurements.
 <img src="https://github.com/jpvantassel/swprocess/blob/main/figs/nz_wghs_rayleigh.png?raw=true" width="775">
 
 ## Getting Started
-
----
 
 ### Installing or Upgrading _swprocess_
 
