@@ -2,14 +2,17 @@
 
 > Joseph P. Vantassel, The University of Texas at Austin
 
-<!-- [![DOI](https://zenodo.org/badge/218571161.svg)](https://zenodo.org/badge/latestdoi/218571161)
+<!-- [![DOI](https://zenodo.org/badge/218571161.svg)](https://zenodo.org/badge/latestdoi/218571161) -->
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/jpvantassel/sigpropy/blob/master/LICENSE.txt)
-[![CircleCI](https://circleci.com/gh/jpvantassel/sigpropy.svg?style=svg)](https://circleci.com/gh/jpvantassel/sigpropy)
-[![Documentation Status](https://readthedocs.org/projects/sigpropy/badge/?version=latest)](https://sigpropy.readthedocs.io/en/latest/?badge=latest)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/jpvantassel/sigpropy.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jpvantassel/sigpropy/context:python)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/1a9c785e79214a0db457797f6d5f82f0)](https://www.codacy.com/manual/jpvantassel/sigpropy?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jpvantassel/sigpropy&amp;utm_campaign=Badge_Grade)
-[![codecov](https://codecov.io/gh/jpvantassel/sigpropy/branch/master/graph/badge.svg)](https://codecov.io/gh/jpvantassel/sigpropy)
-[![Maintainability](https://api.codeclimate.com/v1/badges/6a3d16f9a406a5367a67/maintainability)](https://codeclimate.com/github/jpvantassel/sigpropy/maintainability) -->
+[![CircleCI](https://circleci.com/gh/jpvantassel/swprocess.svg?style=svg)](https://circleci.com/gh/jpvantassel/swprocess)
+
+
+<!-- [![Documentation Status](https://readthedocs.org/projects/sigpropy/badge/?version=latest)](https://sigpropy.readthedocs.io/en/latest/?badge=latest)
+ -->
+
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/jpvantassel/swprocess.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jpvantassel/swprocess/context:python)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/8faa1913edd84e4b9ba77807ab5583fd)](https://www.codacy.com/gh/jpvantassel/swprocess/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jpvantassel/swprocess&amp;utm_campaign=Badge_Grade)
+[![codecov](https://codecov.io/gh/jpvantassel/swprocess/branch/main/graph/badge.svg?token=XCDW6HMGBR)](https://codecov.io/gh/jpvantassel/swprocess)
 
 ## Table of Contents
 
