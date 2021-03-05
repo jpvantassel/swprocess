@@ -18,7 +18,6 @@ masw.k
 docs/html
 debug.log
 *.target
-tmp.json
 examples/masw/*.png
 examples/masw/*.json
 examples/mam/*.json

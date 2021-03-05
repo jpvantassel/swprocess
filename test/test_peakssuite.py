@@ -625,6 +625,7 @@ class Test_PeaksSuite(TestCase):
         expected.to_json(fname)
         returned = swprocess.PeaksSuite.from_json(fname)
         self.assertEqual(expected, returned)
+        os.remove(fname)
 
     def test_from_dict(self):
         # 1D: Single dictionary
