@@ -36,8 +36,9 @@ setup(
     ],
     keywords='surface-wave dispersion processing geopsy active passive masw mam',
     packages=find_packages(),
-    python_requires = '>=3.6, <3.9',
-    install_requires=["numpy", "scipy", "matplotlib", "obspy", "sigpropy>=0.3.0", "pandas", "PyQt5"],
+    python_requires='>=3.6, <3.9',
+    install_requires=["numpy", "scipy", "matplotlib",
+                      "obspy", "sigpropy>=0.3.0", "pandas", "PyQt5"],
     extras_require={
         'dev': ['coverage'],
     },
@@ -45,7 +46,7 @@ setup(
     },
     data_files=[
     ],
-    entry_points={  
+    entry_points={
     },
     project_urls={
         'Bug Reports': 'https://github.com/jpvantassel/swprocess/issues',

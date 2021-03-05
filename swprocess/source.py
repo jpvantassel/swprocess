@@ -21,22 +21,24 @@ import logging
 
 logger = logging.getLogger("swprocess.source")
 
+
 class Source():
     """A Source class for storing information about an active-source.
-    
+
     Attributes:
     """
+
     def __init__(self, x, y, z):
         """Initialize a Source class object.
-        
+
         Args:
             position: Dictionary showing the relative position of the
                 source from the first receiver of the form:
                 {'x': xval, 'y':yval, 'z':zval}
-         
+
         Returns:
             This method returns no value.
-        
+
         Raises:
             This method raises no exceptions.
         """
@@ -73,5 +75,3 @@ class Source():
             if getattr(self, attr) != getattr(other, attr):
                 return False
         return True
-
-

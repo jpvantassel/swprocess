@@ -143,7 +143,8 @@ class ActiveTimeSeries(TimeSeries):
             msg = "`timeseries` is incompatible and cannot be stacked."
             raise ValueError(msg)
 
-        self._amp = (self._amp*self.nstacks + timeseries._amp*timeseries.nstacks)
+        self._amp = (self._amp*self.nstacks +
+                     timeseries._amp*timeseries.nstacks)
         self._amp /= (self.nstacks + timeseries.nstacks)
         self._nstacks += timeseries.nstacks
 
@@ -183,8 +184,8 @@ class ActiveTimeSeries(TimeSeries):
         """Create `ActiveTimeSeries` from a `Trace` object.
 
         This method is more general than
-        :meth:`ActiveTimeSeries.from_trace_seg2`, 
-        as it does not attempt to extract any metadata from the `Trace` 
+        :meth:`ActiveTimeSeries.from_trace_seg2`,
+        as it does not attempt to extract any metadata from the `Trace`
         object.
 
         Parameters
@@ -376,7 +377,8 @@ class ActiveTimeSeries(TimeSeries):
         """
         obj = cls.from_activetimeseries(a)
         b_copy = cls.from_activetimeseries(b)
-        _, shifted_amplitude = cls.crosscorr_shift(a, b_copy, exclude=("nsamples", "nstacks"))
+        _, shifted_amplitude = cls.crosscorr_shift(
+            a, b_copy, exclude=("nsamples", "nstacks"))
         b_copy._amp = np.expand_dims(shifted_amplitude, axis=0)
         obj.stack_append(b_copy)
         return obj

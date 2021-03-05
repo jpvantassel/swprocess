@@ -1,4 +1,4 @@
-# `swprocess` - A Python Package for Surface Wave Processing
+# _swprocess_ - A Python Package for Surface Wave Processing
 
 > Joseph P. Vantassel, The University of Texas at Austin
 
@@ -20,7 +20,7 @@
 
 ## About _swprocess_
 
-`swprocess` is a Python package for surface wave processing. `swprocess` was
+_swprocess_ is a Python package for surface wave processing. _swprocess_ was
 developed by Joseph P. Vantassel under the supervision of Professor Brady R. Cox
 at The University of Texas at Austin.
 
@@ -37,7 +37,7 @@ the following:
 
 _Note: For software, version specific citations should be preferred to
 general concept citations, such as that listed above. To generate a version
-specific citation for `swprocess`, please use the citation tool on the `swprocess`
+specific citation for _swprocess_, please use the citation tool on the _swprocess_
 [archive](https://doi.org/10.5281/zenodo.4584128)._
 
 ## Why use _swprocess_
@@ -84,13 +84,13 @@ aleatory uncertainty in surface wave measurements.
 so. A detailed set of instructions can be found
 [here](https://jpvantassel.github.io/python3-course/#/intro/installing_python).
 
-2.  If you have not installed `swprocess` previously use `pip install swprocess`.
+2.  If you have not installed _swprocess_ previously use `pip install swprocess`.
 If you are not familiar with `pip`, a useful tutorial can be found
 [here](https://jpvantassel.github.io/python3-course/#/intro/pip). If you have
 an earlier version and would like to upgrade to the latest version of
-`swprocess` use `pip install swprocess --upgrade`.
+_swprocess_ use `pip install swprocess --upgrade`.
 
-3.  Confirm that `swprocess` has installed/updated successfully by examining the
+3.  Confirm that _swprocess_ has installed/updated successfully by examining the
 last few lines of the text displayed in the console.
 
 ### Using _swprocess_
