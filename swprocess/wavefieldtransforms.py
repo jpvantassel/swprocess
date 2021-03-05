@@ -100,7 +100,7 @@ class AbstractWavefieldTransform(ABC):
         self.power *= self._to_abs
 
         # Normalize power
-        register = {"none": (lambda x: np.abs(x),
+        register = {"none": (np.abs,
                              lambda x: 1.),
                     "absolute-maximum": (lambda x: np.abs(x)/np.max(np.abs(x)),
                                          lambda x: np.max(np.abs(x))),

@@ -636,7 +636,7 @@ class Peaks():
             try:
                 if getattr(self, key) != getattr(other, key):
                     return False
-            except AttributeError as e:
+            except AttributeError:
                 return False
 
         # Check attributes
@@ -648,7 +648,7 @@ class Peaks():
             try:
                 myattr = getattr(self, attr)
                 urattr = getattr(other, attr)
-            except AttributeError as e:
+            except AttributeError:
                 return False
             else:
                 try:

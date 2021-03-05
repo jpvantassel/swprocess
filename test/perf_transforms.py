@@ -18,11 +18,8 @@
 
 import cProfile
 import pstats
-import json
 
-import numpy as np
-
-from swprocess.masw import Masw, MaswWorkflowRegistry
+from swprocess.masw import Masw
 from testtools import get_full_path
 
 full_path = get_full_path(__file__)
@@ -37,7 +34,7 @@ def main():
                                          vspace="linear", snr=False,
                                          weighting="sqrt",
                                          steering="cylindrical")
-    transform = Masw.run(fnames=fname, settings=settings)
+    Masw.run(fnames=fname, settings=settings)
 
 fname = full_path+".tmp_profiler_run"
 data = cProfile.run('main()', filename=fname)

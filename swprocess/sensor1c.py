@@ -187,8 +187,11 @@ class Sensor1C(ActiveTimeSeries):
                               y=map_y(y),
                               z=0)
 
-    def _is_similar(self, other, exclude=[]):
+    def _is_similar(self, other, exclude=None):
         """Check if `other` is similar to `self` though not equal."""
+        if exclude is None:
+            exclude = []
+
         if not isinstance(other, Sensor1C):
             return False
 

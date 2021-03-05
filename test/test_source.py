@@ -17,7 +17,7 @@
 """Test for Source class."""
 
 from swprocess import Source
-from testtools import get_full_path, unittest, TestCase
+from testtools import unittest, TestCase
 
 
 class Test_Utils(TestCase):

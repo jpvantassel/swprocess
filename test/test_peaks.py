@@ -16,10 +16,8 @@
 
 """Tests for Peaks class."""
 
-import json
 import os
 import warnings
-import logging
 from unittest.mock import MagicMock
 
 import numpy as np

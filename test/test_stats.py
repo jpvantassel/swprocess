@@ -18,14 +18,14 @@
 
 import logging
 import warnings
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 from numpy.random import default_rng, PCG64
 
 from swprocess.stats import Statistics
 
-from testtools import unittest, TestCase, get_full_path
+from testtools import unittest, TestCase
 
 logger = logging.getLogger("swprocess")
 logger.setLevel(logging.ERROR)

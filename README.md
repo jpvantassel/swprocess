@@ -45,21 +45,21 @@ specific citation for _swprocess_, please use the citation tool on the _swproces
 _swprocess_ contains features not currently available in any other open-source
 software, including:
 
-- Multiple pre-processing workflows for active-source [i.e., Multichannel
+-   Multiple pre-processing workflows for active-source [i.e., Multichannel
 Analysis of Surface Waves (MASW)] measurements including:
-  - time-domain muting,
-  - frequency-domain stacking, and
-  - time-domain stacking.
-- Multiple wavefield transformations for active-source (i.e., MASW) measurements
+   -   time-domain muting,
+   -   frequency-domain stacking, and
+   -   time-domain stacking.
+-   Multiple wavefield transformations for active-source (i.e., MASW) measurements
 including:
-  - frequency-wavenumber (Nolet and Panza, 1976),
-  - phase-shift (Park, 1998),
-  - slant-stack (McMechan and Yedlin, 1981), and
-  - frequency domain beamformer (Zywicki 1999).
-- Post-processing of active-source and passive-wavefield [i.e., microtremor
+   -   frequency-wavenumber (Nolet and Panza, 1976),
+   -   phase-shift (Park, 1998),
+   -   slant-stack (McMechan and Yedlin, 1981), and
+   -   frequency domain beamformer (Zywicki 1999).
+-   Post-processing of active-source and passive-wavefield [i.e., microtremor
 array measurements (MAM)] data from _swprocess_ and _Geopsy_, respectively.
-- Interactive trimming to remove low quality dispersion data.
-- Rigorous calculation of dispersion statistics to quantify epistemic and
+-   Interactive trimming to remove low quality dispersion data.
+-   Rigorous calculation of dispersion statistics to quantify epistemic and
 aleatory uncertainty in surface wave measurements.
 
 ## Examples

@@ -425,7 +425,7 @@ class Array1D():
         if waterfall_kwargs is None:
             waterfall_kwargs = {}
 
-        fig, ax = self.waterfall(**waterfall_kwargs)
+        _, ax = self.waterfall(**waterfall_kwargs)
 
         pairs = self._ginput_session(ax, npts=np.inf)
 
@@ -470,7 +470,7 @@ class Array1D():
         if waterfall_kwargs is None:
             waterfall_kwargs = {}
         waterfall_kwargs = {**default_waterfall_kwargs, **waterfall_kwargs}
-        fig, ax = self.waterfall(**waterfall_kwargs)
+        _, ax = self.waterfall(**waterfall_kwargs)
 
         # Parse x, y to distance, time
         def parse(xs, ys, time_ax=waterfall_kwargs["time_ax"]):

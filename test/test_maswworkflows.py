@@ -44,7 +44,7 @@ class Test_MaswWorkflows(TestCase):
                 signal_end=0.3, pad_snr=True, df_snr=0.2, trim=True,
                 trim_begin=0., trim_end=1.0, mute=True, pad=True, df=0.1)
             workflow = Workflow(settings=settings)
-            transform = workflow.run()
+            _ = workflow.run()
 
             # Call detrend on sensor(s).
             for sensor in workflow.array.sensors:

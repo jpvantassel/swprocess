@@ -16,12 +16,6 @@
 
 """Tests for class Masw."""
 
-import json
-import os
-
-import matplotlib.pyplot as plt
-import numpy as np
-
 import unittest
 import swprocess
 from testtools import TestCase, unittest, get_full_path

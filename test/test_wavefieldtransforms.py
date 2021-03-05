@@ -17,7 +17,7 @@
 """Tests for class wavefieldtransforms module."""
 
 import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 import warnings
 
 import numpy as np
@@ -25,7 +25,7 @@ import numpy as np
 from swprocess.wavefieldtransforms import EmptyWavefieldTransform
 import swprocess
 import matplotlib.pyplot as plt
-from testtools import TestCase, unittest, get_full_path
+from testtools import TestCase, unittest
 
 logger = logging.getLogger("swprocess.wavefieldtransforms")
 logger.setLevel(logging.WARNING)

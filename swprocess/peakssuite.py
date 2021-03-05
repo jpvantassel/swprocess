@@ -894,6 +894,7 @@ class PeaksSuite():
         return len(self.peaks)
 
     def __eq__(self, other):
+        """Define equality between self and other."""
         if not isinstance(other, PeaksSuite):
             return False
 

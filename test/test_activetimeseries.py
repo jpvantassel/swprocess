@@ -19,7 +19,6 @@
 import warnings
 import logging
 
-import matplotlib.pyplot as plt
 import obspy
 import numpy as np
 
