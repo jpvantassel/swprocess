@@ -27,11 +27,11 @@ at The University of Texas at Austin.
 If you use _swprocess_ in your research or consulting, we ask you please cite
 the following:
 
-> Vantassel, J. P. (2020). jpvantassel/swprocess: latest (Concept). Zenodo.
+> Vantassel, J. P. (2021). jpvantassel/swprocess: latest (Concept). Zenodo.
 > [https://doi.org/10.5281/zenodo.4584128](https://doi.org/10.5281/zenodo.4584128)
 
 > Vantassel, J. P. & Cox, B. R. (2021). "SWprocess: A workflow for developing robust
-> estimates of surface wave dispersion uncertainty" Submitted to a special edition of the
+> estimates of surface wave dispersion uncertainty". Submitted to a special edition of the
 > Journal of Seismology organized by the Consortium of Organizations for Strong Motion
 > Observation Systems (COSMOS)
 
