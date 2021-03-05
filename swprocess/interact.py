@@ -18,7 +18,6 @@
 
 import warnings
 
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
@@ -59,7 +58,7 @@ def ginput_session(ax, initial_adjustment=True,
 
     """
     # Enable cursor to make precise selection easier.
-    cursor = Cursor(ax, color='k', linewidth=1)
+    Cursor(ax, color='k', linewidth=1)
 
     # Permit initial adjustment with blocking call to figure.
     if initial_adjustment:
@@ -111,8 +110,7 @@ def ginput_session(ax, initial_adjustment=True,
             break
 
     finish_message = "Interactive session complete,\nclose figure(s) when ready."
-    text = ax.text(0.95, 0.95, finish_message,
-                   ha="right", va="top",
-                   transform=ax.transAxes)
+    ax.text(0.95, 0.95, finish_message, ha="right", va="top",
+            transform=ax.transAxes)
 
     return (xs, ys)

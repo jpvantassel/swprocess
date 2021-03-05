@@ -1,4 +1,4 @@
-# This file is part of swproess, a Python package for surface wave processing.
+# This file is part of swprocess, a Python package for surface wave processing.
 # Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,6 @@
 """Masw class definition."""
 
 import logging
-import json
 
 from .maswworkflows import MaswWorkflowRegistry
 

@@ -20,8 +20,6 @@ from abc import ABC, abstractmethod
 import warnings
 import logging
 
-import numpy as np
-
 from .register import MaswWorkflowRegistry
 from .wavefieldtransforms import WavefieldTransformRegistry
 from .array1d import Array1D

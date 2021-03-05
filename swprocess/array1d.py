@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 from scipy import signal
 
 from .interact import ginput_session
-from swprocess import ActiveTimeSeries, Source, Sensor1C
+from swprocess import Source, Sensor1C
 
 logger = logging.getLogger("swprocess.array1d")
 

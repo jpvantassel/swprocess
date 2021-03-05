@@ -17,17 +17,13 @@
 """Wavefield transform class definitions."""
 
 from abc import ABC, abstractclassmethod
-import json
 import logging
-from math import ceil
 import warnings
 
-from numpy import linspace, geomspace
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import special
 
-from .peaks import Peaks
 from .register import WavefieldTransformRegistry
 
 logger = logging.getLogger("swprocess.wavefieldtransforms")
@@ -54,8 +50,8 @@ class AbstractWavefieldTransform(ABC):
     @staticmethod
     def _create_vector(pmin, pmax, pn, pspace):
         logger.info("Howdy from _create_vector")
-        samplers = {"linear": linspace, "lin": linspace,
-                    "log": geomspace, "logarithmic": geomspace}
+        samplers = {"linear": np.linspace, "lin": np.linspace,
+                    "log": np.geomspace, "logarithmic": np.geomspace}
         sampler = samplers[pspace]
         return sampler(pmin, pmax, pn)
 

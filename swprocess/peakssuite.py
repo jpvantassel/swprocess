@@ -22,8 +22,6 @@ import logging
 
 import numpy as np
 from scipy.interpolate import interp1d
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 
 from .wavefieldtransforms import AbstractWavefieldTransform as AWTransform
@@ -409,7 +407,6 @@ class PeaksSuite():
         _continue = 1
         rejection_bool_arrays = [np.zeros_like(
             peak._valid, dtype=bool) for peak in self.peaks]
-        err_bar = None
         while _continue:
 
             # Ask user to draw box.
@@ -699,6 +696,7 @@ class PeaksSuite():
         else:
             return (xx_2, data_matrix_2)
 
+    @staticmethod
     def _drop_indices(data_matrix, drop_if_fewer_percent, drop_if_fewer_count):
         """Iterate by row, return rejection indices."""
         if data_matrix.size == 0:

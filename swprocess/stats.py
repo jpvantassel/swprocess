@@ -108,7 +108,7 @@ class Statistics():
 
         # Calculate correlation coefficients.
         corr = np.empty_like(data_matrix)
-        nan_mask = np.isnan(data_matrix)
+        # nan_mask = np.isnan(data_matrix)
         for region in regions:
             ((s_row, s_col), (e_row, e_col)) = region
             corr[s_row:e_row, s_col:e_col] = np.corrcoef(data_matrix[s_row:e_row, s_col:e_col],
@@ -192,6 +192,7 @@ class Statistics():
         else:
             return (xx_2, data_matrix_2)
 
+    @staticmethod
     def _drop_indices(data_matrix, drop_if_fewer_percent, drop_if_fewer_count):
         """Iterate by row, return rejection indices."""
         if data_matrix.size == 0:
@@ -300,6 +301,7 @@ class Statistics():
 
         return regions
 
+    @staticmethod
     def _fill_data(data_matrix, means=None, stddevs=None, rng=None):
         """Fill a matrix using random assignment.
 

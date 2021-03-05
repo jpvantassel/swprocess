@@ -21,9 +21,7 @@ import warnings
 import logging
 
 import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Cursor
 
 from .regex import get_peak_from_max, get_all, get_nmaxima
 
