@@ -31,7 +31,7 @@ class ActiveTimeSeries(TimeSeries):
 
     Attributes
     ----------
-    amp : ndarray
+    amplitude : ndarray
         Recording's amplitude, one per sample.
     dt : float
         Time step between samples in seconds.
@@ -42,7 +42,7 @@ class ActiveTimeSeries(TimeSeries):
     def _check_input(nstacks, delay):
         """Check inputs have correct type and values.
 
-        Specificially:
+        Specifically:
         1. `nstacks` is an `int` greater than zero.
         2. `delay` is a `float` less than or equal to zero.
 
@@ -60,7 +60,7 @@ class ActiveTimeSeries(TimeSeries):
         return (nstacks, delay)
 
     def __init__(self, amplitude, dt, nstacks=1, delay=0):
-        """Initialize a `TimeSeries` object.
+        """Initialize an `ActiveTimeSeries` object.
 
         Parameters
         ----------
@@ -129,7 +129,7 @@ class ActiveTimeSeries(TimeSeries):
         Returns
         -------
         None
-            Updates the attributes `amp` and `nstacks`.
+            Updates the attributes `amplitude` and `nstacks`.
 
         Raises
         ------
@@ -195,8 +195,8 @@ class ActiveTimeSeries(TimeSeries):
             `obspy documentation <https://github.com/obspy/obspy/wiki>`_
             for more information.
         nstacks : int, optional
-            Number of stacks the time series represents, (default is
-            1, signifying a single unstacked time record).
+            Number of stacks the time series represents, default is
+            1, signifying a single unstacked time record.
         delay : float {<=0.}, optional
             Denotes the pre-event delay, default is zero, meaning no
             pre-event noise was recorded.

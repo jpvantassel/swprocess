@@ -3,15 +3,15 @@
 > Joseph P. Vantassel, The University of Texas at Austin
 
 [![DOI](https://zenodo.org/badge/202217252.svg)](https://zenodo.org/badge/latestdoi/202217252)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/jpvantassel/sigpropy/blob/master/LICENSE.txt)
+[![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/sigpropy/blob/master/LICENSE.txt)
 [![CircleCI](https://circleci.com/gh/jpvantassel/swprocess.svg?style=svg)](https://circleci.com/gh/jpvantassel/swprocess)
 [![Documentation Status](https://readthedocs.org/projects/swprocess/badge/?version=latest)](https://swprocess.readthedocs.io/en/latest/?badge=latest)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/swprocess)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/jpvantassel/swprocess.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jpvantassel/swprocess/context:python)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/8faa1913edd84e4b9ba77807ab5583fd)](https://www.codacy.com/gh/jpvantassel/swprocess/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jpvantassel/swprocess&amp;utm_campaign=Badge_Grade)
 [![codecov](https://codecov.io/gh/jpvantassel/swprocess/branch/main/graph/badge.svg?token=XCDW6HMGBR)](https://codecov.io/gh/jpvantassel/swprocess)
 
 ## Table of Contents
-
 
 -   [About _swprocess_](#about-swprocess)
 -   [Why use _swprocess_](#why-use-swprocess)
@@ -47,15 +47,15 @@ software, including:
 
 -   Multiple pre-processing workflows for active-source [i.e., Multichannel
 Analysis of Surface Waves (MASW)] measurements including:
-   -   time-domain muting,
-   -   frequency-domain stacking, and
-   -   time-domain stacking.
+    -   time-domain muting,
+    -   frequency-domain stacking, and
+    -   time-domain stacking.
 -   Multiple wavefield transformations for active-source (i.e., MASW) measurements
 including:
-   -   frequency-wavenumber (Nolet and Panza, 1976),
-   -   phase-shift (Park, 1998),
-   -   slant-stack (McMechan and Yedlin, 1981), and
-   -   frequency domain beamformer (Zywicki 1999).
+    -   frequency-wavenumber (Nolet and Panza, 1976),
+    -   phase-shift (Park, 1998),
+    -   slant-stack (McMechan and Yedlin, 1981), and
+    -   frequency domain beamformer (Zywicki 1999).
 -   Post-processing of active-source and passive-wavefield [i.e., microtremor
 array measurements (MAM)] data from _swprocess_ and _Geopsy_, respectively.
 -   Interactive trimming to remove low quality dispersion data.

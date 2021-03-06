@@ -16,6 +16,7 @@
 
 """Tests for Array1D class."""
 
+import os
 import warnings
 import logging
 
@@ -25,7 +26,7 @@ import matplotlib.pyplot as plt
 
 from unittest.mock import patch
 from testtools import TestCase, unittest, get_full_path
-import swprocess
+import swprocess    
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -144,6 +145,15 @@ class Test_Array1D(TestCase):
             array = self.dummy_array(amp=[0, 0, 0], dt=1, nstacks=1, delay=0,
                                      nsensors=nsensors, spacing=1, source_x=-5)
             self.assertEqual(nsensors, array.nchannels)
+
+    def test_array_center_distance(self):
+        spacing = 2
+        source_offset = 5
+        for nsensors in [24, 48, 96]:
+            array = self.dummy_array(amp=[0, 0, 0], dt=1, nstacks=1, delay=0,
+                                     nsensors=nsensors, spacing=spacing, source_x=-source_offset)
+            expected = source_offset + (nsensors-1)*spacing/2
+            self.assertEqual(expected, array.array_center_distance)
 
     def test_spacing(self):
         # constant spacing
@@ -488,18 +498,22 @@ class Test_Array1D(TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             known = obspy.read(fname)
-        test = swprocess.Array1D.from_files(fname)
-        self.assertArrayEqual(known.traces[0].data,
-                              test.timeseriesmatrix()[0, :])
+        array = swprocess.Array1D.from_files(fname)
+        self.assertArrayEqual(np.arange(0, 48,2), np.array(array.position()))
+        self.assertEqual(-2, array.source.x)
+        for expected, returned in zip(known.traces, array.timeseriesmatrix()):
+            self.assertArrayEqual(expected.data, returned)
 
         # Single File : SU
-        fname = self.full_path + "data/denise/v1.2_y.su.shot2"
+        fname = self.full_path + "data/custom/shot1.su"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             known = obspy.read(fname)
-            test = swprocess.Array1D.from_files(fname)
-        self.assertArrayEqual(known.traces[0].data,
-                              test.timeseriesmatrix()[0, :])
+            array = swprocess.Array1D.from_files(fname)
+        self.assertArrayEqual(np.arange(7, 55, 2), np.array(array.position()))
+        self.assertEqual(6, array.source.x)
+        for expected, returned in zip(known.traces, array.timeseriesmatrix()):
+            self.assertArrayEqual(expected.data, returned)
 
         # Multiple Files
         fnames = [f"{self.wghs_path}{x}.dat" for x in range(1, 5)]
@@ -514,6 +528,10 @@ class Test_Array1D(TestCase):
             returned = swprocess.Array1D.from_files(fnames)[0].amplitude
         self.assertArrayAlmostEqual(expected, returned, places=2)
 
+        # Bad : coordinate units
+        fname = self.full_path + "data/custom/shot1_badcu.su"
+        self.assertRaises(ValueError, swprocess.Array1D.from_files, fname)
+
         # Bad : incompatible sources
         fnames = [f"{self.wghs_path}{x}.dat" for x in range(1, 10)]
         self.assertRaises(ValueError, swprocess.Array1D.from_files, fnames)
@@ -527,6 +545,30 @@ class Test_Array1D(TestCase):
         fname = self.full_path+"data/custom/0101010.sac"
         self.assertRaises(NotImplementedError,
                           swprocess.Array1D.from_files, fname)
+
+    def test_to_and_from_su(self):
+        spacing = 2
+        sensors = []
+        nsamples = 1000
+        time = np.arange(0, 1, 1/nsamples)
+        for n in range(24):
+            sensor = swprocess.Sensor1C(amplitude=np.sin(2*np.pi*n*time),
+                                        dt=1/nsamples, x=spacing*n, y=0, z=0,
+                                        nstacks=1, delay=0)
+            sensors.append(sensor)
+        source = swprocess.Source(x=-10, y=0, z=0)
+        
+        expected = swprocess.Array1D(sensors, source)
+        
+        # To and from : SU
+        fname = "to_file.su"
+        expected.to_file(fname)
+        returned = swprocess.Array1D.from_files(fname)
+        self.assertEqual(expected, returned)
+        os.remove(fname)
+
+        # Bad : format
+        self.assertRaises(ValueError, expected.to_file, fname, ftype="seg2")
 
     def test_from_array1d(self):
         source = swprocess.Source(1, 0, 0)

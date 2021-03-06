@@ -583,7 +583,7 @@ class Array1D():
         This classmethod creates an `Array1D` object by reading the
         header information in the provided file(s). Each file
         should contain multiple traces where each trace corresponds to a
-        single receiver. Currently supported file types are SEGY and SU.
+        single receiver. Currently supported file types are SEG2 and SU.
 
         Parameters
         ----------
@@ -640,11 +640,11 @@ class Array1D():
                 
                 int_x = int(stats.su.trace_header["source_coordinate_x"])
                 x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
-                x = round(x, np.sign(scaleco) * int(np.log10(abs(scaleco))))
+                x = round(x, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
                 int_y = int(stats.su.trace_header["source_coordinate_y"])
-                y = int_y / abs(scaleco) if scaleco < 0 else int_x * scaleco
-                y = round(y, np.sign(scaleco) * int(np.log10(abs(scaleco))))
+                y = int_y / abs(scaleco) if scaleco < 0 else int_y * scaleco
+                y = round(y, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
                 return Source(x=map_x(x), y=map_y(y), z=0)
 
