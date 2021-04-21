@@ -3,7 +3,7 @@
 > Joseph P. Vantassel, The University of Texas at Austin
 
 [![DOI](https://zenodo.org/badge/202217252.svg)](https://zenodo.org/badge/latestdoi/202217252)
-[![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/sigpropy/blob/master/LICENSE.txt)
+[![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/swprocess/blob/master/LICENSE.txt)
 [![CircleCI](https://circleci.com/gh/jpvantassel/swprocess.svg?style=svg)](https://circleci.com/gh/jpvantassel/swprocess)
 [![Documentation Status](https://readthedocs.org/projects/swprocess/badge/?version=latest)](https://swprocess.readthedocs.io/en/latest/?badge=latest)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/swprocess)
