@@ -18,6 +18,8 @@
 
 import logging
 
+import numpy as np
+
 from swprocess import ActiveTimeSeries
 
 logger = logging.getLogger(name=__name__)
@@ -116,6 +118,8 @@ class Sensor1C(ActiveTimeSeries):
                 return cls._from_trace_seg2(trace, map_x=map_x, map_y=map_y)
             elif _format == "SU":
                 return cls._from_trace_su(trace, map_x=map_x, map_y=map_y)
+            elif _format == "SEGY":
+                return cls._from_trace_segy(trace, map_x=map_x, map_y=map_y)
             else:
                 raise NotImplementedError
         else:
@@ -174,10 +178,51 @@ class Sensor1C(ActiveTimeSeries):
         scaleco = int(header["scalar_to_be_applied_to_all_coordinates"])
 
         int_x = int(header["group_coordinate_x"])
-        x =  int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
+        x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
+        x = round(x, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
         int_y = int(header["group_coordinate_y"])
         y = int_y / abs(scaleco) if scaleco < 0 else int_x * scaleco
+        y = round(y, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
+
+        return cls.from_trace(trace,
+                              read_header=False,
+                              nstacks=int(header[nstack_key])+1,
+                              delay=int(header["delay_recording_time"])/1000,
+                              x=map_x(x),
+                              y=map_y(y),
+                              z=0)
+
+    @classmethod
+    def _from_trace_segy(cls, trace, map_x=lambda x: x, map_y=lambda y: y):
+        """Create a `Sensor1C` object form a SEGY-style `Trace` object.
+
+        Parameters
+        ----------
+        trace : Trace
+            SEGY-style Trace with header information entered correctly.
+        map_x, map_y : function, optional
+            Convert x and y coordinates using some function, default
+            is not transformation. Can be useful for converting between
+            coordinate systems.
+
+        Returns
+        -------
+        Sensor1C
+            An initialized `Sensor1C` object.
+
+        """
+        header = trace.stats.segy.trace_header
+        nstack_key = "number_of_horizontally_stacked_traces_yielding_this_trace"
+        scaleco = int(header["scalar_to_be_applied_to_all_coordinates"])
+
+        int_x = int(header["group_coordinate_x"])
+        x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
+        x = round(x, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
+
+        int_y = int(header["group_coordinate_y"])
+        y = int_y / abs(scaleco) if scaleco < 0 else int_x * scaleco
+        y = round(y, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
         return cls.from_trace(trace,
                               read_header=False,
