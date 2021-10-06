@@ -23,6 +23,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import special
+from scipy.signal import find_peaks
 
 from .register import WavefieldTransformRegistry
 
@@ -110,14 +111,20 @@ class AbstractWavefieldTransform(ABC):
         to_norm, to_abs = register[by]
         self.power, self._to_abs = (to_norm(self.power), to_abs(self.power))
 
-    def find_peak_power(self, by="frequency-maximum"):
+    def find_peak_power(self, by="frequency-maximum", **kwargs):
         """Find maximum `WavefieldTransform` power.
 
         Parameters
         ----------
-        by : {"frequency-maximum"}, optional
+        by : {"frequency-maximum", "find_peaks"}, optional
             Determines how the maximum surface wave dispersion power is
             selected, default is 'frequency-maximum'.
+            `frequency-maximum` as the name indicates simply returns the
+            single maximum power point's velocity at each frequency.
+            `find_peaks` uses the function by the same name from the
+            scipy package, keyword arguments can be entered as kwargs.
+        kwargs : kwargs, optional
+            Keyword arguments, different for each search method.
 
         Returns
         -------
@@ -125,7 +132,15 @@ class AbstractWavefieldTransform(ABC):
             Containing the peak velocity at each frequency.
 
         """
-        return self.velocities[np.argmax(self.power, axis=0)]
+        if by == "frequency-maximum":
+            return self.velocities[np.argmax(self.power, axis=0)]
+        elif by == "find_peaks":
+            
+            idx, _ = find_peaks(self.power, **kwargs)
+        else:
+            msg = f"find_peak_power by {by} not recognized, see docs for options."
+            raise NotImplementedError(msg)
+
 
     def plot_snr(self, ax=None, plot_kwargs=None):
         # Only proceed if snr is not None.

@@ -28,7 +28,7 @@ class AbstractRegistry(ABC):
     def register(cls, name):
 
         def wrapper(class_to_wrap):
-            logging.info(f"Registering {name} ...")
+            logger.info(f"Registering {name} ...")
             if name in cls._register:
                 msg = f"Register entry {name} already exists, replacing ..."
                 logger.warning(msg)

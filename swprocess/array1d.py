@@ -700,9 +700,14 @@ class Array1D():
         obj = cls(sensors, source)
         return obj
 
+    # su
     # https://pubs.usgs.gov/of/2001/of01-326/HTML/FILEFORM.HTM
     # https://wiki.seismic-unix.org/sudoc:su_data_format
     # http://web.mit.edu/cwpsu_v44r1/sumanual_600dpi_letter.pdf
+
+    # segy
+    # https://sioseis.ucsd.edu/segy.header.html
+    # https://seg-org.ezproxy.lib.utexas.edu/Portals/0/SEG/News%20and%20Resources/Technical%20Standards/seg_y_rev2_0-mar2017.pdf
     def to_file(self, fname, ftype="su"):
         if ftype != "su":
             raise ValueError(f"ftype = {ftype} not recognized.")
