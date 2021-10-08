@@ -186,6 +186,35 @@ class Array1D():
         for sensor in self.sensors:
             sensor.trim(start_time, end_time)
 
+    def trim_offsets(self, min_offset, max_offset):
+        """Remove sensors outside of the offsets specified.
+        
+        Parameters
+        ----------
+        min_offset, max_offset : float
+            Specify the minimum and maximum allowable offset in meters.
+
+        Return
+        ------
+        None
+            Updates internal attributes.
+        
+        """
+        sensors = []
+        for offset, sensor in zip(self.offsets, self.sensors):
+            if (offset > min_offset) and (offset < max_offset):
+                sensors.append(sensor)
+
+            if (offset > max_offset):
+                break
+        
+        if len(sensors) == 0:
+            msg = "Removing all sensors at offsets between "
+            msg += f"{min_offset} and {max_offset}, results in no sensors."
+            raise ValueError(msg)
+
+        self.sensors = sensors
+
     def zero_pad(self, df):
         """Append zero to sensors to achieve a desired frequency step.
 

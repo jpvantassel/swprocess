@@ -681,6 +681,7 @@ class FDBF(AbstractWavefieldTransform):
             spatiospectral correlation matrix.
 
         """
+        # TODO (jpv): Rewrite docstring.
         nchannels, samples_per_block, nblocks = tmatrix.shape
 
         # Perform FFT

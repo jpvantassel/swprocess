@@ -18,6 +18,8 @@
 
 import logging
 
+import numpy as np
+
 from .maswworkflows import MaswWorkflowRegistry
 
 logger = logging.getLogger("swprocess.masw")
@@ -94,7 +96,8 @@ class Masw():
                              weighting="sqrt", steering="cylindrical",
                              snr=False, noise_begin=-0.5, noise_end=0.0,
                              signal_begin=0.0, signal_end=0.5,
-                             pad_snr=True, df_snr=1.0):
+                             pad_snr=True, df_snr=1.0, min_offset=0,
+                             max_offset=np.inf):
         """Create settings `dict` using function arguments.
 
         See :meth:`Masw.create_settings_file` for details.
@@ -115,6 +118,10 @@ class Masw():
                     "pad": {
                         "apply": bool(pad),
                         "df": float(df)
+                    },
+                    "offsets": {
+                        "min":float(min_offset),
+                        "max":float(max_offset),
                     }
                 },
                 "processing": {

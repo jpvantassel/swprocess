@@ -56,6 +56,11 @@ class AbstractMaswWorkflow(ABC):
         if self.array._source_inside:
             raise ValueError("Source must be located outside of the array.")
 
+    def trim_offsets(self):
+        """Remove receivers outside of the offset range."""
+        offsets = self.settings["pre-processing"]["offsets"]
+        self.array.trim_offsets(offsets["min"], offsets["max"])
+
     def detrend(self):
         """Perform linear detrend operation."""
         for sensor in self.array.sensors:
@@ -69,7 +74,7 @@ class AbstractMaswWorkflow(ABC):
             self.noise = Array1D.from_array1d(self.array)
             self.noise.trim(snr["noise"]["begin"], snr["noise"]["end"])
 
-    def trim(self):
+    def trim_time(self):
         """Trim record in the time domain."""
         trim = self.settings["pre-processing"]["trim"]
         if trim["apply"]:
@@ -130,9 +135,10 @@ class TimeDomainWorkflow(AbstractMaswWorkflow):
         self.array = Array1D.from_files(self.fnames, map_x=self.map_x,
                                         map_y=self.map_y)
         self.check()
+        self.trim_offsets()
         self.detrend()
         self.select_noise()
-        self.trim()
+        self.trim_time()
         self.mute()
         self.select_signal()
         self.calculate_snr()
@@ -163,8 +169,9 @@ class SingleMaswWorkflow(TimeDomainWorkflow):
         msg += "MaswWorkflow: single\n"
         msg += "  - Create Array1D from file (ignore if multiple).\n"
         msg += "  - Check array is acceptable.\n"
+        msg += "  - Perform trim in space (if desired).\n"
         msg += "  - Perform linear detrend on each trace.\n"
-        msg += "  - Perform trim (if desired).\n"
+        msg += "  - Perform trim in time (if desired).\n"
         msg += "  - Perform mute (if desired).\n"
         msg += "  - Perform pad  (if desired).\n"
         msg += "  - Perform transform."
@@ -180,8 +187,9 @@ class TimeDomainMaswWorkflow(TimeDomainWorkflow):
         msg += "MaswWorkflow: time-domain\n"
         msg += "  - Create Array1D from files.\n"
         msg += "  - Check array is acceptable.\n"
+        msg += "  - Perform trim in space (if desired).\n"
         msg += "  - Perform linear detrend on each trace.\n"
-        msg += "  - Perform trim (if desired).\n"
+        msg += "  - Perform trim in time (if desired).\n"
         msg += "  - Perform mute (if desired).\n"
         msg += "  - Perform pad  (if desired).\n"
         msg += "  - Perform transform."
@@ -219,10 +227,11 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
                 msg += f"first dissimilar file is {fname}."
                 raise ValueError(msg)
             self.check()
+            self.trim_offsets()
             self.detrend()
             # TODO (jpv): Calling select_noise n times.
             self.select_noise()
-            self.trim()
+            self.trim_time()
             self.mute()
             # TODO (jpv): Calling select_singal n times.
             self.select_signal()
@@ -242,7 +251,9 @@ class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):
         msg += "MaswWorkflow: frequency-domain\n"
         msg += "  - Create Array1D from file.\n"
         msg += "  - Check array is acceptable.\n"
-        msg += "  - Perform trim (if desired).\n"
+        msg += "  - Perform trim in space (if desired).\n"
+        msg += "  - Perform linear detrend on each trace.\n"
+        msg += "  - Perform trim in time (if desired).\n"
         msg += "  - Perform mute (if desired).\n"
         msg += "  - Perform pad  (if desired).\n"
         msg += "  - Perform transform.\n"
