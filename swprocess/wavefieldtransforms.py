@@ -221,9 +221,6 @@ class AbstractWavefieldTransform(ABC):
         # Perform normalization.
         self.normalize(by=normalization)
 
-        # Select peaks.
-        selected_peaks = self.find_peak_power(by=peaks)
-
         # Plot dispersion image.
         img = ax.contourf(self.frequencies,
                           self.velocities,
@@ -251,6 +248,7 @@ class AbstractWavefieldTransform(ABC):
 
         # Plot peaks (if necessary).
         if peaks != "none":
+            selected_peaks = self.find_peak_power(by=peaks)
             default_kwargs = dict(marker="o", markersize=1, markeredgecolor="w",
                                   markerfacecolor='none', linestyle="none")
             peak_kwargs = {} if peak_kwargs is None else peak_kwargs
