@@ -526,7 +526,7 @@ class PeaksSuite():
             # print("5")
 
     def statistics(self, xtype, ytype, xx, ignore_corr=True,
-                   drop_sample_if_fewer_count=3):
+                   drop_sample_if_fewer_count=3, mean_substitution=False):
         """Determine the statistics of the `PeaksSuite`.
 
         Parameters
@@ -568,6 +568,13 @@ class PeaksSuite():
 
         mean = np.nanmean(data_matrix, axis=0)
         std = np.nanstd(data_matrix, axis=0, ddof=1)
+
+        if mean_substitution:
+            for cid, values in enumerate(data_matrix.T):
+                mean_value = np.nanmean(values)
+                rbools = np.isnan(values)
+                data_matrix[rbools, cid] = mean_value
+
         corr = None if ignore_corr else np.corrcoef(data_matrix.T)
 
         return (xx, mean, std, corr)
