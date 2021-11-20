@@ -19,6 +19,8 @@ type and location of an active-source."""
 
 import logging
 
+from sigpropy import TimeSeries
+
 logger = logging.getLogger("swprocess.source")
 
 
@@ -31,16 +33,16 @@ class Source():
     def __init__(self, x, y, z):
         """Initialize a Source class object.
 
-        Args:
-            position: Dictionary showing the relative position of the
-                source from the first receiver of the form:
-                {'x': xval, 'y':yval, 'z':zval}
+        Parameters:
+        -----------
+        x, y, z : float
+            Source position in terms of x, y, and z all in meters.
 
-        Returns:
-            This method returns no value.
+        Returns
+        -------
+        Source
+            Initialized `Source` object.
 
-        Raises:
-            This method raises no exceptions.
         """
         self._x = float(x)
         self._y = float(y)
@@ -75,3 +77,27 @@ class Source():
             if getattr(self, attr) != getattr(other, attr):
                 return False
         return True
+
+class SourceWithSignal(Source, TimeSeries):
+    """Contains source position and signal information."""
+
+    def __init__(self, x, y, z, amp, dt):
+        """Create from spatial and signal information.
+
+        Parameters:
+        -----------
+        x, y, z : float
+            Source position in terms of x, y, and z all in meters.
+        amp : interable of floats
+            Amplitude of source signal.
+        dt : float
+            Time step in seconds.
+
+        Returns
+        -------
+        Source
+            Initialized `Source` object.
+
+        """
+        Source.__init__(x, y, z)
+        TimeSeries.__init__(amp, dt)

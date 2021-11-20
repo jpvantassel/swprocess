@@ -22,7 +22,7 @@ import logging
 
 from .register import MaswWorkflowRegistry
 from .wavefieldtransforms import WavefieldTransformRegistry
-from .array1d import Array1D
+from .array1d import Array1D, Array1DwSource
 from .snr import SignaltoNoiseRatio
 
 logger = logging.getLogger("swprocess.maswworkflows")
@@ -180,7 +180,7 @@ class SingleMaswWorkflow(TimeDomainWorkflow):
 
 @MaswWorkflowRegistry.register("time-domain")
 class TimeDomainMaswWorkflow(TimeDomainWorkflow):
-    """Stack in the frequency-domain."""
+    """Stack in the time-domain."""
 
     def __str__(self):
         msg = "\n"
@@ -195,6 +195,45 @@ class TimeDomainMaswWorkflow(TimeDomainWorkflow):
         msg += "  - Perform transform."
         return msg
 
+@MaswWorkflowRegistry.register("time-domain-xcorr")
+class TimeDomainXcorrMaswWorkflow(AbstractMaswWorkflow):
+    """Stack in the time-domain and xcorr."""
+
+    def run(self):
+        ## TODO (jpv): Finish loading from files.
+        self.array = Array1DwSource.from_files(self.fnames, map_x=self.map_x,
+                                        map_y=self.map_y)
+        self.check()
+        self.trim_offsets()
+        self.detrend()
+        self.select_noise()
+        self.trim_time()
+        self.mute()
+        self.select_signal()
+        self.calculate_snr()
+        self.pad()
+        proc = self.settings["processing"]
+        Transform = WavefieldTransformRegistry.create_class(proc["transform"])
+        transform = Transform.from_array(array=self.array, settings=proc)
+        transform.array = self.array
+        if self.settings["signal-to-noise"]["perform"]:
+            transform.snr = self.snr.snr
+            transform.snr_frequencies = self.snr.frequencies
+        return transform
+
+    def __str__(self):
+        msg = "\n"
+        msg += "MaswWorkflow: time-domain\n"
+        msg += "  - Create Array1D from files.\n"
+        msg += "  - Check array is acceptable.\n"
+        msg += "  - Perform trim in space (if desired).\n"
+        msg += "  - Perform linear detrend on each trace.\n"
+        msg += "  - Cross-correlate traces with source.\n"
+        msg += "  - Perform trim in time (if desired).\n"
+        msg += "  - Perform mute (if desired).\n"
+        msg += "  - Perform pad  (if desired).\n"
+        msg += "  - Perform transform."
+        return msg
 
 @MaswWorkflowRegistry.register("frequency-domain")
 class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):

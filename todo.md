@@ -12,6 +12,8 @@
 -   Corr shift test failing.
 -   Change `single` to `nostacking`.
 -   _delay in ActiveTimeSeries.
+-   Simplify masw factory pattern to allow straightforward one-off implementations.
+-   Add exists check to first cell of masw notebook to be sure files exist.
 
 ## Long term
 

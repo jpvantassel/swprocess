@@ -795,3 +795,26 @@ class Array1D():
 
     def __getitem__(self, index):
         return self.sensors[index]
+
+class Array1DwSource(Array1D):
+
+    def __init__(self, sensors, source, xcorr=True):
+        super().__init__(sensors, source)
+        if xcorr:
+            self.xcorrelate()
+
+    def xcorrelate(self):
+
+        # TODO (jpv): Check dt for source and signal
+        # TODO (jpv): Size of source and receiver signal
+
+        s_amp = self.source.amplitude
+
+        sensors = []
+        for sensor in self.sensors:
+            corr = signal.correlate(sensor.amplitude, s_amp)
+            # TODO (jpv): Intelligent trimming
+            sensor = Sensor1C(corr, dt=sensor.dt, x=sensor.x, y=sensor.y, z=sensor.z, nstacks=sensor.nstacks, delay=0)
+            sensors.append(sensor)
+
+        self.sensors = sensors
