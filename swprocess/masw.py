@@ -250,3 +250,22 @@ class Masw():
     #                                          pad_snr=pad_snr, df_snr=df_snr)
     #     with open(fname, "w") as f:
     #         json.dump(settings, f)
+
+class MaswXcorr(Masw):
+    class Masw():
+        @staticmethod
+        def run(fnames_rec, fnames_src, settings, map_x=lambda x: x, map_y=lambda y: y):
+            # Acquire Workflow (class) from registry.
+            if settings["workflow"] != "time-domain-xcorr":
+                raise NotImplementedError
+
+            selected_workflow = settings["workflow"]
+            logger.info(f"selected workflow is {selected_workflow}")
+            Workflow = MaswWorkflowRegistry.create_class(selected_workflow)
+
+            # Define workflow (instance) from Workflow (class).
+            workflow = Workflow(fnames_rec=fnames_rec, fnames_src=fnames_src, settings=settings,
+                                map_x=map_x, map_y=map_y)
+
+            # Run and return.
+            return workflow.run()

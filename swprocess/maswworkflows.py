@@ -33,7 +33,7 @@ class AbstractMaswWorkflow(ABC):
 
     def __init__(self, fnames=None, settings=None, map_x=None, map_y=None):
         """Perform initialization common to all MaswWorkflows.
-        
+
         """
         # Set objects state
         self.fnames = fnames
@@ -96,6 +96,7 @@ class AbstractMaswWorkflow(ABC):
                                 signal_end=self.signal_end,
                                 window_kwargs=mute.get("window kwargs"),
                                 )
+
     def select_signal(self):
         """Select a portion of the record as signal."""
         snr = self.settings["signal-to-noise"]
@@ -195,14 +196,26 @@ class TimeDomainMaswWorkflow(TimeDomainWorkflow):
         msg += "  - Perform transform."
         return msg
 
+
 @MaswWorkflowRegistry.register("time-domain-xcorr")
 class TimeDomainXcorrMaswWorkflow(AbstractMaswWorkflow):
     """Stack in the time-domain and xcorr."""
 
+    def __init__(self, fnames_rec=None, fnames_src=None, src_channel=None, settings=None, map_x=None, map_y=None):
+        """Perform initialization common to all MaswWorkflows.
+
+        """
+        super().__init__(fnames=fnames_rec, settings=settings, map_x=None, map_y=None)
+        self.fnames_src = self.fnames_src
+        self.src_channel = src_channel
+
     def run(self):
-        ## TODO (jpv): Finish loading from files.
-        self.array = Array1DwSource.from_files(self.fnames, map_x=self.map_x,
-                                        map_y=self.map_y)
+        # TODO (jpv): Finish loading from files.
+        self.array = Array1DwSource.from_files(self.fnames_rec,
+                                               self.fnames_src,
+                                               self.src_channel,
+                                               map_x=self.map_x,
+                                               map_y=self.map_y)
         self.check()
         self.trim_offsets()
         self.detrend()
@@ -234,6 +247,7 @@ class TimeDomainXcorrMaswWorkflow(AbstractMaswWorkflow):
         msg += "  - Perform pad  (if desired).\n"
         msg += "  - Perform transform."
         return msg
+
 
 @MaswWorkflowRegistry.register("frequency-domain")
 class FrequencyDomainMaswWorkflow(AbstractMaswWorkflow):

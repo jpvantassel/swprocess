@@ -24,6 +24,8 @@ import obspy
 import matplotlib.pyplot as plt
 from scipy import signal
 
+from swprocess.source import SourceWithSignal
+
 from .interact import ginput_session
 from swprocess import Source, Sensor1C
 
@@ -802,6 +804,21 @@ class Array1DwSource(Array1D):
         super().__init__(sensors, source)
         if xcorr:
             self.xcorrelate()
+
+    @classmethod
+    def from_files(fnames_rec, fnames_src, src_channel, map_x=self.map_x, map_y=self.map_y):
+        cls = super().from_files(fnames=fnames_rec, map_x=map_x, map_y=map_y)
+
+        # TODO (jpv): Badly assume fnames_src is a properly formatted list.
+        trace = obspy.read(fnames_src[0])[src_channel]
+        dt = trace.delta
+        amp = trace.data
+        for fname in fnames_src[1:]:
+            trace = obspy.read(fnames_src)[src_channel]
+            amp += trace.data
+        amp /= len(fnames_src)
+
+        cls.source = SourceWithSignal(cls.source.x, cls.source.y, cls.source.z, amp, dt)
 
     def xcorrelate(self):
 
