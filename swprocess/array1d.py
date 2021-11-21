@@ -190,7 +190,7 @@ class Array1D():
 
     def trim_offsets(self, min_offset, max_offset):
         """Remove sensors outside of the offsets specified.
-        
+
         Parameters
         ----------
         min_offset, max_offset : float
@@ -200,7 +200,7 @@ class Array1D():
         ------
         None
             Updates internal attributes.
-        
+
         """
         sensors = []
         for offset, sensor in zip(self.offsets, self.sensors):
@@ -209,7 +209,7 @@ class Array1D():
 
             if (offset > max_offset):
                 break
-        
+
         if len(sensors) == 0:
             msg = "Removing all sensors at offsets between "
             msg += f"{min_offset} and {max_offset}, results in no sensors."
@@ -798,40 +798,65 @@ class Array1D():
     def __getitem__(self, index):
         return self.sensors[index]
 
+
 class Array1DwSource(Array1D):
 
-    def __init__(self, sensors, source, xcorr=True):
+    def __init__(self, sensors, source):
         super().__init__(sensors, source)
-        if xcorr:
-            self.xcorrelate()
 
     @classmethod
-    def from_files(fnames_rec, fnames_src, src_channel, map_x=self.map_x, map_y=self.map_y):
-        cls = super().from_files(fnames=fnames_rec, map_x=map_x, map_y=map_y)
+    def from_files(cls, fnames_rec, fnames_src, src_channel,
+                   map_x=lambda x: x, map_y=lambda y: y):
+        _cls = Array1D.from_files(fnames=fnames_rec, map_x=map_x, map_y=map_y)
 
         # TODO (jpv): Badly assume fnames_src is a properly formatted list.
         trace = obspy.read(fnames_src[0])[src_channel]
-        dt = trace.delta
+        dt = trace.meta.delta
         amp = trace.data
         for fname in fnames_src[1:]:
-            trace = obspy.read(fnames_src)[src_channel]
+            trace = obspy.read(fname)[src_channel]
             amp += trace.data
         amp /= len(fnames_src)
 
-        cls.source = SourceWithSignal(cls.source.x, cls.source.y, cls.source.z, amp, dt)
+        source = SourceWithSignal(_cls.source.x,
+                                  _cls.source.y,
+                                  _cls.source.z,
+                                  amp,
+                                  dt)
 
-    def xcorrelate(self):
+        return cls(_cls.sensors, source)
+
+    def xcorrelate(self, vmin=None, vmax=None):
 
         # TODO (jpv): Check dt for source and signal
         # TODO (jpv): Size of source and receiver signal
 
-        s_amp = self.source.amplitude
+        if vmax is None:
+            vmax = 3000
+
+        if vmin is None:
+            vmin = 50
+
+        min_offset, max_offset = min(self.offsets), max(self.offsets)
+
+        tmin = min_offset/vmax
+        idx_dx_tmin = int(tmin/self.source.dt)
+
+        tmax = max_offset/vmin
+        idx_dx_tmax = int(tmax/self.source.dt)
+
+        # start correlation at/near zero lag position.
+        src_amp = self.source.amplitude
+        idx_zero = self.source.nsamples
+        idx_min, idx_max = idx_zero+idx_dx_tmin, idx_zero+idx_dx_tmax
 
         sensors = []
         for sensor in self.sensors:
-            corr = signal.correlate(sensor.amplitude, s_amp)
-            # TODO (jpv): Intelligent trimming
-            sensor = Sensor1C(corr, dt=sensor.dt, x=sensor.x, y=sensor.y, z=sensor.z, nstacks=sensor.nstacks, delay=0)
+            corr = signal.correlate(sensor.amplitude, src_amp)
+            corr = corr[idx_min:idx_max]
+            sensor = Sensor1C(corr, dt=sensor.dt,
+                              x=sensor.x, y=sensor.y, z=sensor.z,
+                              nstacks=sensor.nstacks, delay=0)
             sensors.append(sensor)
 
         self.sensors = sensors

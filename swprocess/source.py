@@ -17,11 +17,8 @@
 """This file contains the Source class for storing information on the
 type and location of an active-source."""
 
-import logging
-
+from numpy.lib.utils import source
 from sigpropy import TimeSeries
-
-logger = logging.getLogger("swprocess.source")
 
 
 class Source():
@@ -47,7 +44,6 @@ class Source():
         self._x = float(x)
         self._y = float(y)
         self._z = float(z)
-        logger.info(f"Created {self}.")
 
     @property
     def x(self):
@@ -78,6 +74,7 @@ class Source():
                 return False
         return True
 
+
 class SourceWithSignal(Source, TimeSeries):
     """Contains source position and signal information."""
 
@@ -99,5 +96,5 @@ class SourceWithSignal(Source, TimeSeries):
             Initialized `Source` object.
 
         """
-        Source.__init__(x, y, z)
-        TimeSeries.__init__(amp, dt)
+        Source.__init__(self, x, y, z)
+        TimeSeries.__init__(self, amp, dt)

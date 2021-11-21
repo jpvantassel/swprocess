@@ -120,11 +120,11 @@ class Masw():
                         "df": float(df)
                     },
                     "offsets": {
-                        "min":float(min_offset),
-                        "max":float(max_offset),
+                        "min": float(min_offset),
+                        "max": float(max_offset),
                     }
-                },
-                "processing": {
+        },
+            "processing": {
                     "transform": str(transform),
                     "fmin": float(fmin),
                     "fmax": float(fmax),
@@ -136,8 +136,8 @@ class Masw():
                         "weighting": str(weighting),
                         "steering": str(steering)
                     }
-                },
-                "signal-to-noise": {
+        },
+            "signal-to-noise": {
                     "perform": bool(snr),
                     "noise": {
                         "begin": float(noise_begin),
@@ -151,8 +151,8 @@ class Masw():
                         "apply": bool(pad_snr),
                         "df": float(df_snr)
                     }
-                },
-                }
+        },
+        }
 
     # @staticmethod
     # def create_settings_file(fname, workflow="time-domain",
@@ -251,21 +251,28 @@ class Masw():
     #     with open(fname, "w") as f:
     #         json.dump(settings, f)
 
+
 class MaswXcorr(Masw):
-    class Masw():
-        @staticmethod
-        def run(fnames_rec, fnames_src, settings, map_x=lambda x: x, map_y=lambda y: y):
-            # Acquire Workflow (class) from registry.
-            if settings["workflow"] != "time-domain-xcorr":
-                raise NotImplementedError
 
-            selected_workflow = settings["workflow"]
-            logger.info(f"selected workflow is {selected_workflow}")
-            Workflow = MaswWorkflowRegistry.create_class(selected_workflow)
+    @staticmethod
+    def run(fnames_rec, fnames_src, src_channel, settings,
+            map_x=lambda x: x, map_y=lambda y: y):
 
-            # Define workflow (instance) from Workflow (class).
-            workflow = Workflow(fnames_rec=fnames_rec, fnames_src=fnames_src, settings=settings,
-                                map_x=map_x, map_y=map_y)
+        # Acquire Workflow (class) from registry.
+        if settings["workflow"] != "time-domain-xcorr":
+            raise NotImplementedError
 
-            # Run and return.
-            return workflow.run()
+        selected_workflow = settings["workflow"]
+        logger.info(f"selected workflow is {selected_workflow}")
+        Workflow = MaswWorkflowRegistry.create_class(selected_workflow)
+
+        # Define workflow (instance) from Workflow (class).
+        workflow = Workflow(fnames_rec=fnames_rec,
+                            fnames_src=fnames_src,
+                            src_channel=src_channel,
+                            settings=settings,
+                            map_x=map_x,
+                            map_y=map_y)
+
+        # Run and return.
+        return workflow.run()

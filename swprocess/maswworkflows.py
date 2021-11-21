@@ -201,21 +201,24 @@ class TimeDomainMaswWorkflow(TimeDomainWorkflow):
 class TimeDomainXcorrMaswWorkflow(AbstractMaswWorkflow):
     """Stack in the time-domain and xcorr."""
 
-    def __init__(self, fnames_rec=None, fnames_src=None, src_channel=None, settings=None, map_x=None, map_y=None):
+    def __init__(self, fnames_rec=None, fnames_src=None, src_channel=None,
+                 settings=None, map_x=None, map_y=None):
         """Perform initialization common to all MaswWorkflows.
 
         """
-        super().__init__(fnames=fnames_rec, settings=settings, map_x=None, map_y=None)
-        self.fnames_src = self.fnames_src
+        super().__init__(fnames=fnames_rec, settings=settings,
+                         map_x=map_x, map_y=map_y)
+        self.fnames_src = fnames_src
         self.src_channel = src_channel
 
     def run(self):
-        # TODO (jpv): Finish loading from files.
-        self.array = Array1DwSource.from_files(self.fnames_rec,
+        self.array = Array1DwSource.from_files(self.fnames,
                                                self.fnames_src,
                                                self.src_channel,
                                                map_x=self.map_x,
                                                map_y=self.map_y)
+        self.array.trim(0, max(self.array.sensors[0].time))
+        self.array.source.trim(0, max(self.array.source.time))
         self.check()
         self.trim_offsets()
         self.detrend()
@@ -224,6 +227,8 @@ class TimeDomainXcorrMaswWorkflow(AbstractMaswWorkflow):
         self.mute()
         self.select_signal()
         self.calculate_snr()
+        self.array.xcorrelate(self.settings["processing"]["vmin"],
+                              self.settings["processing"]["vmax"])
         self.pad()
         proc = self.settings["processing"]
         Transform = WavefieldTransformRegistry.create_class(proc["transform"])
