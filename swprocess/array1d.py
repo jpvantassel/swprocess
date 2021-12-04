@@ -840,7 +840,8 @@ class Array1DwSource(Array1D):
         min_offset, max_offset = min(self.offsets), max(self.offsets)
 
         tmin = min_offset/vmax
-        idx_dx_tmin = int(tmin/self.source.dt)
+        # TODO (jpv): Revisit minimum time add fudge factor for now.
+        idx_dx_tmin = int((tmin-0.5)/self.source.dt)
 
         tmax = max_offset/vmin
         idx_dx_tmax = int(tmax/self.source.dt)
