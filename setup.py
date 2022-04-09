@@ -17,7 +17,7 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/jpvantassel/swprocess',
     author='Joseph P. Vantassel',
-    author_email='jvantassel@utexas.edu',
+    author_email='joseph.p.vantassel@gmail.com',
     classifiers=[
         'Development Status :: 4 - Beta',
 
@@ -33,14 +33,16 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     keywords='surface-wave dispersion processing geopsy active passive masw mam',
     packages=find_packages(),
-    python_requires='>=3.6, <3.9',
+    python_requires='>=3.6',
     install_requires=["numpy", "scipy", "matplotlib",
-                      "obspy", "sigpropy>=0.3.0", "pandas", "PyQt5"],
+                      "obspy", "sigpropy>=1.0.0", "pandas", "PyQt5"],
     extras_require={
-        'dev': ['coverage'],
+        'dev': ['coverage', 'tox'],
     },
     package_data={
     },
