@@ -16,9 +16,12 @@ workflows:
       - test-38:
           context:
             - docker
-      # - test-39:
-      #     context:
-      #       - docker
+      - test-39:
+          context:
+            - docker
+      - test-310:
+          context:
+            - docker
 
 jobs:
   test-36: &test-template
@@ -88,10 +91,18 @@ jobs:
           username: jpvantassel
           password: $DOCKER_PASS
 
-  # test-39:
-  #   <<: *test-template
-  #   docker:
-  #     - image: circleci/python:3.9.0
-  #       auth:
-  #         username: jpvantassel
-  #         password: $DOCKER_PASS
+  test-39:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.9.6
+        auth:
+          username: jpvantassel
+          password: $DOCKER_PASS
+
+  test-310:
+    <<: *test-template
+    docker:
+      - image: cimg/python:3.10.2
+        auth:
+          username: jpvantassel
+          password: $DOCKER_PASS
