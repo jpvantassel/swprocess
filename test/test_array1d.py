@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 
 from unittest.mock import patch
 from testtools import TestCase, unittest, get_full_path
-import swprocess    
+import swprocess
 
 logging.basicConfig(level=logging.ERROR)
 

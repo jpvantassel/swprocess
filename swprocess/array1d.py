@@ -598,7 +598,7 @@ class Array1D():
             window *= 0
 
     def _flipped_tseries_and_offsets(self):
-        """TimeSeriesMatrix and Offsets, flipped from near to far."""
+        """Timeseriesmatrix and offsets, flipped from near to far."""
         if self._flip_required:
             offsets = self.offsets[::-1]
             tmatrix = np.flipud(self.timeseriesmatrix())
@@ -787,6 +787,7 @@ class Array1D():
         return True
 
     def __eq__(self, other):
+        """Define how `other` can be equal to `self`."""
         if not self.is_similar(other):
             return False
 
@@ -797,6 +798,7 @@ class Array1D():
         return True
 
     def __getitem__(self, index):
+        """Select sensor by index."""
         return self.sensors[index]
 
 

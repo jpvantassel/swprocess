@@ -65,8 +65,8 @@ class ActiveTimeSeries(TimeSeries):
         Parameters
         ----------
         amplitude : array-like
-            Recording's amplitude, one per sample. The first 
-            value is associated with `time=0` seconds and the last is 
+            Recording's amplitude, one per sample. The first
+            value is associated with `time=0` seconds and the last is
             associate with `time=(len(amplitude)-1)*dt` seconds.
         dt : float
             Time step between samples in seconds.
@@ -136,7 +136,7 @@ class ActiveTimeSeries(TimeSeries):
         ValueError
             If `timeseries` is not an `ActiveTimeSeries` or
             it cannot be stacked to the current object (i.e., the two
-            are dissimilar). 
+            are dissimilar).
 
         """
         if not self._is_similar(timeseries, exclude=["nstacks"]):
@@ -166,7 +166,7 @@ class ActiveTimeSeries(TimeSeries):
 
         Parameters
         ----------
-        trace: Trace 
+        trace: Trace
             `Trace` object from a correctly written seg2 file.
 
         Returns
@@ -262,7 +262,7 @@ class ActiveTimeSeries(TimeSeries):
         new_nsamples_float = 1/(df*self.dt)
         new_nsamples = int(round(new_nsamples_float))
         if new_nsamples_float != new_nsamples:
-            msg = f"  `1/(df*dt)` is not an integer results will be approximate."
+            msg = "  `1/(df*dt)` is not an integer results will be approximate."
             logger.warning(msg)
 
         # If new_nsamples > nsamples, pad zeros.

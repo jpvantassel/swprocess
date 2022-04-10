@@ -290,17 +290,17 @@ class Test_PeaksSuite(TestCase):
         fname = self.full_path + "data/peak/suite_raw.json"
         suite = swprocess.PeaksSuite.from_json(fname)
 
-        fig, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
+        _, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
                              ytype=["velocity", "velocity", "slowness"],
                              )
 
         # With a provided Axes.
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         result = suite.plot(ax=ax, xtype="frequency", ytype="velocity")
         self.assertTrue(result is None)
 
         # With a provided Axes (wrong size).
-        fig, ax = plt.subplots(ncols=3)
+        _, ax = plt.subplots(ncols=3)
         self.assertRaises(IndexError, suite.plot, ax=ax, xtype="frequency",
                           ytype="velocity")
 
@@ -309,7 +309,7 @@ class Test_PeaksSuite(TestCase):
                           ytype="velocity", mask=[[0], [1]])
 
         # With a name provided.
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         suite.plot(ax=ax, xtype="frequency", ytype="velocity",
                    plot_kwargs=dict(label="tada"))
         _, labels = ax.get_legend_handles_labels()

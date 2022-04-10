@@ -18,8 +18,7 @@
 
 import logging
 
-from swprocess.regex import get_peak_from_max
-from testtools import unittest, TestCase, get_full_path
+from testtools import unittest, TestCase
 
 logger = logging.getLogger("swprocess")
 logger.setLevel(logging.ERROR)

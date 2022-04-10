@@ -50,9 +50,9 @@ class Test_Utils(TestCase):
         expected = Source(**location)
 
         a = "I am not a Source object."
-        b = Source(**{**location, **dict(x=0.)})
-        c = Source(**{**location, **dict(y=3.)})
-        d = Source(**{**location, **dict(z=4.)})
+        b = Source(**dict(x=0., y=2., z=2.))
+        c = Source(**dict(x=1., y=3., z=2.))
+        d = Source(**dict(x=1., y=2., z=4.))
         e = Source(**location)
         f = Source.from_source(expected)
 

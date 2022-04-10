@@ -17,7 +17,6 @@
 """Tests for class wavefieldtransforms module."""
 
 import logging
-from unittest.mock import MagicMock
 import warnings
 
 import numpy as np
@@ -200,7 +199,7 @@ class test_EmptyWavefieldTransform(TestCase):
         returned = empty._create_vector_args
         self.assertTupleEqual(expected, returned)
         self.assertDictEqual({}, empty._create_vector_kwargs)
-        
+
     def test_stack(self):
         f = np.array([5., 10.])
         v = np.array([100., 200])

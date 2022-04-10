@@ -14,6 +14,8 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https: //www.gnu.org/licenses/>.
 
+"""Import class definitions into the swprocess package namespace."""
+
 import logging
 
 from .meta import __version__

@@ -17,7 +17,6 @@
 """Tests for PeaksSuite class."""
 
 import logging
-import warnings
 from unittest.mock import MagicMock
 
 import numpy as np

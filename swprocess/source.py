@@ -17,7 +17,6 @@
 """This file contains the Source class for storing information on the
 type and location of an active-source."""
 
-from numpy.lib.utils import source
 from sigpropy import TimeSeries
 
 

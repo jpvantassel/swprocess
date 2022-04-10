@@ -48,7 +48,7 @@ class Masw():
         ----------
         fnames : str or iterable of str
             File name or iterable of file names.
-        settings_fname : str 
+        settings_fname : str
             JSON settings file detailing how MASW should be performed.
             See `meth: Masw.create_settings_file()` for more
             information.
