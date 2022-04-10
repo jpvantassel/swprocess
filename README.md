@@ -3,7 +3,7 @@
 > Joseph P. Vantassel, The University of Texas at Austin
 
 [![DOI](https://zenodo.org/badge/202217252.svg)](https://zenodo.org/badge/latestdoi/202217252)
-[![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/swprocess/blob/master/LICENSE.txt)
+[![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/swprocess/blob/main/LICENSE.txt)
 [![CircleCI](https://circleci.com/gh/jpvantassel/swprocess.svg?style=svg)](https://circleci.com/gh/jpvantassel/swprocess)
 [![Documentation Status](https://readthedocs.org/projects/swprocess/badge/?version=latest)](https://swprocess.readthedocs.io/en/latest/?badge=latest)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/swprocess)
@@ -96,7 +96,7 @@ last few lines of the text displayed in the console.
 ### Using _swprocess_
 
 1.  Download the contents of the
-  [examples](https://github.com/jpvantassel/swprocess/tree/master/examples)
+  [examples](https://github.com/jpvantassel/swprocess/tree/main/examples)
   directory to any location of your choice.
 
 2.  Start by processing the provided active-source data using the
