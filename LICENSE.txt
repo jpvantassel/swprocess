@@ -1,5 +1,5 @@
 This license applies to swprocess a Python package for surface wave processing.
-Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007

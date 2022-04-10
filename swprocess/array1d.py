@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ import warnings
 
 import numpy as np
 import obspy
+from obspy.io.segy.segy import SEGYTraceHeader
 import matplotlib.pyplot as plt
 from scipy import signal
 
@@ -754,7 +755,7 @@ class Array1D():
 
             if not hasattr(trace.stats, 'su'):
                 trace.stats.su = {}
-            trace.stats.su.trace_header = obspy.io.segy.segy.SEGYTraceHeader()
+            trace.stats.su.trace_header = SEGYTraceHeader()
             trace.stats.su.trace_header.scalar_to_be_applied_to_all_coordinates = -1000
             trace.stats.su.trace_header.source_coordinate_x = rint(
                 self.source._x*1000)
