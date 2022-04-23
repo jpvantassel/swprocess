@@ -30,10 +30,9 @@ the following:
 > Vantassel, J. P. (2021). jpvantassel/swprocess: latest (Concept). Zenodo.
 > [https://doi.org/10.5281/zenodo.4584128](https://doi.org/10.5281/zenodo.4584128)
 
-> Vantassel, J. P. & Cox, B. R. (2021). "SWprocess: A workflow for developing robust
-> estimates of surface wave dispersion uncertainty". Submitted to a special edition of the
-> Journal of Seismology organized by the Consortium of Organizations for Strong Motion
-> Observation Systems (COSMOS)
+> Vantassel, J. P. & Cox, B. R. (2022). "SWprocess: a workflow for developing robust
+> estimates of surface wave dispersion uncertainty". Journal of Seismology.
+> [https://doi.org/10.1007/s10950-021-10035-y](https://doi.org/10.1007/s10950-021-10035-y)
 
 _Note: For software, version specific citations should be preferred to
 general concept citations, such as that listed above. To generate a version
