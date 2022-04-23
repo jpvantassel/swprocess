@@ -24,7 +24,7 @@ import numpy as np
 import obspy
 
 from swprocess import ActiveTimeSeries, Sensor1C
-from testtools import unittest, TestCase, get_full_path
+from testtools import unittest, TestCase, get_path
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -33,8 +33,8 @@ class Test_Sensor1C(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.full_path = get_full_path(__file__)
-        cls.wghs_path = cls.full_path + "../examples/masw/data/wghs/"
+        cls.path = get_path(__file__)
+        cls.wghs_path = cls.path / "../examples/masw/data/wghs/"
 
         cls.a_amp = np.array([0, 1, 2, 1, 0, 1], dtype=np.double)
         cls.a_dt = 1.
@@ -59,7 +59,7 @@ class Test_Sensor1C(TestCase):
         # seg2
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            traces = obspy.read(self.wghs_path+"6.dat")
+            traces = obspy.read(self.wghs_path / "6.dat")
         trace = traces[0]
         sensor = Sensor1C.from_trace(trace)
         self.assertArrayEqual(trace.data, sensor.amplitude)
@@ -73,7 +73,7 @@ class Test_Sensor1C(TestCase):
         # su
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            traces = obspy.read(self.full_path+"data/custom/shot1.su")
+            traces = obspy.read(self.path / "data/custom/shot1.su")
         trace = traces[0]
         sensor = Sensor1C.from_trace(trace)
         self.assertArrayEqual(trace.data, sensor.amplitude)
@@ -89,7 +89,7 @@ class Test_Sensor1C(TestCase):
         self.assertEqual(int(header[nstack_key])+1, sensor.nstacks)
 
         # read_header=False
-        for cpath in [self.wghs_path+"11.dat", self.full_path+"data/custom/shot1.su"]:
+        for cpath in [self.wghs_path / "11.dat", self.path /"data/custom/shot1.su"]:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 traces = obspy.read(cpath)

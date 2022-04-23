@@ -18,15 +18,15 @@
 
 import unittest
 import swprocess
-from testtools import TestCase, unittest, get_full_path
+from testtools import TestCase, unittest, get_path
 
 
 class Test_Masw(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.full_path = get_full_path(__file__)
-        cls.wghs_path = cls.full_path + "../examples/masw/data/wghs/"
+        cls.path = get_path(__file__)
+        cls.wghs_path = cls.path / "../examples/masw/data/wghs/"
 
     def test_run(self):
         @swprocess.register.MaswWorkflowRegistry.register("dummy")
@@ -44,7 +44,7 @@ class Test_Masw(TestCase):
 
     # TODO (jpv): Need to review test coverage here.
     # def test_create_settings_file(self):
-    #     efname = self.full_path + "data/settings/settings_test.json"
+    #     efname = self.path / "data/settings/settings_test.json"
     #     with open(efname, "r") as f:
     #         expected = json.load(f)
 

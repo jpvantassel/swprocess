@@ -638,8 +638,13 @@ class Array1D():
             If `fnames` is not of type `str` or `iterable`.
 
         """
-        if isinstance(fnames, (str)):
+        if isinstance(fnames, str):
             fnames = [fnames]
+        
+        try:
+            iter(fnames)
+        except TypeError:
+            fnames = [str(fnames)]
 
         # Read traces from first file
         with warnings.catch_warnings():

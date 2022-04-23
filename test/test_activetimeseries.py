@@ -23,7 +23,7 @@ import obspy
 import numpy as np
 
 import swprocess
-from testtools import unittest, TestCase, get_full_path
+from testtools import unittest, TestCase, get_path
 
 logger = logging.getLogger("swprocess")
 logger.setLevel(level=logging.CRITICAL)
@@ -33,8 +33,8 @@ class Test_ActiveTimeSeries(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.full_path = get_full_path(__file__)
-        cls.wghs_path = cls.full_path + "../examples/masw/data/wghs/"
+        cls.path = get_path(__file__)
+        cls.wghs_path = cls.path / "../examples/masw/data/wghs/"
 
     def test_check(self):
         good_nstacks = 1
@@ -90,7 +90,7 @@ class Test_ActiveTimeSeries(TestCase):
     def test_from_trace_seg2(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            trace = obspy.read(self.wghs_path + "1.dat")[0]
+            trace = obspy.read(self.wghs_path / "1.dat")[0]
         returned = swprocess.ActiveTimeSeries.from_trace_seg2(trace)
         self.assertArrayEqual(trace.data, returned.amplitude)
         self.assertEqual(trace.stats.delta, returned.dt)
@@ -100,7 +100,7 @@ class Test_ActiveTimeSeries(TestCase):
     def test_from_trace(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            trace = obspy.read(self.wghs_path + "1.dat")[0]
+            trace = obspy.read(self.wghs_path / "1.dat")[0]
         tseries = swprocess.ActiveTimeSeries.from_trace(trace, delay=-0.5)
         self.assertArrayEqual(tseries.amplitude, trace.data)
         self.assertEqual(trace.stats.delta, tseries.dt)

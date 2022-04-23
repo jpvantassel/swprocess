@@ -23,7 +23,7 @@
 # import pandas as pd
 
 # import swprocess
-# from testtools import unittest, TestCase, get_full_path
+# from testtools import unittest, TestCase, get_path
 
 # logger = logging.getLogger("swprocess")
 # logger.setLevel(logging.ERROR)
@@ -33,10 +33,10 @@
 
 #     @classmethod
 #     def setUpClass(cls):
-#         cls.full_path = get_full_path(__file__)
+#         cls.full_path = get_path(__file__)
 
 #     def test_from_max(self):
-#         fname = self.full_path + "data/mspac/mspac_c0.max"
+#         fname = self.path / "data/mspac/mspac_c0.max"
 #         spaccurvesuite = swprocess.SpacCurveSuite.from_max(fname)
 
 #         # 59 time windows * 1 component * 4 rings = 236
@@ -71,7 +71,7 @@
 #         compare(time="7561.02", component=0, ring=2, df=df)
 
 #         # bad time reference
-#         fname = self.full_path + "data/mspac/mspac_c0_abstimereference.max"
+#         fname = self.path / "data/mspac/mspac_c0_abstimereference.max"
 #         self.assertRaises(ValueError, swprocess.SpacCurveSuite.from_max, fname)
 
 # if __name__ == "__main__":

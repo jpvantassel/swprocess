@@ -784,6 +784,11 @@ class PeaksSuite():
         if isinstance(fnames, str):
             fnames = [fnames]
 
+        try:
+            iter(fnames)
+        except TypeError:
+            fnames = [str(fnames)]
+
         dicts = []
         for fname in fnames:
             with open(fname, "r") as f:
@@ -810,6 +815,11 @@ class PeaksSuite():
         """
         if isinstance(fnames, str):
             fnames = [fnames]
+
+        try:
+            iter(fnames)
+        except TypeError:
+            fnames = [str(fnames)]
 
         peaks = []
         for fname in fnames:

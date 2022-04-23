@@ -16,10 +16,12 @@
 
 """Surface wave processing utilities."""
 
+from importlib.resources import path
 import os
 import datetime
 import logging
 import warnings
+import pathlib
 
 import numpy as np
 import obspy
@@ -61,6 +63,9 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
         Writes folder and files to disk.
 
     """
+    data_dir = pathlib.Path(data_dir)
+    output_dir = pathlib.Path(output_dir)
+
     # Read start and end times.
     dtype = {"folder name": str, "array name": str, "station number": int,
              "start year": int, "start month": int, "start day": int,
@@ -112,9 +117,9 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
 
             # Read current file and append if necessary
             if append:
-                master += obspy.read(f"{data_dir}{fname}")
+                master += obspy.read(data_dir / fname)
             else:
-                master = obspy.read(f"{data_dir}{fname}")
+                master = obspy.read(data_dir / fname)
                 append = True
 
             currenttime += dt
@@ -132,9 +137,9 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
 
         # Store new miniseed files in folder titled "Array Miniseed"
         folder = series["folder name"]
-        if not os.path.isdir(f"{output_dir}{folder}"):
-            logger.info(f"Creating folder: {output_dir}{folder}")
-            os.mkdir(f"{output_dir}{folder}")
+        if not os.path.isdir(f"{output_dir / folder}"):
+            logger.info(f"Creating folder: {output_dir / folder}")
+            os.mkdir(f"{output_dir / folder}")
 
         # Unmask masked array.
         for tr in master:
@@ -144,7 +149,7 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
                 warnings.warn(msg)
 
         # Write trimmed file to disk.
-        fname_out = f"{output_dir}{folder}/{network}.STN{str(series['station number']).zfill(2)}.{series['array name']}.{extension}"
+        fname_out = output_dir / folder / f"{network}.STN{str(series['station number']).zfill(2)}.{series['array name']}.{extension}"
         logger.info(
             f"Extracted {index+1} of {total}. Extracting data from station {str(series['station number']).zfill(2)}. Creating file: {fname_out}.")
 

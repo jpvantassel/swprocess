@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 import swprocess
-from testtools import unittest, TestCase, get_full_path
+from testtools import unittest, TestCase, get_path
 
 logger = logging.getLogger("swprocess")
 logger.setLevel(logging.ERROR)
@@ -37,7 +37,7 @@ class Test_PeaksSuite(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.full_path = get_full_path(__file__)
+        cls.path = get_path(__file__)
 
     def test_init(self):
         p0 = swprocess.Peaks([1, np.nan, 3], [4, np.nan, 6], "p0")
@@ -287,7 +287,7 @@ class Test_PeaksSuite(TestCase):
 
     def test_plot(self):
         # Default
-        fname = self.full_path + "data/peak/suite_raw.json"
+        fname = self.path / "data/peak/suite_raw.json"
         suite = swprocess.PeaksSuite.from_json(fname)
 
         _, ax = suite.plot(xtype=["frequency", "wavelength", "frequency"],
@@ -605,7 +605,7 @@ class Test_PeaksSuite(TestCase):
         peak_list = []
         fnames = []
         for num in range(3):
-            fname = f"{self.full_path}data/tmp_id{num}.json"
+            fname = self.path / f"data/tmp_id{num}.json"
             peaks = swprocess.Peaks(frequency, velocity, str(num),
                                     azimuth=azimuth, power=power)
             peaks.to_json(fname)
@@ -636,9 +636,9 @@ class Test_PeaksSuite(TestCase):
 
     def test_from_max(self):
         # rayleigh, nmaxima=3, nblocksets=3, samples=10
-        path = self.full_path + "data/rtbf/rtbf_nblockset=3_nmaxima=3"
-        fname_max = path + ".max"
-        fname_csvs = [path + f"_r_bs{bs}_parsed.csv" for bs in range(3)]
+        path = self.path / "data/rtbf/rtbf_nblockset=3_nmaxima=3"
+        fname_max = str(path) + ".max"
+        fname_csvs = [str(path) + f"_r_bs{bs}_parsed.csv" for bs in range(3)]
 
         peaksuite = swprocess.PeaksSuite.from_max(fname_max,
                                                   wavetype="rayleigh")
@@ -656,9 +656,9 @@ class Test_PeaksSuite(TestCase):
                         index += 1
 
         # love, nmaxima=3, nblocksets=3, samples=10
-        path = self.full_path + "data/rtbf/rtbf_nblockset=3_nmaxima=3"
-        fname_max = path + ".max"
-        fname_csvs = [path + f"_l_bs{bs}_parsed.csv" for bs in range(3)]
+        path = self.path / "data/rtbf/rtbf_nblockset=3_nmaxima=3"
+        fname_max = str(path) + ".max"
+        fname_csvs = [str(path) + f"_l_bs{bs}_parsed.csv" for bs in range(3)]
 
         peaksuite = swprocess.PeaksSuite.from_max(fname_max, wavetype="love")
         for peak, fname_csv in zip(peaksuite, fname_csvs):

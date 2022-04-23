@@ -20,13 +20,12 @@ import cProfile
 import pstats
 
 from swprocess.masw import Masw
-from testtools import get_full_path
+from testtools import get_path
 
-full_path = get_full_path(__file__)
-
+path = get_path(__file__)
 
 def main():
-    fname = full_path+"../examples/masw/data/wghs/6.dat"
+    fname = path / "../examples/masw/data/wghs/6.dat"
     settings = Masw.create_settings_dict(workflow="single", trim=False,
                                          mute=False, pad=True, df=1.0,
                                          transform="fk", fmin=5, fmax=100,
@@ -36,7 +35,7 @@ def main():
                                          steering="cylindrical")
     Masw.run(fnames=fname, settings=settings)
 
-fname = full_path+".tmp_profiler_run"
+fname = path / ".tmp_profiler_run"
 data = cProfile.run('main()', filename=fname)
 stat = pstats.Stats(fname)
 stat.sort_stats('tottime')
