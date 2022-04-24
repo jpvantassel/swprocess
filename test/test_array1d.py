@@ -497,7 +497,7 @@ class Test_Array1D(TestCase):
         fname = self.wghs_path / "1.dat"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            known = obspy.read(fname)
+            known = obspy.read(str(fname))
         array = swprocess.Array1D.from_files(fname)
         self.assertArrayEqual(np.arange(0, 48,2), np.array(array.position()))
         self.assertEqual(-2, array.source.x)
@@ -508,7 +508,7 @@ class Test_Array1D(TestCase):
         fname = self.path / "data/custom/shot1.su"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            known = obspy.read(fname)
+            known = obspy.read(str(fname))
             array = swprocess.Array1D.from_files(fname)
         self.assertArrayEqual(np.arange(7, 55, 2), np.array(array.position()))
         self.assertEqual(6, array.source.x)
@@ -519,10 +519,10 @@ class Test_Array1D(TestCase):
         fnames = [self.wghs_path / f"{x}.dat" for x in range(1, 5)]
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tmp_stream = obspy.read(fnames[0])
+            tmp_stream = obspy.read(str(fnames[0]))
             expected = np.zeros(tmp_stream.traces[0].data.size)
             for fname in fnames:
-                tmp = obspy.read(fname).traces[0]
+                tmp = obspy.read(str(fname)).traces[0]
                 expected += tmp.data
             expected /= len(fnames)
             returned = swprocess.Array1D.from_files(fnames)[0].amplitude

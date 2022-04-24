@@ -59,7 +59,7 @@ class Test_Sensor1C(TestCase):
         # seg2
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            traces = obspy.read(self.wghs_path / "6.dat")
+            traces = obspy.read(str(self.wghs_path / "6.dat"))
         trace = traces[0]
         sensor = Sensor1C.from_trace(trace)
         self.assertArrayEqual(trace.data, sensor.amplitude)
@@ -73,7 +73,7 @@ class Test_Sensor1C(TestCase):
         # su
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            traces = obspy.read(self.path / "data/custom/shot1.su")
+            traces = obspy.read(str(self.path / "data/custom/shot1.su"))
         trace = traces[0]
         sensor = Sensor1C.from_trace(trace)
         self.assertArrayEqual(trace.data, sensor.amplitude)
@@ -92,7 +92,7 @@ class Test_Sensor1C(TestCase):
         for cpath in [self.wghs_path / "11.dat", self.path /"data/custom/shot1.su"]:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                traces = obspy.read(cpath)
+                traces = obspy.read(str(cpath))
             sensor = Sensor1C.from_trace(
                 trace, read_header=False, nstacks=15, delay=-2, x=3, y=6, z=12)
             self.assertArrayEqual(trace.data, sensor.amplitude)
