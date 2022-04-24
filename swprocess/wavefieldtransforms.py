@@ -134,9 +134,6 @@ class AbstractWavefieldTransform(ABC):
         """
         if by == "frequency-maximum":
             return self.velocities[np.argmax(self.power, axis=0)]
-        elif by == "find_peaks":
-            
-            idx, _ = find_peaks(self.power, **kwargs)
         else:
             msg = f"find_peak_power by {by} not recognized, see docs for options."
             raise NotImplementedError(msg)
