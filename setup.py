@@ -46,7 +46,8 @@ setup(
     packages=find_packages(),
     python_requires='>=3.6',
     install_requires=["numpy", "scipy", "matplotlib",
-                      "obspy", "sigpropy>=1.0.0", "pandas", "PyQt5"],
+                      "obspy", "sigpropy>=1.0.0", "pandas",
+                      "swprepost", "PyQt5"],
     extras_require={
         'dev': ['coverage', 'tox', 'sphinx', 'sphinx_rtd_theme'],
     },
