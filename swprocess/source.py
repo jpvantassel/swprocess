@@ -21,16 +21,13 @@ from sigpropy import TimeSeries
 
 
 class Source():
-    """A Source class for storing information about an active-source.
-
-    Attributes:
-    """
+    """A Source class for storing information about an active-source."""
 
     def __init__(self, x, y, z):
         """Initialize a Source class object.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         x, y, z : float
             Source position in terms of x, y, and z all in meters.
 
@@ -80,8 +77,8 @@ class SourceWithSignal(Source, TimeSeries):
     def __init__(self, x, y, z, amp, dt):
         """Create from spatial and signal information.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         x, y, z : float
             Source position in terms of x, y, and z all in meters.
         amp : interable of floats
