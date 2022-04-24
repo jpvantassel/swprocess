@@ -116,9 +116,9 @@ def extract_mseed(startend_fname, network, data_dir="./", output_dir="./", exten
 
             # Read current file and append if necessary
             if append:
-                master += obspy.read(data_dir / fname)
+                master += obspy.read(str(data_dir / fname))
             else:
-                master = obspy.read(data_dir / fname)
+                master = obspy.read(str(data_dir / fname))
                 append = True
 
             currenttime += dt

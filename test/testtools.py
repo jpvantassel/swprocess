@@ -22,7 +22,7 @@ import pathlib
 import numpy as np
 
 def get_path(path):
-    return pathlib.Path(path).parent
+    return pathlib.Path(path).resolve().parent
 
 class TestCase(unittest.TestCase):
 

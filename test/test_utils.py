@@ -49,7 +49,7 @@ class Test_Utils(TestCase):
         start_seconds = [0, 4*3600, 23*3600 + 30*60]
         duration_seconds = [1800, 7200, 3600]
         for _file, start, duration in zip(files, start_seconds, duration_seconds):
-            returned = obspy.read(_file)[0].data
+            returned = obspy.read(str(_file))[0].data
             expected = np.arange(start, start+duration+1)
             self.assertArrayEqual(expected, returned)
 

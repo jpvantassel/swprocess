@@ -649,7 +649,7 @@ class Array1D():
         # Read traces from first file
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            stream = obspy.read(fnames[0])
+            stream = obspy.read(str(fnames[0]))
 
         # Create array of sensors
         sensors = []
@@ -716,7 +716,7 @@ class Array1D():
             for fname in fnames[1:]:
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    stream = obspy.read(fname)
+                    stream = obspy.read(str(fname))
                 nsource = parse_source(stream[0].stats)
                 if nsource != source:
                     msg = f"fname = {fname} has an incompatible source."
@@ -818,11 +818,11 @@ class Array1DwSource(Array1D):
         _cls = Array1D.from_files(fnames=fnames_rec, map_x=map_x, map_y=map_y)
 
         # TODO (jpv): Badly assume fnames_src is a properly formatted list.
-        trace = obspy.read(fnames_src[0])[src_channel]
+        trace = obspy.read(str(fnames_src[0]))[src_channel]
         dt = trace.meta.delta
         amp = trace.data
         for fname in fnames_src[1:]:
-            trace = obspy.read(fname)[src_channel]
+            trace = obspy.read(str(fname))[src_channel]
             amp += trace.data
         amp /= len(fnames_src)
 
