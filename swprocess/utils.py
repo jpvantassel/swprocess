@@ -16,7 +16,6 @@
 
 """Surface wave processing utilities."""
 
-from importlib.resources import path
 import os
 import datetime
 import logging
