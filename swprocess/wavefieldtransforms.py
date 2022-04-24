@@ -23,7 +23,6 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import special
-from scipy.signal import find_peaks
 
 from .register import WavefieldTransformRegistry
 
