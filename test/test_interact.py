@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ class Test_Interact(TestCase):
     @patch('matplotlib.pyplot.ginput', return_value=[(0.5, 0.5), (0, 1)])
     @patch('matplotlib.pyplot.waitforbuttonpress', return_value=True)
     def test_ginput_session(self, input_a, input_b):
-        fig, ax = plt.subplots()        
+        _, ax = plt.subplots()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             xs, ys = ginput_session(ax=ax, npts=2, initial_adjustment=True,

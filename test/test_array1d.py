@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from unittest.mock import patch
-from testtools import TestCase, unittest, get_full_path
-import swprocess    
+from testtools import TestCase, unittest, get_path
+import swprocess
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -35,8 +35,8 @@ class Test_Array1D(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.full_path = get_full_path(__file__)
-        cls.wghs_path = cls.full_path + "../examples/masw/data/wghs/"
+        cls.path = get_path(__file__)
+        cls.wghs_path = cls.path.parent / "examples/masw/data/wghs/"
 
         cls.sensor_0 = swprocess.Sensor1C(amplitude=[-.1]*9 + [-0.11] + [-.1]*9,
                                           dt=1, x=0, y=0, z=0, nstacks=1,
@@ -260,22 +260,22 @@ class Test_Array1D(TestCase):
 
     def test_waterfall(self):
         # Single shot (near-side)
-        fname = self.wghs_path+"1.dat"
+        fname = self.wghs_path / "1.dat"
         array1 = swprocess.Array1D.from_files(fname)
         array1.waterfall()
 
         # Multiple shots (near-side)
-        fnames = [f"{self.wghs_path}{x}.dat" for x in range(1, 6)]
+        fnames = [self.wghs_path / f"{x}.dat" for x in range(1, 6)]
         array2 = swprocess.Array1D.from_files(fnames)
         array2.waterfall()
 
         # Single shot (far-side)
-        fname = self.wghs_path+"16.dat"
+        fname = self.wghs_path / "16.dat"
         array3 = swprocess.Array1D.from_files(fname)
         array3.waterfall()
 
         # Multiple shots (near-side)
-        fnames = [f"{self.wghs_path}{x}.dat" for x in range(16, 20)]
+        fnames = [self.wghs_path / f"{x}.dat" for x in range(16, 20)]
         array4 = swprocess.Array1D.from_files(fnames)
         array4.waterfall()
         array4.waterfall(time_ax="x")
@@ -288,7 +288,7 @@ class Test_Array1D(TestCase):
 
     def test_plot(self):
         # Basic case (near-side, 2m spacing)
-        fname = self.wghs_path+"1.dat"
+        fname = self.wghs_path / "1.dat"
         swprocess.Array1D.from_files(fname).plot()
 
         # Non-linear spacing
@@ -299,7 +299,7 @@ class Test_Array1D(TestCase):
         array.plot()
 
         # Basic case (far-side, 2m spacing)
-        fname = self.wghs_path+"20.dat"
+        fname = self.wghs_path / "20.dat"
         swprocess.Array1D.from_files(fname).plot()
 
         plt.show(block=False)
@@ -494,10 +494,10 @@ class Test_Array1D(TestCase):
 
     def test_from_files(self):
         # Single File : SEG2
-        fname = self.wghs_path + "1.dat"
+        fname = self.wghs_path / "1.dat"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            known = obspy.read(fname)
+            known = obspy.read(str(fname))
         array = swprocess.Array1D.from_files(fname)
         self.assertArrayEqual(np.arange(0, 48,2), np.array(array.position()))
         self.assertEqual(-2, array.source.x)
@@ -505,10 +505,10 @@ class Test_Array1D(TestCase):
             self.assertArrayEqual(expected.data, returned)
 
         # Single File : SU
-        fname = self.full_path + "data/custom/shot1.su"
+        fname = self.path / "data/custom/shot1.su"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            known = obspy.read(fname)
+            known = obspy.read(str(fname))
             array = swprocess.Array1D.from_files(fname)
         self.assertArrayEqual(np.arange(7, 55, 2), np.array(array.position()))
         self.assertEqual(6, array.source.x)
@@ -516,33 +516,33 @@ class Test_Array1D(TestCase):
             self.assertArrayEqual(expected.data, returned)
 
         # Multiple Files
-        fnames = [f"{self.wghs_path}{x}.dat" for x in range(1, 5)]
+        fnames = [self.wghs_path / f"{x}.dat" for x in range(1, 5)]
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tmp_stream = obspy.read(fnames[0])
+            tmp_stream = obspy.read(str(fnames[0]))
             expected = np.zeros(tmp_stream.traces[0].data.size)
             for fname in fnames:
-                tmp = obspy.read(fname).traces[0]
+                tmp = obspy.read(str(fname)).traces[0]
                 expected += tmp.data
             expected /= len(fnames)
             returned = swprocess.Array1D.from_files(fnames)[0].amplitude
         self.assertArrayAlmostEqual(expected, returned, places=2)
 
         # Bad : coordinate units
-        fname = self.full_path + "data/custom/shot1_badcu.su"
+        fname = self.path / "data/custom/shot1_badcu.su"
         self.assertRaises(ValueError, swprocess.Array1D.from_files, fname)
 
         # Bad : incompatible sources
-        fnames = [f"{self.wghs_path}{x}.dat" for x in range(1, 10)]
+        fnames = [self.wghs_path / f"{x}.dat" for x in range(1, 10)]
         self.assertRaises(ValueError, swprocess.Array1D.from_files, fnames)
 
         # Bad : miniseed
-        fname = self.full_path+"data/custom/0101010.miniseed"
+        fname = self.path / "data/custom/0101010.miniseed"
         self.assertRaises(NotImplementedError,
                           swprocess.Array1D.from_files, fname)
 
         # Bad : format
-        fname = self.full_path+"data/custom/0101010.sac"
+        fname = self.path / "data/custom/0101010.sac"
         self.assertRaises(NotImplementedError,
                           swprocess.Array1D.from_files, fname)
 

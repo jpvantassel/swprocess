@@ -3,7 +3,7 @@
 > Joseph P. Vantassel, The University of Texas at Austin
 
 [![DOI](https://zenodo.org/badge/202217252.svg)](https://zenodo.org/badge/latestdoi/202217252)
-[![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/swprocess/blob/master/LICENSE.txt)
+[![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/swprocess/blob/main/LICENSE.txt)
 [![CircleCI](https://circleci.com/gh/jpvantassel/swprocess.svg?style=svg)](https://circleci.com/gh/jpvantassel/swprocess)
 [![Documentation Status](https://readthedocs.org/projects/swprocess/badge/?version=latest)](https://swprocess.readthedocs.io/en/latest/?badge=latest)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/swprocess)
@@ -30,10 +30,9 @@ the following:
 > Vantassel, J. P. (2021). jpvantassel/swprocess: latest (Concept). Zenodo.
 > [https://doi.org/10.5281/zenodo.4584128](https://doi.org/10.5281/zenodo.4584128)
 
-> Vantassel, J. P. & Cox, B. R. (2021). "SWprocess: A workflow for developing robust
-> estimates of surface wave dispersion uncertainty". Submitted to a special edition of the
-> Journal of Seismology organized by the Consortium of Organizations for Strong Motion
-> Observation Systems (COSMOS)
+> Vantassel, J. P. & Cox, B. R. (2022). "SWprocess: a workflow for developing robust
+> estimates of surface wave dispersion uncertainty". Journal of Seismology.
+> [https://doi.org/10.1007/s10950-021-10035-y](https://doi.org/10.1007/s10950-021-10035-y)
 
 _Note: For software, version specific citations should be preferred to
 general concept citations, such as that listed above. To generate a version
@@ -96,7 +95,7 @@ last few lines of the text displayed in the console.
 ### Using _swprocess_
 
 1.  Download the contents of the
-  [examples](https://github.com/jpvantassel/swprocess/tree/master/examples)
+  [examples](https://github.com/jpvantassel/swprocess/tree/main/examples)
   directory to any location of your choice.
 
 2.  Start by processing the provided active-source data using the

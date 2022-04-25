@@ -2,14 +2,23 @@ swprocess Documentation
 =======================
 
 `swprocess` is a Python package for surface wave processing.
-It includes features for performing active-source surface wave
-processing [i.e., mulitchannel analysis of surface wave (MASW)], 
-post-processing passive-wavefield surface wave data
-[i.e., microtremor array measurements (MAM)] processed using
-the open-source software Geopsy, and combining active-source
-and/or passive-wavefield data to calculate rigorous statistics
-on the surface wave dispersion data, which account for epistemic
-and aleatory uncertainty.
+
+`swprocess` supports:
+
+* processing of active-source surface wave data (i.e., MASW),
+* post-processing of passive-wavefield surface wave data (i.e., MAM) processed using Geopsy,
+* combining active-source and/or passive-wavefield dispersion data from different arrays, and
+* calculation of rigorous surface wave dispersion statistics.
+
+If you use `swprocess` in your research or consulting please cite the following:
+
+ * Vantassel, J. P. (2021). jpvantassel/swprocess: latest (Concept). Zenodo. `https://doi.org/10.5281/zenodo.4584128 <https://doi.org/10.5281/zenodo.4584128>`_
+ * Vantassel, J. P. & Cox, B. R. (2022). "SWprocess: a workflow for developing robust estimates of surface wave dispersion uncertainty". Journal of Seismology. `https://doi.org/10.1007/s10950-021-10035-y <https://doi.org/10.1007/s10950-021-10035-y>`_
+
+*Note: For software, version specific citations should be preferred to
+general concept citations, such as that listed above. To generate a version
+specific citation for swprocess, please use the citation tool on the swprocess*
+`archive <https://doi.org/10.5281/zenodo.4584128>`_.
 
 This package is actively being developed, so if you do not see a feature you
 would like it may very well be under development and released in

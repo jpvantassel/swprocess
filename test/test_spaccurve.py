@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -21,14 +21,14 @@
 # import pandas as pd
 
 # import swprocess
-# from testtools import unittest, TestCase, get_full_path
+# from testtools import unittest, TestCase, get_path
 
 
 # class Test_SpacCurve(TestCase):
 
 #     @classmethod
 #     def setUpClass(cls):
-#         cls.full_path = get_full_path(__file__)
+#         cls.path = get_path(__file__)
 
 #     def test_init(self):
 #         frequencies = np.array([1., 2, 3])
@@ -62,7 +62,7 @@
 
 #     def test_theoretical_spac_ratio_function_custom(self):
 #         # component=0; vertical.
-#         fname = self.full_path + "data/mspac/bessel_vr=400_bettig2001.csv"
+#         fname = self.path / "data/mspac/bessel_vr=400_bettig2001.csv"
 #         df = pd.read_csv(fname)
 
 #         spaccurve = swprocess.SpacCurve([0.1, 0.2], [0.1, 0.2],
@@ -89,7 +89,7 @@
 
 #     # def test_fit_to_theoretical(self):
 #     #     # known solution with vr = 400.
-#     #     fname = self.full_path + "data/mspac/bessel_vr=400_bettig2001.csv"
+#     #     fname = self.path / "data/mspac/bessel_vr=400_bettig2001.csv"
 #     #     df = pd.read_csv(fname)
 
 #     #     spaccurve = swprocess.SpacCurve(df.frequencies, df.ratios,

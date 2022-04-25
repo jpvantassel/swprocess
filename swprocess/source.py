@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -17,35 +17,29 @@
 """This file contains the Source class for storing information on the
 type and location of an active-source."""
 
-import logging
-
-logger = logging.getLogger("swprocess.source")
+from sigpropy import TimeSeries
 
 
 class Source():
-    """A Source class for storing information about an active-source.
-
-    Attributes:
-    """
+    """A Source class for storing information about an active-source."""
 
     def __init__(self, x, y, z):
         """Initialize a Source class object.
 
-        Args:
-            position: Dictionary showing the relative position of the
-                source from the first receiver of the form:
-                {'x': xval, 'y':yval, 'z':zval}
+        Parameters
+        ----------
+        x, y, z : float
+            Source position in terms of x, y, and z all in meters.
 
-        Returns:
-            This method returns no value.
+        Returns
+        -------
+        Source
+            Initialized `Source` object.
 
-        Raises:
-            This method raises no exceptions.
         """
         self._x = float(x)
         self._y = float(y)
         self._z = float(z)
-        logger.info(f"Created {self}.")
 
     @property
     def x(self):
@@ -75,3 +69,28 @@ class Source():
             if getattr(self, attr) != getattr(other, attr):
                 return False
         return True
+
+
+class SourceWithSignal(Source, TimeSeries):
+    """Contains source position and signal information."""
+
+    def __init__(self, x, y, z, amp, dt):
+        """Create from spatial and signal information.
+
+        Parameters
+        ----------
+        x, y, z : float
+            Source position in terms of x, y, and z all in meters.
+        amp : interable of floats
+            Amplitude of source signal.
+        dt : float
+            Time step in seconds.
+
+        Returns
+        -------
+        Source
+            Initialized `Source` object.
+
+        """
+        Source.__init__(self, x, y, z)
+        TimeSeries.__init__(self, amp, dt)

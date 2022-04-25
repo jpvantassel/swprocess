@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ class AbstractRegistry(ABC):
     def register(cls, name):
 
         def wrapper(class_to_wrap):
-            logging.info(f"Registering {name} ...")
+            logger.info(f"Registering {name} ...")
             if name in cls._register:
                 msg = f"Register entry {name} already exists, replacing ..."
                 logger.warning(msg)

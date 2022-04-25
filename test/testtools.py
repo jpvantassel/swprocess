@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -17,17 +17,12 @@
 """Testing tools."""
 
 import unittest
+import pathlib
 
 import numpy as np
 
-def get_full_path(path):
-    if path.count("/") > 1:
-        file_name = path.split(r"/")[-1]
-        full_path = path[:-len(file_name)]
-    else:
-        file_name = path.split(r"\\")[-1]
-        full_path = path[:-len(file_name)]
-    return full_path
+def get_path(path):
+    return pathlib.Path(path).resolve().parent
 
 class TestCase(unittest.TestCase):
 

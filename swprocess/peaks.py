@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -299,7 +299,7 @@ class Peaks():
         ax : Axes
             `Axes` on which to plot the `Peaks` data.
         xtype : {"frequency", "wavelength"}
-            Attribute to plot along the x-axis.        
+            Attribute to plot along the x-axis.
         ytype : {"velocity", "slowness"}
             Attribute to plot along the y-axis.
         plot_kwargs : kwargs, optional
@@ -490,7 +490,7 @@ class Peaks():
                 if rowval > mval:
                     mindex = rindex
                     mval = rowval
-            
+
             if mval != -np.inf:
                 values.append(attr[mindex, cindex])
 

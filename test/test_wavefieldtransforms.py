@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 """Tests for class wavefieldtransforms module."""
 
 import logging
-from unittest.mock import MagicMock
 import warnings
 
 import numpy as np
@@ -200,7 +199,7 @@ class test_EmptyWavefieldTransform(TestCase):
         returned = empty._create_vector_args
         self.assertTupleEqual(expected, returned)
         self.assertDictEqual({}, empty._create_vector_kwargs)
-        
+
     def test_stack(self):
         f = np.array([5., 10.])
         v = np.array([100., 200])

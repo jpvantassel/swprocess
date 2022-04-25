@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -21,8 +21,11 @@ import warnings
 
 import numpy as np
 import obspy
+from obspy.io.segy.segy import SEGYTraceHeader
 import matplotlib.pyplot as plt
 from scipy import signal
+
+from swprocess.source import SourceWithSignal
 
 from .interact import ginput_session
 from swprocess import Source, Sensor1C
@@ -98,7 +101,7 @@ class Array1D():
         -------
         ndarray
             Of shape `(nchannels, nsamples)` where each row is the
-            amplitude of a given sensor. 
+            amplitude of a given sensor.
 
         """
         matrix = np.empty((self.nchannels, self[0].nsamples))
@@ -186,6 +189,35 @@ class Array1D():
         for sensor in self.sensors:
             sensor.trim(start_time, end_time)
 
+    def trim_offsets(self, min_offset, max_offset):
+        """Remove sensors outside of the offsets specified.
+
+        Parameters
+        ----------
+        min_offset, max_offset : float
+            Specify the minimum and maximum allowable offset in meters.
+
+        Return
+        ------
+        None
+            Updates internal attributes.
+
+        """
+        sensors = []
+        for offset, sensor in zip(self.offsets, self.sensors):
+            if (offset > min_offset) and (offset < max_offset):
+                sensors.append(sensor)
+
+            if (offset > max_offset):
+                break
+
+        if len(sensors) == 0:
+            msg = "Removing all sensors at offsets between "
+            msg += f"{min_offset} and {max_offset}, results in no sensors."
+            raise ValueError(msg)
+
+        self.sensors = sensors
+
     def zero_pad(self, df):
         """Append zero to sensors to achieve a desired frequency step.
 
@@ -231,7 +263,7 @@ class Array1D():
         amplitude_scale : float, optional
             Factor by which each trace is multiplied, default is `None`
             which uses a factor equal to half the average receiver
-            receiver spacing. 
+            receiver spacing.
         position_normalization : bool, optional
             Determines whether the array positions are shifted such
             that the first sensor is located at x=0.
@@ -566,7 +598,7 @@ class Array1D():
             window *= 0
 
     def _flipped_tseries_and_offsets(self):
-        """TimeSeriesMatrix and Offsets, flipped from near to far."""
+        """Timeseriesmatrix and offsets, flipped from near to far."""
         if self._flip_required:
             offsets = self.offsets[::-1]
             tmatrix = np.flipud(self.timeseriesmatrix())
@@ -606,13 +638,18 @@ class Array1D():
             If `fnames` is not of type `str` or `iterable`.
 
         """
-        if isinstance(fnames, (str)):
+        if isinstance(fnames, str):
             fnames = [fnames]
+        
+        try:
+            iter(fnames)
+        except TypeError:
+            fnames = [str(fnames)]
 
         # Read traces from first file
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            stream = obspy.read(fnames[0])
+            stream = obspy.read(str(fnames[0]))
 
         # Create array of sensors
         sensors = []
@@ -624,11 +661,11 @@ class Array1D():
         _format = trace.stats._format
         if _format == "SEG2":
             def parse_source(stats):
-                x = map_x(float(stats.seg2.SOURCE_LOCATION))
-                return Source(x=x, y=0, z=0)
+                x = float(stats.seg2.SOURCE_LOCATION)
+                return Source(x=map_x(x), y=0, z=0)
+
         elif _format == "SU":
             def parse_source(stats):
-
                 if stats.su.trace_header["coordinate_units"] == 0:
                     msg = "Coordinate units is unset, assuming length in meters and not degrees minutes seconds."
                     warnings.warn(msg)
@@ -636,13 +673,36 @@ class Array1D():
                     msg = "Coordinate units must be in units of length, not degrees minutes seconds."
                     raise ValueError(msg)
 
-                scaleco = int(stats.su.trace_header["scalar_to_be_applied_to_all_coordinates"])
-                
+                scaleco = int(
+                    stats.su.trace_header["scalar_to_be_applied_to_all_coordinates"])
+
                 int_x = int(stats.su.trace_header["source_coordinate_x"])
                 x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
                 x = round(x, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
                 int_y = int(stats.su.trace_header["source_coordinate_y"])
+                y = int_y / abs(scaleco) if scaleco < 0 else int_y * scaleco
+                y = round(y, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
+
+                return Source(x=map_x(x), y=map_y(y), z=0)
+
+        elif _format == "SEGY":
+            def parse_source(stats):
+                if stats.segy.trace_header["coordinate_units"] == 0:
+                    msg = "Coordinate units is unset, assuming length in meters and not degrees minutes seconds."
+                    warnings.warn(msg)
+                elif stats.segy.trace_header["coordinate_units"] != 1:
+                    msg = "Coordinate units must be in units of length, not degrees minutes seconds."
+                    raise ValueError(msg)
+
+                scaleco = int(
+                    stats.segy.trace_header["scalar_to_be_applied_to_all_coordinates"])
+
+                int_x = int(stats.segy.trace_header["source_coordinate_x"])
+                x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
+                x = round(x, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
+
+                int_y = int(stats.segy.trace_header["source_coordinate_y"])
                 y = int_y / abs(scaleco) if scaleco < 0 else int_y * scaleco
                 y = round(y, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
@@ -656,7 +716,7 @@ class Array1D():
             for fname in fnames[1:]:
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    stream = obspy.read(fname)
+                    stream = obspy.read(str(fname))
                 nsource = parse_source(stream[0].stats)
                 if nsource != source:
                     msg = f"fname = {fname} has an incompatible source."
@@ -677,16 +737,21 @@ class Array1D():
         obj = cls(sensors, source)
         return obj
 
+    # su
     # https://pubs.usgs.gov/of/2001/of01-326/HTML/FILEFORM.HTM
     # https://wiki.seismic-unix.org/sudoc:su_data_format
     # http://web.mit.edu/cwpsu_v44r1/sumanual_600dpi_letter.pdf
+
+    # segy
+    # https://sioseis.ucsd.edu/segy.header.html
+    # https://seg-org.ezproxy.lib.utexas.edu/Portals/0/SEG/News%20and%20Resources/Technical%20Standards/seg_y_rev2_0-mar2017.pdf
     def to_file(self, fname, ftype="su"):
         if ftype != "su":
             raise ValueError(f"ftype = {ftype} not recognized.")
 
         stream = obspy.Stream()
 
-        rint = lambda x: int(round(x))
+        def rint(x): return int(round(x))
 
         for sensor in self.sensors:
             trace = obspy.Trace(np.array(sensor.amplitude, dtype=np.float32))
@@ -695,14 +760,20 @@ class Array1D():
 
             if not hasattr(trace.stats, 'su'):
                 trace.stats.su = {}
-            trace.stats.su.trace_header = obspy.io.segy.segy.SEGYTraceHeader()
+            trace.stats.su.trace_header = SEGYTraceHeader()
             trace.stats.su.trace_header.scalar_to_be_applied_to_all_coordinates = -1000
-            trace.stats.su.trace_header.source_coordinate_x = rint(self.source._x*1000)
-            trace.stats.su.trace_header.source_coordinate_y = rint(self.source._y*1000)
-            trace.stats.su.trace_header.number_of_horizontally_stacked_traces_yielding_this_trace = rint(sensor.nstacks-1)
-            trace.stats.su.trace_header.delay_recording_time = rint(sensor.delay*1000)
-            trace.stats.su.trace_header.group_coordinate_x = rint(sensor.x*1000)
-            trace.stats.su.trace_header.group_coordinate_y = rint(sensor.y*1000)
+            trace.stats.su.trace_header.source_coordinate_x = rint(
+                self.source._x*1000)
+            trace.stats.su.trace_header.source_coordinate_y = rint(
+                self.source._y*1000)
+            trace.stats.su.trace_header.number_of_horizontally_stacked_traces_yielding_this_trace = rint(
+                sensor.nstacks-1)
+            trace.stats.su.trace_header.delay_recording_time = rint(
+                sensor.delay*1000)
+            trace.stats.su.trace_header.group_coordinate_x = rint(
+                sensor.x*1000)
+            trace.stats.su.trace_header.group_coordinate_y = rint(
+                sensor.y*1000)
             trace.stats.su.trace_header.coordinate_units = 1
 
             stream.append(trace)
@@ -721,6 +792,7 @@ class Array1D():
         return True
 
     def __eq__(self, other):
+        """Define how `other` can be equal to `self`."""
         if not self.is_similar(other):
             return False
 
@@ -731,4 +803,69 @@ class Array1D():
         return True
 
     def __getitem__(self, index):
+        """Select sensor by index."""
         return self.sensors[index]
+
+
+class Array1DwSource(Array1D):
+
+    def __init__(self, sensors, source):
+        super().__init__(sensors, source)
+
+    @classmethod
+    def from_files(cls, fnames_rec, fnames_src, src_channel,
+                   map_x=lambda x: x, map_y=lambda y: y):
+        _cls = Array1D.from_files(fnames=fnames_rec, map_x=map_x, map_y=map_y)
+
+        # TODO (jpv): Badly assume fnames_src is a properly formatted list.
+        trace = obspy.read(str(fnames_src[0]))[src_channel]
+        dt = trace.meta.delta
+        amp = trace.data
+        for fname in fnames_src[1:]:
+            trace = obspy.read(str(fname))[src_channel]
+            amp += trace.data
+        amp /= len(fnames_src)
+
+        source = SourceWithSignal(_cls.source.x,
+                                  _cls.source.y,
+                                  _cls.source.z,
+                                  amp,
+                                  dt)
+
+        return cls(_cls.sensors, source)
+
+    def xcorrelate(self, vmin=None, vmax=None):
+
+        # TODO (jpv): Check dt for source and signal
+        # TODO (jpv): Size of source and receiver signal
+
+        if vmax is None:
+            vmax = 3000
+
+        if vmin is None:
+            vmin = 50
+
+        min_offset, max_offset = min(self.offsets), max(self.offsets)
+
+        tmin = min_offset/vmax
+        # TODO (jpv): Revisit minimum time add fudge factor for now.
+        idx_dx_tmin = int((tmin-0.5)/self.source.dt)
+
+        tmax = max_offset/vmin
+        idx_dx_tmax = int(tmax/self.source.dt)
+
+        # start correlation at/near zero lag position.
+        src_amp = self.source.amplitude
+        idx_zero = self.source.nsamples
+        idx_min, idx_max = idx_zero+idx_dx_tmin, idx_zero+idx_dx_tmax
+
+        sensors = []
+        for sensor in self.sensors:
+            corr = signal.correlate(sensor.amplitude, src_amp)
+            corr = corr[idx_min:idx_max]
+            sensor = Sensor1C(corr, dt=sensor.dt,
+                              x=sensor.x, y=sensor.y, z=sensor.z,
+                              nstacks=sensor.nstacks, delay=0)
+            sensors.append(sensor)
+
+        self.sensors = sensors

@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
 """Masw class definition."""
 
 import logging
+
+import numpy as np
 
 from .maswworkflows import MaswWorkflowRegistry
 
@@ -46,7 +48,7 @@ class Masw():
         ----------
         fnames : str or iterable of str
             File name or iterable of file names.
-        settings_fname : str 
+        settings_fname : str
             JSON settings file detailing how MASW should be performed.
             See `meth: Masw.create_settings_file()` for more
             information.
@@ -94,7 +96,8 @@ class Masw():
                              weighting="sqrt", steering="cylindrical",
                              snr=False, noise_begin=-0.5, noise_end=0.0,
                              signal_begin=0.0, signal_end=0.5,
-                             pad_snr=True, df_snr=1.0):
+                             pad_snr=True, df_snr=1.0, min_offset=0,
+                             max_offset=np.inf):
         """Create settings `dict` using function arguments.
 
         See :meth:`Masw.create_settings_file` for details.
@@ -115,9 +118,13 @@ class Masw():
                     "pad": {
                         "apply": bool(pad),
                         "df": float(df)
+                    },
+                    "offsets": {
+                        "min": float(min_offset),
+                        "max": float(max_offset),
                     }
-                },
-                "processing": {
+        },
+            "processing": {
                     "transform": str(transform),
                     "fmin": float(fmin),
                     "fmax": float(fmax),
@@ -129,8 +136,8 @@ class Masw():
                         "weighting": str(weighting),
                         "steering": str(steering)
                     }
-                },
-                "signal-to-noise": {
+        },
+            "signal-to-noise": {
                     "perform": bool(snr),
                     "noise": {
                         "begin": float(noise_begin),
@@ -144,8 +151,8 @@ class Masw():
                         "apply": bool(pad_snr),
                         "df": float(df_snr)
                     }
-                },
-                }
+        },
+        }
 
     # @staticmethod
     # def create_settings_file(fname, workflow="time-domain",
@@ -243,3 +250,29 @@ class Masw():
     #                                          pad_snr=pad_snr, df_snr=df_snr)
     #     with open(fname, "w") as f:
     #         json.dump(settings, f)
+
+
+class MaswXcorr(Masw):
+
+    @staticmethod
+    def run(fnames_rec, fnames_src, src_channel, settings,
+            map_x=lambda x: x, map_y=lambda y: y):
+
+        # Acquire Workflow (class) from registry.
+        if settings["workflow"] != "time-domain-xcorr":
+            raise NotImplementedError
+
+        selected_workflow = settings["workflow"]
+        logger.info(f"selected workflow is {selected_workflow}")
+        Workflow = MaswWorkflowRegistry.create_class(selected_workflow)
+
+        # Define workflow (instance) from Workflow (class).
+        workflow = Workflow(fnames_rec=fnames_rec,
+                            fnames_src=fnames_src,
+                            src_channel=src_channel,
+                            settings=settings,
+                            map_x=map_x,
+                            map_y=map_y)
+
+        # Run and return.
+        return workflow.run()

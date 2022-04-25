@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -77,8 +77,9 @@ class Test_MaswWorkflows(TestCase):
             expected += "MaswWorkflow: time-domain\n"
             expected += "  - Create Array1D from files.\n"
             expected += "  - Check array is acceptable.\n"
+            expected += "  - Perform trim in space (if desired).\n"
             expected += "  - Perform linear detrend on each trace.\n"
-            expected += "  - Perform trim (if desired).\n"
+            expected += "  - Perform trim in time (if desired).\n"
             expected += "  - Perform mute (if desired).\n"
             expected += "  - Perform pad  (if desired).\n"
             expected += "  - Perform transform."
@@ -158,8 +159,9 @@ class Test_MaswWorkflows(TestCase):
             expected += "MaswWorkflow: single\n"
             expected += "  - Create Array1D from file (ignore if multiple).\n"
             expected += "  - Check array is acceptable.\n"
+            expected += "  - Perform trim in space (if desired).\n"
             expected += "  - Perform linear detrend on each trace.\n"
-            expected += "  - Perform trim (if desired).\n"
+            expected += "  - Perform trim in time (if desired).\n"
             expected += "  - Perform mute (if desired).\n"
             expected += "  - Perform pad  (if desired).\n"
             expected += "  - Perform transform."
@@ -222,7 +224,9 @@ class Test_MaswWorkflows(TestCase):
             expected += "MaswWorkflow: frequency-domain\n"
             expected += "  - Create Array1D from file.\n"
             expected += "  - Check array is acceptable.\n"
-            expected += "  - Perform trim (if desired).\n"
+            expected += "  - Perform trim in space (if desired).\n"
+            expected += "  - Perform linear detrend on each trace.\n"
+            expected += "  - Perform trim in time (if desired).\n"
             expected += "  - Perform mute (if desired).\n"
             expected += "  - Perform pad  (if desired).\n"
             expected += "  - Perform transform.\n"

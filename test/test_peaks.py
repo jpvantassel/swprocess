@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (jvantassel@utexas.edu)
+# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -25,14 +25,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 import swprocess
-from testtools import unittest, TestCase, get_full_path
+from testtools import unittest, TestCase, get_path
 
 
 class Test_Peaks(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.full_path = get_full_path(__file__)
+        cls.path = get_path(__file__)
         cls._id = "-5m"
         cls.frq = [100., 50, 30, 10, 5, 3]
         cls.vel = [100., 120, 130, 140, 145, 150]
@@ -411,8 +411,8 @@ class Test_Peaks(TestCase):
 
     def test_from_max(self):
         # rayleigh, nmaxima=1, nblocksets=1, samples=30
-        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
-        fname_csv = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1_r_parsed.csv"
+        fname_max = self.path / "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
+        fname_csv = self.path / "data/rtbf/rtbf_nblockset=1_nmaxima=1_r_parsed.csv"
 
         peaks = swprocess.Peaks.from_max(fname=fname_max, wavetype="rayleigh")
         df = pd.read_csv(fname_csv)
@@ -421,8 +421,8 @@ class Test_Peaks(TestCase):
                                         getattr(peaks, f"_{attr}"))
 
         # love, nmaxima=1, nblocksets=1, samples=30
-        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
-        fname_csv = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=1_l_parsed.csv"
+        fname_max = self.path / "data/rtbf/rtbf_nblockset=1_nmaxima=1.max"
+        fname_csv = self.path / "data/rtbf/rtbf_nblockset=1_nmaxima=1_l_parsed.csv"
 
         peaks = swprocess.Peaks.from_max(fname=fname_max, wavetype="love")
         df = pd.read_csv(fname_csv)
@@ -431,7 +431,7 @@ class Test_Peaks(TestCase):
                                         getattr(peaks, f"_{attr}"))
 
         # rayleigh, nmaxima=5, nblocksets=1, samples=3
-        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
+        fname_max = self.path / "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
         peaks = swprocess.Peaks.from_max(fname=fname_max, wavetype="rayleigh")
 
         frequency = np.array([[26.78452072, 23.91368501, 21.35055305],
@@ -452,7 +452,7 @@ class Test_Peaks(TestCase):
         # TODO (jpv): Extend check to other attrs.
 
         # love, nmaxima=5, nblocksets=1, samples=3
-        fname_max = self.full_path + "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
+        fname_max = self.path / "data/rtbf/rtbf_nblockset=1_nmaxima=5_trim.max"
         peaks = swprocess.Peaks.from_max(fname=fname_max, wavetype="love")
 
         frequency = np.array([[26.78452072, 23.91368501, 21.35055305],
