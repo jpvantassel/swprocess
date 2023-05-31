@@ -21,6 +21,7 @@ import logging
 import warnings
 
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy import special
 
@@ -222,7 +223,7 @@ class AbstractWavefieldTransform(ABC):
                           self.velocities,
                           self.power,
                           np.linspace(0, np.max(self.power), 21),
-                          cmap=plt.cm.get_cmap(cmap))
+                          cmap=mpl.colormaps[cmap])
         if rasterize:
             for pathcoll in img.collections:
                 pathcoll.set_rasterized(True)
