@@ -192,7 +192,7 @@ class Peaks():
                 pwrs[row, col] = float(_pwr)
 
         # Include for "belt and suspenders".
-        wavetype = wavetype if process_type.lower() == "rbtf" else None
+        wavetype = wavetype if process_type.lower() == "rtbf" else None
         getall = get_all(time=start_time, wavetype=wavetype)
         count = len(getall.findall(peak_data))
         if np.sum(~np.isnan(frqs)) != count:  # pragma: no cover
