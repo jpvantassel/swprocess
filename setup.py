@@ -14,6 +14,8 @@ meta = parse_meta("swprocess/meta.py")
 
 with open('README.md', encoding="utf8") as f:
     long_description = f.read()
+    long_description.replace("nz_wghs_rayleigh_masw_int-trim.gif",
+                             "nz_wghs_rayleigh_masw_int-trim.png")
 
 setup(
     name='swprocess',
