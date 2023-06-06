@@ -1,6 +1,6 @@
 # _swprocess_ - A Python Package for Surface Wave Processing
 
-> Joseph P. Vantassel, [![jpvantassel.com]](www.jpvantassel.com)
+> Joseph P. Vantassel, [jpvantassel.com](https://www.jpvantassel.com/)
 
 [![DOI](https://zenodo.org/badge/202217252.svg)](https://zenodo.org/badge/latestdoi/202217252)
 [![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/swprocess/blob/main/LICENSE.txt)
