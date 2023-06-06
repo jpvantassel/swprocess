@@ -36,15 +36,15 @@ setup(
 
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
     keywords='surface-wave dispersion processing geopsy active passive masw mam',
     packages=find_packages(),
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=["numpy", "scipy", "matplotlib",
                       "obspy", "sigpropy>=1.0.0", "pandas",
                       "swprepost", "PyQt5"],
