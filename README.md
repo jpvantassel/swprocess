@@ -1,13 +1,12 @@
 # _swprocess_ - A Python Package for Surface Wave Processing
 
-> Joseph P. Vantassel, The University of Texas at Austin
+> Joseph P. Vantassel, [jpvantassel.com](jpvantassel.com)
 
 [![DOI](https://zenodo.org/badge/202217252.svg)](https://zenodo.org/badge/latestdoi/202217252)
 [![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/swprocess/blob/main/LICENSE.txt)
 [![CircleCI](https://circleci.com/gh/jpvantassel/swprocess.svg?style=svg)](https://circleci.com/gh/jpvantassel/swprocess)
 [![Documentation Status](https://readthedocs.org/projects/swprocess/badge/?version=latest)](https://swprocess.readthedocs.io/en/latest/?badge=latest)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/swprocess)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/jpvantassel/swprocess.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jpvantassel/swprocess/context:python)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/8faa1913edd84e4b9ba77807ab5583fd)](https://www.codacy.com/gh/jpvantassel/swprocess/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jpvantassel/swprocess&amp;utm_campaign=Badge_Grade)
 [![codecov](https://codecov.io/gh/jpvantassel/swprocess/branch/main/graph/badge.svg?token=XCDW6HMGBR)](https://codecov.io/gh/jpvantassel/swprocess)
 
