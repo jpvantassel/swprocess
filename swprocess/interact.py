@@ -19,7 +19,6 @@
 import warnings
 
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Cursor
 
 
 def ginput_session(ax, initial_adjustment=True,
@@ -57,9 +56,6 @@ def ginput_session(ax, initial_adjustment=True,
         order in which they were picked.
 
     """
-    # Enable cursor to make precise selection easier.
-    Cursor(ax, color='k', linewidth=1)
-
     # Permit initial adjustment with blocking call to figure.
     if initial_adjustment:
         if initial_adjustment_message is None:

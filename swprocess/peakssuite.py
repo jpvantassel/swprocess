@@ -23,10 +23,11 @@ import logging
 import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.widgets import Cursor
+import matplotlib.pyplot as plt
 
 from .wavefieldtransforms import AbstractWavefieldTransform as AWTransform
 from .peaks import Peaks
-from .regex import get_nmaxima, get_peak_from_max
+from .regex import get_process_type, get_nmaxima, get_peak_from_max
 
 logger = logging.getLogger("swprocess.peakssuite")
 
@@ -405,10 +406,9 @@ class PeaksSuite():
         fig.show()
 
         _continue = 1
-        rejection_bool_arrays = [np.zeros_like(
-            peak._valid, dtype=bool) for peak in self.peaks]
-        while _continue:
+        rejection_bool_arrays = [np.zeros_like(peak._valid, dtype=bool) for peak in self.peaks]
 
+        while _continue:
             # Ask user to draw box.
             (xlims, ylims, axclicked) = self._draw_box(fig)
 
@@ -447,7 +447,8 @@ class PeaksSuite():
                         peak._reject(bool_array)
 
                 # If continue, quit, or undo, reset boolean arrays.
-                rejection_bool_arrays = [np.zeros_like(peak._valid, dtype=bool) for peak in self.peaks]
+                rejection_bool_arrays = [np.zeros_like(
+                    peak._valid, dtype=bool) for peak in self.peaks]
 
                 # Clear, set axis limits, and lock axis.
                 for _ax, pxlim, pylim in zip(ax, pxlims, pylims):
@@ -489,30 +490,21 @@ class PeaksSuite():
             was clicked.
 
         """
-        # print("0")
         cursors = []
         for ax in fig.axes:
-            cursors.append(Cursor(ax, useblit=True, color='k', linewidth=1))
-        # print("1")
+            cursors.append(Cursor(ax, useblit=False, color='k', linewidth=1))
 
         def on_click(event):
             if event.inaxes is not None:
                 axclicked.append(event.inaxes)
-        # print("2")
 
         while True:
-            # print("3")
             axclicked = []
-            # on_click = lambda event : axclicked.append(event.inaxes) if event.inaxes is not None else None
             session = fig.canvas.mpl_connect('button_press_event', on_click)
             (x1, y1), (x2, y2) = fig.ginput(2, timeout=0)
             xs = (x1, x2)
             ys = (y1, y2)
-            # print(xs, ys)
             fig.canvas.mpl_disconnect(session)
-            # print("4")
-
-            # print(axclicked)
 
             if len(axclicked) == 2 and axclicked[0] == axclicked[1]:
                 xmin, xmax = min(xs), max(xs)
@@ -523,7 +515,6 @@ class PeaksSuite():
             else:
                 msg = "Both clicks must be on the same axes. Please try again."
                 warnings.warn(msg)
-            # print("5")
 
     def statistics(self, xtype, ytype, xx, ignore_corr=True,
                    drop_sample_if_fewer_count=3, mean_substitution=False):
@@ -826,11 +817,14 @@ class PeaksSuite():
             with open(fname, "r") as f:
                 peak_data = f.read()
 
+            regex = get_process_type()
+            process_type = regex.search(peak_data).groups()[0]
+
             regex = get_nmaxima()
             nmaxima = int(regex.search(peak_data).groups()[0])
             nmaxima = 1 if nmaxima <= 0 else nmaxima
 
-            regex = get_peak_from_max(wavetype=wavetype)
+            regex = get_peak_from_max(wavetype=wavetype, process_type=process_type)
             frequencies = []
             for match in regex.finditer(peak_data):
                 _, f, *_ = match.groups()
@@ -839,7 +833,7 @@ class PeaksSuite():
                 else:
                     frequencies.append(f)
 
-            regex = get_peak_from_max(wavetype=wavetype)
+            regex = get_peak_from_max(wavetype=wavetype, process_type=process_type)
             found_times = []
             for found in regex.finditer(peak_data):
                 start_time = found.groups()[0]

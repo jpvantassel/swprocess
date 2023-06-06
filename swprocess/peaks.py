@@ -23,7 +23,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .regex import get_peak_from_max, get_all, get_nmaxima
+from .regex import get_process_type, get_peak_from_max, get_all, get_nmaxima
 
 logger = logging.getLogger("swprocess.peaks")
 
@@ -144,14 +144,18 @@ class Peaks():
         return self.attrs + others
 
     @classmethod
-    def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None, frequencies=None, nmaxima=None):
+    def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None, frequencies=None, nmaxima=None, process_type=None):
         """Parse data for a given blockset."""
+        if process_type is None:
+            regex = get_process_type()
+            process_type, *_ = regex.search(peak_data).groups()
+
         if start_time is None:
-            regex = get_peak_from_max(wavetype=wavetype)
+            regex = get_peak_from_max(wavetype=wavetype, process_type=process_type)
             start_time, *_ = regex.search(peak_data).groups()
 
         if frequencies is None:
-            regex = get_peak_from_max(time=start_time, wavetype=wavetype)
+            regex = get_peak_from_max(time=start_time, wavetype=wavetype, process_type=process_type)
             frequencies = []
             for match in regex.finditer(peak_data):
                 _, f, *_ = match.groups()
@@ -175,7 +179,7 @@ class Peaks():
 
         for col, frequency in enumerate(frequencies):
             getpeak = get_peak_from_max(time=start_time, wavetype=wavetype,
-                                        frequency=frequency)
+                                        frequency=frequency, process_type=process_type)
 
             for row, match in enumerate(getpeak.finditer(peak_data)):
                 _, _frq, _slo, _azi, _ell, _noi, _pwr = match.groups()
@@ -188,6 +192,7 @@ class Peaks():
                 pwrs[row, col] = float(_pwr)
 
         # Include for "belt and suspenders".
+        wavetype = wavetype if process_type.lower() == "rtbf" else None
         getall = get_all(time=start_time, wavetype=wavetype)
         count = len(getall.findall(peak_data))
         if np.sum(~np.isnan(frqs)) != count:  # pragma: no cover
