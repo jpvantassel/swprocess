@@ -471,8 +471,6 @@ class PeaksSuite():
                                                     attribute=attribute,
                                                     plot_kwargs=resolution_limits_plot_kwargs)
 
-        return (fig, ax)
-
     # TODO (jpv): To be refactored. Place in interact module?
     def _draw_box(self, fig):
         """Prompt user to define a rectangular box on figure.
