@@ -1,6 +1,6 @@
 # _swprocess_ - A Python Package for Surface Wave Processing
 
-> Joseph P. Vantassel, [jpvantassel.com](jpvantassel.com)
+> Joseph P. Vantassel, [![jpvantassel.com]](www.jpvantassel.com)
 
 [![DOI](https://zenodo.org/badge/202217252.svg)](https://zenodo.org/badge/latestdoi/202217252)
 [![PyPI - License](https://img.shields.io/pypi/l/swprocess)](https://github.com/jpvantassel/swprocess/blob/main/LICENSE.txt)
@@ -103,7 +103,7 @@ last few lines of the text displayed in the console.
   [here](https://jpvantassel.github.io/python3-course/#/intro/installing_jupyter).
 
 3.  Post-process the provided passive-wavefield data using the
-  Jupyter notebook (`mam-fk.ipynb`).
+  Jupyter notebook (`mam_fk.ipynb`).
 
 4.  Perform interactive trimming and calculate dispersion statistics for the
   example data using the Jupyter notebook (`stats.ipynb`). Compare your results
