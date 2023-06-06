@@ -1,8 +1,8 @@
 version: 2.1
 
 orbs:
-  coverage-reporter: codacy/coverage-reporter@7.6.7
-  codecov: codecov/codecov@1.0.2
+  coverage-reporter: codacy/coverage-reporter@13.13.2
+  codecov: codecov/codecov@3.2.5
 
 workflows:
   build:
@@ -73,7 +73,9 @@ jobs:
           path: test-results
       - codecov/upload:
           file: test-results/cobertura.xml
-      - coverage-reporter/send_report
+      - coverage-reporter/send_report:
+          coverage-reports: test-results/cobertura.xml
+          project-token: $CODACY_PROJECT_TOKEN
 
   test-38:
     <<: *test-template
