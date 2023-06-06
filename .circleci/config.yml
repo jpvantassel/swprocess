@@ -67,15 +67,10 @@ jobs:
             mv test/.coverage test-results
             cd test-results
             coverage xml -o cobertura.xml
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: test-results
       - codecov/upload:
           file: test-results/cobertura.xml
       - coverage-reporter/send_report:
           coverage-reports: test-results/cobertura.xml
-          project-token: $CODACY_PROJECT_TOKEN
 
   test-38:
     <<: *test-template
