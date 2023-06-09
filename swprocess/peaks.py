@@ -23,7 +23,8 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .regex import get_process_type, get_peak_from_max, get_all, get_nmaxima
+from .regex import get_wavetype, get_process_type, get_peak_from_max, get_all, get_nmaxima, get_geopsy_version
+from .meta import check_geopsy_version
 
 logger = logging.getLogger("swprocess.peaks")
 
@@ -144,18 +145,26 @@ class Peaks():
         return self.attrs + others
 
     @classmethod
-    def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None, frequencies=None, nmaxima=None, process_type=None):
+    def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None, frequencies=None, nmaxima=None):
         """Parse data for a given blockset."""
-        if process_type is None:
-            regex = get_process_type()
-            process_type, *_ = regex.search(peak_data).groups()
+        regex = get_wavetype()
+        wavetype_from_file = regex.search(peak_data).groups()[0]
+        if wavetype == "rayleigh" and wavetype_from_file == "Vertical":
+            wavetype = "vertical"
+
+        regex = get_process_type()
+        process_type = regex.search(peak_data).groups()[0]
+        if process_type.lower() == "rtbf" and wavetype_from_file == "Vertical":
+            process_type = "capon"
+        else:
+            process_type = process_type.lower()
 
         if start_time is None:
-            regex = get_peak_from_max(wavetype=wavetype, process_type=process_type)
+            regex = get_peak_from_max(wavetype=wavetype)
             start_time, *_ = regex.search(peak_data).groups()
 
         if frequencies is None:
-            regex = get_peak_from_max(time=start_time, wavetype=wavetype, process_type=process_type)
+            regex = get_peak_from_max(time=start_time, wavetype=wavetype)
             frequencies = []
             for match in regex.finditer(peak_data):
                 _, f, *_ = match.groups()
@@ -168,7 +177,8 @@ class Peaks():
         if nmaxima is None:
             regex = get_nmaxima()
             nmaxima = int(regex.search(peak_data).groups()[0])
-            nmaxima = 1 if nmaxima <= 0 else nmaxima
+            nmaxima = max(1, nmaxima)
+            nmaxima = min(100, nmaxima)
 
         frqs = np.full((nmaxima, nfrequencies), fill_value=np.nan, dtype=float)
         vels = np.full_like(frqs, fill_value=np.nan, dtype=float)
@@ -178,8 +188,8 @@ class Peaks():
         pwrs = np.full_like(frqs, fill_value=np.nan, dtype=float)
 
         for col, frequency in enumerate(frequencies):
-            getpeak = get_peak_from_max(time=start_time, wavetype=wavetype,
-                                        frequency=frequency, process_type=process_type)
+            getpeak = get_peak_from_max(time=start_time, frequency=frequency,
+                                        wavetype=wavetype)
 
             for row, match in enumerate(getpeak.finditer(peak_data)):
                 _, _frq, _slo, _azi, _ell, _noi, _pwr = match.groups()
@@ -192,14 +202,13 @@ class Peaks():
                 pwrs[row, col] = float(_pwr)
 
         # Include for "belt and suspenders".
-        wavetype = wavetype if process_type.lower() == "rtbf" else None
         getall = get_all(time=start_time, wavetype=wavetype)
         count = len(getall.findall(peak_data))
         if np.sum(~np.isnan(frqs)) != count:  # pragma: no cover
             msg = f"Missing {count - len(frqs)} dispersion peaks."
             raise ValueError(msg)
 
-        return cls(frqs, vels, identifier=start_time, azimuth=azis,
+        return cls(frqs, vels, identifier=f"{start_time}-{process_type}", azimuth=azis,
                    ellipticity=ells, noise=nois, power=pwrs)
 
     def plot(self, xtype="frequency", ytype="velocity", plot_kwargs=None,
@@ -629,6 +638,11 @@ class Peaks():
         """
         with open(fname, "r") as f:
             peak_data = f.read()
+
+        regex = get_geopsy_version()
+        major, minor, micro = regex.search(peak_data).groups()
+        version = f"{major}.{minor}.{micro}"
+        check_geopsy_version(version)
 
         return cls._parse_peaks(peak_data, wavetype=wavetype)
 

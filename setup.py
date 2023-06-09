@@ -51,7 +51,7 @@ setup(
                       "obspy", "sigpropy>=1.0.0", "pandas",
                       "swprepost", "PyQt5"],
     extras_require={
-        'dev': ['coverage', 'tox', 'sphinx', 'sphinx_rtd_theme'],
+        'dev': ['coverage', 'tox', 'sphinx', 'sphinx_rtd_theme', 'jupyterlab'],
     },
     package_data={
     },

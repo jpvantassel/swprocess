@@ -4,6 +4,10 @@ matplotlib
 obspy
 sigpropy>=1.0.0
 pandas
+swprepost
 PyQt5
 coverage
 tox
+sphinx
+sphinx_rtd_theme
+jupyterlab

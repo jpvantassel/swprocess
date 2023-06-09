@@ -16,4 +16,12 @@
 
 """Metadata for swprocess."""
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
+
+SUPPORTED_GEOPSY_VERSIONS = ["3.2.0"]
+
+def check_geopsy_version(version):            
+    if version not in SUPPORTED_GEOPSY_VERSIONS:
+        msg = f"geopsy version {version} is not supported; "
+        msg += f"use {SUPPORTED_GEOPSY_VERSIONS} instead."
+        raise ValueError(msg)
