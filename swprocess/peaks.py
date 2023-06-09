@@ -23,7 +23,8 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .regex import get_process_type, get_peak_from_max, get_all, get_nmaxima
+from .regex import get_process_type, get_peak_from_max, get_all, get_nmaxima, get_geopsy_version
+from .meta import check_geopsy_version
 
 logger = logging.getLogger("swprocess.peaks")
 
@@ -168,7 +169,8 @@ class Peaks():
         if nmaxima is None:
             regex = get_nmaxima()
             nmaxima = int(regex.search(peak_data).groups()[0])
-            nmaxima = 1 if nmaxima <= 0 else nmaxima
+            nmaxima = max(1, nmaxima)
+            nmaxima = min(100, nmaxima)
 
         frqs = np.full((nmaxima, nfrequencies), fill_value=np.nan, dtype=float)
         vels = np.full_like(frqs, fill_value=np.nan, dtype=float)
@@ -629,6 +631,11 @@ class Peaks():
         """
         with open(fname, "r") as f:
             peak_data = f.read()
+
+        regex = get_geopsy_version()
+        major, minor, micro = regex.search(peak_data).groups()
+        version = f"{major}.{minor}.{micro}"
+        check_geopsy_version(version)
 
         return cls._parse_peaks(peak_data, wavetype=wavetype)
 

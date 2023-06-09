@@ -47,18 +47,20 @@ def get_peak_from_max(time="\d+\.?\d*", wavetype="rayleigh", process_type="rtbf"
         wavetype = validate_wavetypes(wavetype)
         pattern = f"({time}) ({frequency}) {wavetype} ({NUMBER}) ({NUMBER}) ({NUMBER}) ({NUMBER}|-?inf|nan) ({NUMBER}) 1"
     elif process_type in ["conventional", "capon"]:
-        pattern = f"({time}) ({frequency}) ({NUMBER}) ({NUMBER}) ({NUMBER}|-?inf|nan) ({NUMBER}|-?inf|nan) ({NUMBER}) 1"
+        pattern = f"({time}) ({frequency}) Vertical ({NUMBER}) ({NUMBER}) ({NUMBER}|-?inf|nan) ({NUMBER}|-?inf|nan) ({NUMBER}) 1"
     else:
         raise ValueError(f"process_type = {process_type} is unknown.")
 
     return re.compile(pattern)
+
+def get_geopsy_version():
+    return re.compile("geopsypack-(\d+).(\d+).(\d+)")
 
 def get_process_type():
     return re.compile("PROCESS_TYPE=(\S+)")
 
 def get_nmaxima():
     return re.compile("N_MAXIMA=(\d+)")
-
 
 def get_all(wavetype="rayleigh", time="(\d+\.?\d*)"):
     """Compile regular expression to identify peaks from a `.max` file.

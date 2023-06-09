@@ -27,7 +27,8 @@ import matplotlib.pyplot as plt
 
 from .wavefieldtransforms import AbstractWavefieldTransform as AWTransform
 from .peaks import Peaks
-from .regex import get_process_type, get_nmaxima, get_peak_from_max
+from .regex import get_process_type, get_nmaxima, get_peak_from_max, get_geopsy_version
+from .meta import check_geopsy_version
 
 logger = logging.getLogger("swprocess.peakssuite")
 
@@ -817,12 +818,18 @@ class PeaksSuite():
             with open(fname, "r") as f:
                 peak_data = f.read()
 
+            regex = get_geopsy_version()
+            major, minor, micro = regex.search(peak_data).groups()
+            version = f"{major}.{minor}.{micro}"
+            check_geopsy_version(version)
+
             regex = get_process_type()
             process_type = regex.search(peak_data).groups()[0]
 
             regex = get_nmaxima()
             nmaxima = int(regex.search(peak_data).groups()[0])
-            nmaxima = 1 if nmaxima <= 0 else nmaxima
+            nmaxima = max(1, nmaxima)
+            nmaxima = min(100, nmaxima)
 
             regex = get_peak_from_max(wavetype=wavetype, process_type=process_type)
             frequencies = []
