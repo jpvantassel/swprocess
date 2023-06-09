@@ -54,6 +54,9 @@ def get_wavetype():
     pattern = f"{DEFAULT_TIME} {DEFAULT_FREQUENCY} (\S+) {NUMBER} {NUMBER} {NUMBER} {NUMBER}|-?inf|nan {NUMBER} 1"
     return re.compile(pattern)
 
+def get_process_type():
+    return re.compile("PROCESS_TYPE=(\S+)")
+
 def get_nmaxima():
     return re.compile("N_MAXIMA=(\d+)")
 

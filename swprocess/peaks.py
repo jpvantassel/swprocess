@@ -23,7 +23,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .regex import get_wavetype, get_peak_from_max, get_all, get_nmaxima, get_geopsy_version
+from .regex import get_wavetype, get_process_type, get_peak_from_max, get_all, get_nmaxima, get_geopsy_version
 from .meta import check_geopsy_version
 
 logger = logging.getLogger("swprocess.peaks")
@@ -145,12 +145,19 @@ class Peaks():
         return self.attrs + others
 
     @classmethod
-    def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None, frequencies=None, nmaxima=None, process_type=None):
+    def _parse_peaks(cls, peak_data, wavetype="rayleigh", start_time=None, frequencies=None, nmaxima=None):
         """Parse data for a given blockset."""
         regex = get_wavetype()
         wavetype_from_file = regex.search(peak_data).groups()[0]
         if wavetype == "rayleigh" and wavetype_from_file == "Vertical":
             wavetype = "vertical"
+
+        regex = get_process_type()
+        process_type = regex.search(peak_data).groups()[0]
+        if process_type.lower() == "rtbf" and wavetype_from_file == "Vertical":
+            process_type = "capon"
+        else:
+            process_type = process_type.lower()
 
         if start_time is None:
             regex = get_peak_from_max(wavetype=wavetype)
@@ -201,7 +208,7 @@ class Peaks():
             msg = f"Missing {count - len(frqs)} dispersion peaks."
             raise ValueError(msg)
 
-        return cls(frqs, vels, identifier=start_time, azimuth=azis,
+        return cls(frqs, vels, identifier=f"{start_time}-{process_type}", azimuth=azis,
                    ellipticity=ells, noise=nois, power=pwrs)
 
     def plot(self, xtype="frequency", ytype="velocity", plot_kwargs=None,
