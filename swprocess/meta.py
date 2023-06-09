@@ -16,7 +16,7 @@
 
 """Metadata for swprocess."""
 
-__version__ = "0.1.3"
+__version__ = "0.2.0"
 
 SUPPORTED_GEOPSY_VERSIONS = ["3.2.0"]
 
