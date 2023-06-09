@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 
 from .wavefieldtransforms import AbstractWavefieldTransform as AWTransform
 from .peaks import Peaks
-from .regex import get_process_type, get_nmaxima, get_peak_from_max, get_geopsy_version
+from .regex import get_nmaxima, get_peak_from_max, get_geopsy_version, get_wavetype
 from .meta import check_geopsy_version
 
 logger = logging.getLogger("swprocess.peakssuite")
@@ -823,15 +823,17 @@ class PeaksSuite():
             version = f"{major}.{minor}.{micro}"
             check_geopsy_version(version)
 
-            regex = get_process_type()
-            process_type = regex.search(peak_data).groups()[0]
+            regex = get_wavetype()
+            wavetype_from_file = regex.search(peak_data).groups()[0]
+            if wavetype == "rayleigh" and wavetype_from_file == "Vertical":
+                wavetype = "vertical"
 
             regex = get_nmaxima()
             nmaxima = int(regex.search(peak_data).groups()[0])
             nmaxima = max(1, nmaxima)
             nmaxima = min(100, nmaxima)
 
-            regex = get_peak_from_max(wavetype=wavetype, process_type=process_type)
+            regex = get_peak_from_max(wavetype=wavetype)
             frequencies = []
             for match in regex.finditer(peak_data):
                 _, f, *_ = match.groups()
@@ -840,7 +842,7 @@ class PeaksSuite():
                 else:
                     frequencies.append(f)
 
-            regex = get_peak_from_max(wavetype=wavetype, process_type=process_type)
+            regex = get_peak_from_max(wavetype=wavetype)
             found_times = []
             for found in regex.finditer(peak_data):
                 start_time = found.groups()[0]

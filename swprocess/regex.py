@@ -20,11 +20,12 @@ import re
 
 __all__ = ["get_peak_from_max", "get_nmaxima",  "get_all", "get_spac_ratio", "get_spac_ring"]
 
+DEFAULT_TIME = "\d+\.?\d*"
+DEFAULT_FREQUENCY = "-?\d+.?\d*[eE]?[+-]?\d*"
 NUMBER = "-?\d+.?\d*[eE]?[+-]?\d*"
 
 
-def get_peak_from_max(time="\d+\.?\d*", wavetype="rayleigh", process_type="rtbf",
-                      frequency="-?\d+.?\d*[eE]?[+-]?\d*"):
+def get_peak_from_max(time=DEFAULT_TIME, frequency=DEFAULT_FREQUENCY, wavetype="rayleigh"):
     """Compile regular expression to extract peaks from a `.max` file.
 
     Parameters
@@ -42,22 +43,16 @@ def get_peak_from_max(time="\d+\.?\d*", wavetype="rayleigh", process_type="rtbf"
 
     """
     # abs_time frequency polarization slowness azimuth ellipticity noise power valid
-    process_type = process_type.lower()
-    if process_type=="rtbf":
-        wavetype = validate_wavetypes(wavetype)
-        pattern = f"({time}) ({frequency}) {wavetype} ({NUMBER}) ({NUMBER}) ({NUMBER}) ({NUMBER}|-?inf|nan) ({NUMBER}) 1"
-    elif process_type in ["conventional", "capon"]:
-        pattern = f"({time}) ({frequency}) Vertical ({NUMBER}) ({NUMBER}) ({NUMBER}|-?inf|nan) ({NUMBER}|-?inf|nan) ({NUMBER}) 1"
-    else:
-        raise ValueError(f"process_type = {process_type} is unknown.")
-
+    wavetype = validate_wavetypes(wavetype)
+    pattern = f"({time}) ({frequency}) {wavetype} ({NUMBER}) ({NUMBER}) ({NUMBER}) ({NUMBER}|-?inf|nan) ({NUMBER}) 1"
     return re.compile(pattern)
 
 def get_geopsy_version():
     return re.compile("geopsypack-(\d+).(\d+).(\d+)")
 
-def get_process_type():
-    return re.compile("PROCESS_TYPE=(\S+)")
+def get_wavetype():
+    pattern = f"{DEFAULT_TIME} {DEFAULT_FREQUENCY} (\S+) {NUMBER} {NUMBER} {NUMBER} {NUMBER}|-?inf|nan {NUMBER} 1"
+    return re.compile(pattern)
 
 def get_nmaxima():
     return re.compile("N_MAXIMA=(\d+)")
