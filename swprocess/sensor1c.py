@@ -17,6 +17,7 @@
 """Sensor1C class definition."""
 
 import logging
+import warnings
 
 import numpy as np
 
@@ -175,7 +176,12 @@ class Sensor1C(ActiveTimeSeries):
         """
         header = trace.stats.su.trace_header
         nstack_key = "number_of_horizontally_stacked_traces_yielding_this_trace"
+
         scaleco = int(header["scalar_to_be_applied_to_all_coordinates"])
+        if scaleco == 0:
+            msg = "Resetting scale to be applied to all coordinates from zero to one."
+            warnings.warn(msg)
+            scaleco = 1
 
         int_x = int(header["group_coordinate_x"])
         x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco

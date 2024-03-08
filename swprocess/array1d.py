@@ -673,8 +673,11 @@ class Array1D():
                     msg = "Coordinate units must be in units of length, not degrees minutes seconds."
                     raise ValueError(msg)
 
-                scaleco = int(
-                    stats.su.trace_header["scalar_to_be_applied_to_all_coordinates"])
+                scaleco = int(stats.su.trace_header["scalar_to_be_applied_to_all_coordinates"])
+                if scaleco == 0:
+                    msg = "Resetting scale to be applied to all coordinates from zero to one."
+                    warnings.warn(msg)
+                    scaleco = 1
 
                 int_x = int(stats.su.trace_header["source_coordinate_x"])
                 x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
