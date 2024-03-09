@@ -4,8 +4,6 @@
 
 ## Before next release
 
--   Make array1d & sensor1d defensive when reading headers.
--   Update swprocess to lastest possible Python version.
 -   Statistics workflow.
 -   Change `single` to `nostacking`.
 -   _delay in ActiveTimeSeries.
