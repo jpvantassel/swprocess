@@ -1,15 +1,12 @@
 version: 2.1
 
 orbs:
-  coverage-reporter: codacy/coverage-reporter@13.13.2
-  codecov: codecov/codecov@3.2.5
+  coverage-reporter: codacy/coverage-reporter@14.0.0
+  codecov: codecov/codecov@4.1.0
 
 workflows:
   build:
     jobs:
-      - test-37:
-          context:
-            - docker
       - test-38:
           context:
             - docker
@@ -22,11 +19,14 @@ workflows:
       - test-311:
           context:
             - docker
+      - test-312:
+          context:
+            - docker
 
 jobs:
-  test-37: &test-template
+  test-38: &test-template
     docker:
-      - image: cimg/python:3.7.16
+      - image: cimg/python:3.8.19
         auth:
           username: jpvantassel
           password: $DOCKER_PASS
@@ -34,11 +34,10 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Create virtualenv
+          name: Create and Activate Virtual Environment
           command: |
             virtualenv venv
-            . venv/bin/activate
-            mkdir test-results
+            source venv/bin/activate
       - run:
           name: Install numpy
           command: |
@@ -50,40 +49,25 @@ jobs:
             . venv/bin/activate
             pip install git+ssh://git@github.com/jpvantassel/sigpropy.git
       - run:
-          name: Install swprocess and dependencies
+          name: Install swprocess and Dependencies
           command: |
-            . venv/bin/activate
-            pip install -e .[dev]
+            source venv/bin/activate
+            python -m pip install -e .[dev]
       - run:
-          name: Run tests
+          name: Run Tests
           command: |
-            . venv/bin/activate
+            source venv/bin/activate
             cd test
             coverage run --source=../swprocess -m unittest
-      - run:
-          name: Create coverage xml
-          command: |
-            . venv/bin/activate
-            mv test/.coverage test-results
-            cd test-results
             coverage xml -o cobertura.xml
-      - codecov/upload:
-          file: test-results/cobertura.xml
-      - coverage-reporter/send_report:
-          coverage-reports: test-results/cobertura.xml
-
-  test-38:
-    <<: *test-template
-    docker:
-      - image: cimg/python:3.8.16
-        auth:
-          username: jpvantassel
-          password: $DOCKER_PASS
+            cp cobertura.xml ..
+      - codecov/upload
+      - coverage-reporter/send_report
 
   test-39:
     <<: *test-template
     docker:
-      - image: cimg/python:3.9.16
+      - image: cimg/python:3.9.19
         auth:
           username: jpvantassel
           password: $DOCKER_PASS
@@ -91,7 +75,7 @@ jobs:
   test-310:
     <<: *test-template
     docker:
-      - image: cimg/python:3.10.10
+      - image: cimg/python:3.10.14
         auth:
           username: jpvantassel
           password: $DOCKER_PASS
@@ -99,8 +83,15 @@ jobs:
   test-311:
     <<: *test-template
     docker:
-      - image: cimg/python:3.11.3
+      - image: cimg/python:3.11.9
         auth:
           username: jpvantassel
           password: $DOCKER_PASS
 
+  test-312:
+    <<: *test-template
+    docker:
+      - image: cimg/python:3.12.4
+        auth:
+          username: jpvantassel
+          password: $DOCKER_PASS
