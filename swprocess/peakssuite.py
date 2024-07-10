@@ -614,7 +614,8 @@ class PeaksSuite():
 
         return (xx, array)
 
-    def plot_statistics(self, ax, xx, mean, stddev, errorbar_kwargs=None):
+    @staticmethod
+    def plot_statistics(ax, xx, mean, stddev, errorbar_kwargs=None):
         errorbar_kwargs = {} if errorbar_kwargs is None else errorbar_kwargs
         default_kwargs = dict(linestyle="", color="k", label=None,
                               marker="o", markerfacecolor="k",
