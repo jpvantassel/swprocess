@@ -433,7 +433,7 @@ class Array1D():
         times = []
         for trace in traces:
             pindices = np.argwhere(abs(trace-np.mean(trace[:10])) > threshold)
-            index = int(pindices[0])
+            index = int(pindices.flatten()[0])
             times.append(time[index])
 
         return (self.position(), times)
