@@ -20,9 +20,9 @@ import re
 
 __all__ = ["get_peak_from_max", "get_nmaxima",  "get_all", "get_spac_ratio", "get_spac_ring"]
 
-DEFAULT_TIME = "\d+\.?\d*"
-DEFAULT_FREQUENCY = "-?\d+.?\d*[eE]?[+-]?\d*"
-NUMBER = "-?\d+.?\d*[eE]?[+-]?\d*"
+DEFAULT_TIME = r"\d+\.?\d*"
+DEFAULT_FREQUENCY = r"-?\d+.?\d*[eE]?[+-]?\d*"
+NUMBER = r"-?\d+.?\d*[eE]?[+-]?\d*"
 
 
 def get_peak_from_max(time=DEFAULT_TIME, frequency=DEFAULT_FREQUENCY, wavetype="rayleigh"):
@@ -48,19 +48,20 @@ def get_peak_from_max(time=DEFAULT_TIME, frequency=DEFAULT_FREQUENCY, wavetype="
     return re.compile(pattern)
 
 def get_geopsy_version():
-    return re.compile("geopsypack-(\d+).(\d+).(\d+)")
+    return re.compile(r"geopsypack-(\d+).(\d+).(\d+)")
 
 def get_wavetype():
-    pattern = f"{DEFAULT_TIME} {DEFAULT_FREQUENCY} (\S+) {NUMBER} {NUMBER} {NUMBER} {NUMBER}|-?inf|nan {NUMBER} 1"
+    space = r"(\S+)"
+    pattern = f"{DEFAULT_TIME} {DEFAULT_FREQUENCY} {space} {NUMBER} {NUMBER} {NUMBER} {NUMBER}|-?inf|nan {NUMBER} 1"
     return re.compile(pattern)
 
 def get_process_type():
-    return re.compile("PROCESS_TYPE=(\S+)")
+    return re.compile(r"PROCESS_TYPE=(\S+)")
 
 def get_nmaxima():
-    return re.compile("N_MAXIMA=(\d+)")
+    return re.compile(r"N_MAXIMA=(\d+)")
 
-def get_all(wavetype="rayleigh", time="(\d+\.?\d*)"):
+def get_all(wavetype=r"rayleigh", time=r"(\d+\.?\d*)"):
     """Compile regular expression to identify peaks from a `.max` file.
 
     Parameters
@@ -91,8 +92,8 @@ def validate_wavetypes(wavetype):
         raise ValueError(f"wavetype={wavetype}, not recognized.")
 
 
-def get_spac_ratio(time="(-?\d+.?\d*[eE]?[+-]?\d*)", component="(0)",
-                   ring="(\d+)"):
+def get_spac_ratio(time=r"(-?\d+.?\d*[eE]?[+-]?\d*)", component="(0)",
+                   ring=r"(\d+)"):
     """
     TODO (jpv): Finish docstring.
 
@@ -115,7 +116,7 @@ def get_spac_ratio(time="(-?\d+.?\d*[eE]?[+-]?\d*)", component="(0)",
         msg = f"component={component} is not allowed; only vertical component=0 is implemented."
         raise NotImplementedError(msg)
 
-    number = "(-?\d+.?\d*[eE]?[+-]?\d*)"
+    number = r"(-?\d+.?\d*[eE]?[+-]?\d*)"
 
     pattern = f"{time} {number} {component} {ring} {number}"
     return re.compile(pattern)
@@ -126,6 +127,5 @@ def get_spac_ring():
     TODO (jpv): Finish docstring.
 
     """
-    number = "(-?\d+.?\d*[eE]?[+-]?\d*)"
-    pattern = f" --- Ring \({number} m, {number} m\)"
+    pattern = r" --- Ring \((-?\d+.?\d*[eE]?[+-]?\d*) m, (-?\d+.?\d*[eE]?[+-]?\d*) m\)"
     return re.compile(pattern)
