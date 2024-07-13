@@ -20,8 +20,10 @@
 ## About _swprocess_
 
 _swprocess_ is a Python package for surface wave processing. _swprocess_ was
-developed by Joseph P. Vantassel under the supervision of Professor Brady R. Cox
-at The University of Texas at Austin.
+developed by [Joseph P. Vantassel](https://www.jpvantassel.com/) under the
+supervision of Professor Brady R. Cox at The University of Texas at Austin.
+_swprocess_ continues to be developed and maintained by
+[Joseph P. Vantassel and his research group at Virginia Tech](https://geoimaging-research.org/).
 
 If you use _swprocess_ in your research or consulting, we ask you please cite
 the following:
@@ -78,7 +80,7 @@ aleatory uncertainty in surface wave measurements.
 
 ### Installing or Upgrading _swprocess_
 
-1.  If you do not have Python 3.6 or later installed, you will need to do
+1.  If you do not have Python 3.8 or later installed, you will need to do
 so. A detailed set of instructions can be found
 [here](https://jpvantassel.github.io/python3-course/#/intro/installing_python).
 
