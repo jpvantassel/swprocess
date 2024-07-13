@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
+# Copyright (C) 2020-2024 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
 """Metadata for swprocess."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 SUPPORTED_GEOPSY_VERSIONS = ["3.2.0"]
 
