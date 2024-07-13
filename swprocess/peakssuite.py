@@ -23,7 +23,6 @@ import logging
 import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.widgets import Cursor
-import matplotlib.pyplot as plt
 
 from .wavefieldtransforms import AbstractWavefieldTransform as AWTransform
 from .peaks import Peaks
@@ -409,7 +408,6 @@ class PeaksSuite():
         _continue = 1
         rejection_bool_arrays = [np.zeros_like(peak._valid, dtype=bool) for peak in self.peaks]
 
-        done = False
         while _continue:
             # Instruct user to select a bounding box.
             ax[0].text(0.95, 0.95, "Select two points that\nbound data to be removed.\nDouble click to pause trimming.",
@@ -566,7 +564,7 @@ class PeaksSuite():
         """
         npeaks = len(self.peaks)
         if npeaks < 3:
-            msg = f"Cannot calculate statistics on fewer than 3 `Peaks`."
+            msg = "Cannot calculate statistics on fewer than 3 `Peaks`."
             raise ValueError(msg)
 
         xx, data_matrix = self.to_array(xtype, ytype, xx)

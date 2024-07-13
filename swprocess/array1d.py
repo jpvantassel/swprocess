@@ -394,7 +394,7 @@ class Array1D():
 
         # Plot source.
         default_source_kwargs = dict(marker="D", color="b",
-                                     linestyle="", label=f"Source")
+                                     linestyle="", label="Source")
         if source_kwargs is None:
             source_kwargs = {}
         source_kwargs = {**default_source_kwargs, **source_kwargs}

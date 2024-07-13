@@ -37,7 +37,7 @@ class SignaltoNoiseRatio():
 
         # Check signal and noise windows are indeed the same length.
         if noise[0].nsamples != signal[0].nsamples:
-            msg = f"Signal and noise windows must be of equal length, or set 'pad_snr' to 'True'."
+            msg = "Signal and noise windows must be of equal length, or set 'pad_snr' to 'True'."
             raise IndexError(msg)
 
         # Frequency vector
