@@ -412,7 +412,7 @@ class PeaksSuite():
         done = False
         while _continue:
             # Instruct user to select a bounding box.
-            ax[0].text(0.95, 0.95, "Select two points\nthat bound data\nto be removed.",
+            ax[0].text(0.95, 0.95, "Select two points that\nbound data to be removed.\nDouble click to pause trimming.",
                        ha="right", va="top", transform=ax[0].transAxes)
 
             # User draws box.
@@ -441,7 +441,7 @@ class PeaksSuite():
                     _ax.set_ylim(pylim)
                     # Note: _ax.clear() re-enables autoscale.
                     _ax.autoscale(enable=False)
-                    _ax.text(0.5, 0.7, "Do not close window.\nUse alt+tab to go back\nto Jupyter to continue.",
+                    _ax.text(0.5, 0.7, "Interactive trimming paused.\nDo not close window.\nUse alt+tab to go back\nto Jupyter to quit, continue, or undo.",
                             ha="center", va="top", transform=_ax.transAxes)
                 fig.canvas.draw()
                 # session = fig.canvas.mpl_connect('button_press_event', lambda x:None)
