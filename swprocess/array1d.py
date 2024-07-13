@@ -394,7 +394,7 @@ class Array1D():
 
         # Plot source.
         default_source_kwargs = dict(marker="D", color="b",
-                                     linestyle="", label=f"Source")
+                                     linestyle="", label="Source")
         if source_kwargs is None:
             source_kwargs = {}
         source_kwargs = {**default_source_kwargs, **source_kwargs}
@@ -433,7 +433,7 @@ class Array1D():
         times = []
         for trace in traces:
             pindices = np.argwhere(abs(trace-np.mean(trace[:10])) > threshold)
-            index = int(pindices[0])
+            index = int(pindices.flatten()[0])
             times.append(time[index])
 
         return (self.position(), times)
@@ -609,7 +609,7 @@ class Array1D():
         return (tmatrix, offsets)
 
     @classmethod
-    def from_files(cls, fnames, map_x=lambda x: x, map_y=lambda y: y):
+    def from_files(cls, fnames, map_x=lambda x: x, map_y=lambda y: y, obspy_read_kwargs=None):
         """Initialize an `Array1D` object from one or more data files.
 
         This classmethod creates an `Array1D` object by reading the
@@ -626,6 +626,8 @@ class Array1D():
             Convert x and y coordinates using some function, default
             is not transformation. Can be useful for converting between
             coordinate systems.
+        obspy_read_kwargs : dict, optional
+            Keyword arguments to be passed to the obspy.read().
 
         Returns
         -------
@@ -646,10 +648,13 @@ class Array1D():
         except TypeError:
             fnames = [str(fnames)]
 
+        if obspy_read_kwargs is None:
+            obspy_read_kwargs = {}
+
         # Read traces from first file
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            stream = obspy.read(str(fnames[0]))
+            stream = obspy.read(str(fnames[0]), **obspy_read_kwargs)
 
         # Create array of sensors
         sensors = []
@@ -673,8 +678,11 @@ class Array1D():
                     msg = "Coordinate units must be in units of length, not degrees minutes seconds."
                     raise ValueError(msg)
 
-                scaleco = int(
-                    stats.su.trace_header["scalar_to_be_applied_to_all_coordinates"])
+                scaleco = int(stats.su.trace_header["scalar_to_be_applied_to_all_coordinates"])
+                if scaleco == 0:
+                    msg = "Resetting scale to be applied to all coordinates from zero to one."
+                    warnings.warn(msg)
+                    scaleco = 1
 
                 int_x = int(stats.su.trace_header["source_coordinate_x"])
                 x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
@@ -744,7 +752,7 @@ class Array1D():
 
     # segy
     # https://sioseis.ucsd.edu/segy.header.html
-    # https://seg-org.ezproxy.lib.utexas.edu/Portals/0/SEG/News%20and%20Resources/Technical%20Standards/seg_y_rev2_0-mar2017.pdf
+    # https://library.seg.org/pb-assets/technical-standards/seg_y_rev2_0-mar2017-1686080998003.pdf
     def to_file(self, fname, ftype="su"):
         if ftype != "su":
             raise ValueError(f"ftype = {ftype} not recognized.")

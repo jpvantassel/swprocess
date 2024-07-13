@@ -261,22 +261,30 @@ class Test_Array1D(TestCase):
     def test_waterfall(self):
         # Single shot (near-side)
         fname = self.wghs_path / "1.dat"
-        array1 = swprocess.Array1D.from_files(fname)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            array1 = swprocess.Array1D.from_files(fname)
         array1.waterfall()
 
         # Multiple shots (near-side)
         fnames = [self.wghs_path / f"{x}.dat" for x in range(1, 6)]
-        array2 = swprocess.Array1D.from_files(fnames)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            array2 = swprocess.Array1D.from_files(fnames)
         array2.waterfall()
 
         # Single shot (far-side)
         fname = self.wghs_path / "16.dat"
-        array3 = swprocess.Array1D.from_files(fname)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            array3 = swprocess.Array1D.from_files(fname)
         array3.waterfall()
 
         # Multiple shots (near-side)
         fnames = [self.wghs_path / f"{x}.dat" for x in range(16, 20)]
-        array4 = swprocess.Array1D.from_files(fnames)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            array4 = swprocess.Array1D.from_files(fnames)
         array4.waterfall()
         array4.waterfall(time_ax="x")
 
@@ -479,7 +487,7 @@ class Test_Array1D(TestCase):
         expected_tmatrix = np.array([[0]*4, [1]*4, [2]*4, [3]*4, [4]*4])
         expected_offsets = np.array([5, 7, 9, 11, 13])
         returned_tmatrix, returned_offsets = near_array._flipped_tseries_and_offsets()
-        self.assertArrayEqual(expected_tmatrix, returned_tmatrix)        
+        self.assertArrayEqual(expected_tmatrix, returned_tmatrix)
         self.assertArrayEqual(expected_offsets, returned_offsets)
 
         # Far source offset -> Flip required
@@ -489,7 +497,7 @@ class Test_Array1D(TestCase):
         expected_tmatrix = np.array([[4]*4, [3]*4, [2]*4, [1]*4, [0]*4])
         expected_offsets = np.array([10, 12, 14, 16, 18])
         returned_tmatrix, returned_offsets = far_array._flipped_tseries_and_offsets()
-        self.assertArrayEqual(expected_tmatrix, returned_tmatrix)        
+        self.assertArrayEqual(expected_tmatrix, returned_tmatrix)
         self.assertArrayEqual(expected_offsets, returned_offsets)
 
     def test_from_files(self):
@@ -498,8 +506,8 @@ class Test_Array1D(TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             known = obspy.read(str(fname))
-        array = swprocess.Array1D.from_files(fname)
-        self.assertArrayEqual(np.arange(0, 48,2), np.array(array.position()))
+            array = swprocess.Array1D.from_files(fname)
+        self.assertArrayEqual(np.arange(0, 48, 2), np.array(array.position()))
         self.assertEqual(-2, array.source.x)
         for expected, returned in zip(known.traces, array.timeseriesmatrix()):
             self.assertArrayEqual(expected.data, returned)
@@ -530,11 +538,15 @@ class Test_Array1D(TestCase):
 
         # Bad : coordinate units
         fname = self.path / "data/custom/shot1_badcu.su"
-        self.assertRaises(ValueError, swprocess.Array1D.from_files, fname)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.assertRaises(ValueError, swprocess.Array1D.from_files, fname)
 
         # Bad : incompatible sources
         fnames = [self.wghs_path / f"{x}.dat" for x in range(1, 10)]
-        self.assertRaises(ValueError, swprocess.Array1D.from_files, fnames)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.assertRaises(ValueError, swprocess.Array1D.from_files, fnames)
 
         # Bad : miniseed
         fname = self.path / "data/custom/0101010.miniseed"
@@ -557,13 +569,15 @@ class Test_Array1D(TestCase):
                                         nstacks=1, delay=0)
             sensors.append(sensor)
         source = swprocess.Source(x=-10, y=0, z=0)
-        
+
         expected = swprocess.Array1D(sensors, source)
-        
+
         # To and from : SU
         fname = "to_file.su"
         expected.to_file(fname)
-        returned = swprocess.Array1D.from_files(fname)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            returned = swprocess.Array1D.from_files(fname)
         self.assertEqual(expected, returned)
         os.remove(fname)
 

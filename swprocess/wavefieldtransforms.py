@@ -16,7 +16,7 @@
 
 """Wavefield transform class definitions."""
 
-from abc import ABC, abstractclassmethod
+from abc import ABC, abstractmethod
 import logging
 import warnings
 
@@ -69,10 +69,9 @@ class AbstractWavefieldTransform(ABC):
         return cls(frqs, vels, powr)
 
     @classmethod
-    @abstractclassmethod
+    @abstractmethod
     def transform(cls, array, velocities, settings):  # pragma: no cover
         """Abstract transform method."""
-        pass
 
     @staticmethod
     def _frequency_keep_ids(frequencies, fmin, fmax, multiple):
@@ -369,7 +368,6 @@ class EmptyWavefieldTransform(AbstractWavefieldTransform):
     @classmethod
     def transform(cls, array, velocities, settings):  # pragma: no cover
         """Empty transform method."""
-        pass
 
 
 # class FK(AbstractWavefieldTransform):

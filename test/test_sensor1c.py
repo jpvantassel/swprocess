@@ -60,8 +60,8 @@ class Test_Sensor1C(TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             traces = obspy.read(str(self.wghs_path / "6.dat"))
-        trace = traces[0]
-        sensor = Sensor1C.from_trace(trace)
+            trace = traces[0]
+            sensor = Sensor1C.from_trace(trace)
         self.assertArrayEqual(trace.data, sensor.amplitude)
         self.assertEqual(trace.stats.delta, sensor.dt)
         x = float(trace.stats.seg2.RECEIVER_LOCATION)
@@ -74,8 +74,8 @@ class Test_Sensor1C(TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             traces = obspy.read(str(self.path / "data/custom/shot1.su"))
-        trace = traces[0]
-        sensor = Sensor1C.from_trace(trace)
+            trace = traces[0]
+            sensor = Sensor1C.from_trace(trace)
         self.assertArrayEqual(trace.data, sensor.amplitude)
         self.assertEqual(trace.stats.delta, sensor.dt)
         header = trace.stats.su.trace_header

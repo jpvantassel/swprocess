@@ -17,6 +17,7 @@
 """Sensor1C class definition."""
 
 import logging
+import warnings
 
 import numpy as np
 
@@ -71,7 +72,7 @@ class Sensor1C(ActiveTimeSeries):
     @classmethod
     def from_trace(cls, trace,
                    read_header=True, map_x=lambda x: x, map_y=lambda y: y,
-                   nstacks=1, delay=0, x=0, y=0, z=0):
+                   nstacks=1, delay=0, x=0, y=0, z=0, format=None):
         """Create a `Sensor1C` object from a `Trace` object.
 
         Parameters
@@ -96,6 +97,8 @@ class Sensor1C(ActiveTimeSeries):
             Receiver's relative position in x, y, and z, default is
             zero for all components (i.e., the origin). Ignored if
             `read_header=True`.
+        format : str, optional
+            Define file format, options include {"SEG2", "SU", "SEGY"}.
 
         Returns
         -------
@@ -108,10 +111,13 @@ class Sensor1C(ActiveTimeSeries):
             If trace type cannot be identified.
 
         """
-        try:
-            _format = trace.stats._format.upper()
-        except:
-            raise ValueError("Trace type could not be identified.")
+        if format is not None:
+            _format = str(format).upper()
+        else:
+            try:
+                _format = trace.stats._format.upper()
+            except:
+                raise ValueError("Trace type could not be identified.")
 
         if read_header:
             if _format == "SEG2":
@@ -125,6 +131,16 @@ class Sensor1C(ActiveTimeSeries):
         else:
             return cls(amplitude=trace.data, dt=trace.stats.delta,
                        x=x, y=y, z=z, nstacks=nstacks, delay=delay)
+
+    @staticmethod
+    def _safely_get_header(header, name_to_get, default_value, conversion_function):
+        try:
+            value = conversion_function(getattr(header, name_to_get))
+        except:
+            msg = f"Failed to get {name_to_get}, set to {default_value}."
+            warnings.warn(msg)
+            value = default_value
+        return value
 
     @classmethod
     def _from_trace_seg2(cls, trace, map_x=lambda x: x, map_y=lambda y: y):
@@ -146,11 +162,12 @@ class Sensor1C(ActiveTimeSeries):
 
         """
         header = trace.stats.seg2
+
         return cls.from_trace(trace,
                               read_header=False,
-                              nstacks=int(header.STACK),
-                              delay=float(header.DELAY),
-                              x=map_x(float(header.RECEIVER_LOCATION)),
+                              nstacks=cls._safely_get_header(header, "STACK", 1, int),
+                              delay=cls._safely_get_header(header, "DELAY", 0., float),
+                              x=map_x(cls._safely_get_header(header, "RECEIVER_LOCATION", 0., float)),
                               y=map_y(0),
                               z=0)
 
@@ -174,21 +191,32 @@ class Sensor1C(ActiveTimeSeries):
 
         """
         header = trace.stats.su.trace_header
-        nstack_key = "number_of_horizontally_stacked_traces_yielding_this_trace"
-        scaleco = int(header["scalar_to_be_applied_to_all_coordinates"])
 
-        int_x = int(header["group_coordinate_x"])
+        nstack_key = "number_of_horizontally_stacked_traces_yielding_this_trace"
+        nstacks = cls._safely_get_header(header, nstack_key, 1, int)
+        if nstacks == 0:
+            msg = "Resetting nstacks from zero to one."
+            warnings.warn(msg)
+            nstacks = 1
+
+        scaleco = cls._safely_get_header(header, "scalar_to_be_applied_to_all_coordinates", 1, int)
+        if scaleco == 0:
+            msg = "Resetting scale to be applied to all coordinates from zero to one."
+            warnings.warn(msg)
+            scaleco = 1
+
+        int_x = cls._safely_get_header(header, "group_coordinate_x", 0, int)
         x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
         x = round(x, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
-        int_y = int(header["group_coordinate_y"])
+        int_y = cls._safely_get_header(header, "group_coordinate_y", 0, int)
         y = int_y / abs(scaleco) if scaleco < 0 else int_x * scaleco
         y = round(y, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
         return cls.from_trace(trace,
                               read_header=False,
-                              nstacks=int(header[nstack_key])+1,
-                              delay=int(header["delay_recording_time"])/1000,
+                              nstacks=nstacks,
+                              delay=cls._safely_get_header(header, "delay_recording_time", 0, int)/1000,
                               x=map_x(x),
                               y=map_y(y),
                               z=0)
@@ -213,21 +241,32 @@ class Sensor1C(ActiveTimeSeries):
 
         """
         header = trace.stats.segy.trace_header
-        nstack_key = "number_of_horizontally_stacked_traces_yielding_this_trace"
-        scaleco = int(header["scalar_to_be_applied_to_all_coordinates"])
 
-        int_x = int(header["group_coordinate_x"])
+        nstack_key = "number_of_horizontally_stacked_traces_yielding_this_trace"
+        nstacks = cls._safely_get_header(header, nstack_key, 1, int)
+        if nstacks == 0:
+            msg = "Resetting nstacks from zero to one."
+            warnings.warn(msg)
+            nstacks = 1
+
+        scaleco = cls._safely_get_header(header, "scalar_to_be_applied_to_all_coordinates", 1, int)
+        if scaleco == 0:
+            msg = "Resetting scale to be applied to all coordinates from zero to one."
+            warnings.warn(msg)
+            scaleco = 1
+
+        int_x = cls._safely_get_header(header, "group_coordinate_x", 0, int)
         x = int_x / abs(scaleco) if scaleco < 0 else int_x * scaleco
         x = round(x, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
-        int_y = int(header["group_coordinate_y"])
+        int_y = cls._safely_get_header(header, "group_coordinate_y", 0, int)
         y = int_y / abs(scaleco) if scaleco < 0 else int_x * scaleco
         y = round(y, -np.sign(scaleco) * int(np.log10(abs(scaleco))))
 
         return cls.from_trace(trace,
                               read_header=False,
-                              nstacks=int(header[nstack_key])+1,
-                              delay=int(header["delay_recording_time"])/1000,
+                              nstacks=nstacks,
+                              delay=cls._safely_get_header(header, "delay_recording_time", 0, int)/1000,
                               x=map_x(x),
                               y=map_y(y),
                               z=0)

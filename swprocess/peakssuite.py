@@ -1,5 +1,5 @@
 # This file is part of swprocess, a Python package for surface wave processing.
-# Copyright (C) 2020 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
+# Copyright (C) 2020-2024 Joseph P. Vantassel (joseph.p.vantassel@gmail.com)
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ import logging
 import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.widgets import Cursor
-import matplotlib.pyplot as plt
 
 from .wavefieldtransforms import AbstractWavefieldTransform as AWTransform
 from .peaks import Peaks
@@ -410,14 +409,17 @@ class PeaksSuite():
         rejection_bool_arrays = [np.zeros_like(peak._valid, dtype=bool) for peak in self.peaks]
 
         while _continue:
-            # Ask user to draw box.
+            # Instruct user to select a bounding box.
+            ax[0].text(0.95, 0.95, "Select two points that\nbound data to be removed.\nDouble click to pause trimming.",
+                       ha="right", va="top", transform=ax[0].transAxes)
+
+            # User draws box.
             (xlims, ylims, axclicked) = self._draw_box(fig)
 
             # Find all points inside the box.
             rejection_count = 0
             for index, peak in enumerate(self.peaks):
-                rejection_mask = peak._reject_box_inside_bool_array(
-                    xtype[axclicked], xlims, ytype[axclicked], ylims)
+                rejection_mask = peak._reject_box_inside_bool_array(xtype[axclicked], xlims, ytype[axclicked], ylims)
                 rejection_count += np.sum(rejection_mask)
                 rejection_bool_arrays[index][rejection_mask] = True
             logging.debug(f"\trejection_count = {rejection_count}")
@@ -427,8 +429,23 @@ class PeaksSuite():
                 self.plot(xtype=xtype, ytype=ytype, ax=ax,
                           plot_kwargs=dict(color="#bbbbbb", label=None),
                           mask=rejection_bool_arrays)
+
             # If latest rejection box is empty, ask user for input.
             else:
+                # Clear canvas and tell user to go to Jupyter
+                for _ax, pxlim, pylim in zip(ax, pxlims, pylims):
+                    _ax.clear()
+                    _ax.set_xlim(pxlim)
+                    _ax.set_ylim(pylim)
+                    # Note: _ax.clear() re-enables autoscale.
+                    _ax.autoscale(enable=False)
+                    _ax.text(0.5, 0.7, "Interactive trimming paused.\nDo not close window.\nUse alt+tab to go back\nto Jupyter to quit, continue, or undo.",
+                            ha="center", va="top", transform=_ax.transAxes)
+                fig.canvas.draw()
+                # session = fig.canvas.mpl_connect('button_press_event', lambda x:None)
+                _ = fig.ginput(0, timeout=0.01)
+                # fig.canvas.mpl_disconnect(session)
+
                 while True:
                     msg = "Enter (0 to quit, 1 to continue, 2 to undo): "
                     _continue = input(msg)
@@ -448,8 +465,7 @@ class PeaksSuite():
                         peak._reject(bool_array)
 
                 # If continue, quit, or undo, reset boolean arrays.
-                rejection_bool_arrays = [np.zeros_like(
-                    peak._valid, dtype=bool) for peak in self.peaks]
+                rejection_bool_arrays = [np.zeros_like(peak._valid, dtype=bool) for peak in self.peaks]
 
                 # Clear, set axis limits, and lock axis.
                 for _ax, pxlim, pylim in zip(ax, pxlims, pylims):
@@ -548,7 +564,7 @@ class PeaksSuite():
         """
         npeaks = len(self.peaks)
         if npeaks < 3:
-            msg = f"Cannot calculate statistics on fewer than 3 `Peaks`."
+            msg = "Cannot calculate statistics on fewer than 3 `Peaks`."
             raise ValueError(msg)
 
         xx, data_matrix = self.to_array(xtype, ytype, xx)
@@ -614,7 +630,8 @@ class PeaksSuite():
 
         return (xx, array)
 
-    def plot_statistics(self, ax, xx, mean, stddev, errorbar_kwargs=None):
+    @staticmethod
+    def plot_statistics(ax, xx, mean, stddev, errorbar_kwargs=None):
         errorbar_kwargs = {} if errorbar_kwargs is None else errorbar_kwargs
         default_kwargs = dict(linestyle="", color="k", label=None,
                               marker="o", markerfacecolor="k",
