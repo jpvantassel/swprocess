@@ -24,6 +24,9 @@ DEFAULT_TIME = r"\d+\.?\d*"
 DEFAULT_FREQUENCY = r"-?\d+.?\d*[eE]?[+-]?\d*"
 NUMBER = r"-?\d+.?\d*[eE]?[+-]?\d*"
 
+seg2_rec_expr = r"(-?\d+\.?\d*)[ -?\d+\.?\d*]*"
+seg2_rec_exec = re.compile(seg2_rec_expr)
+
 
 def get_peak_from_max(time=DEFAULT_TIME, frequency=DEFAULT_FREQUENCY, wavetype="rayleigh"):
     """Compile regular expression to extract peaks from a `.max` file.

@@ -22,6 +22,7 @@ import warnings
 import numpy as np
 
 from swprocess import ActiveTimeSeries
+from .regex import seg2_rec_exec
 
 logger = logging.getLogger(name=__name__)
 
@@ -163,11 +164,14 @@ class Sensor1C(ActiveTimeSeries):
         """
         header = trace.stats.seg2
 
+        # receiver can be a single number or three numbers.
+        receiver_x = float(seg2_rec_exec.search(getattr(header, "RECEIVER_LOCATION")).groups()[0])
+ 
         return cls.from_trace(trace,
                               read_header=False,
                               nstacks=cls._safely_get_header(header, "STACK", 1, int),
                               delay=cls._safely_get_header(header, "DELAY", 0., float),
-                              x=map_x(cls._safely_get_header(header, "RECEIVER_LOCATION", 0., float)),
+                              x=map_x(receiver_x),
                               y=map_y(0),
                               z=0)
 
