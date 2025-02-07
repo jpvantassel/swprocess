@@ -18,6 +18,7 @@
 
 import logging
 import warnings
+import re
 
 import numpy as np
 import obspy
@@ -666,7 +667,24 @@ class Array1D():
         _format = trace.stats._format
         if _format == "SEG2":
             def parse_source(stats):
-                x = float(stats.seg2.SOURCE_LOCATION)
+                location_str = stats.seg2.SOURCE_LOCATION
+                position_expr = "-?\d+\.?\d*"
+                matches = re.findall(position_expr, location_str)
+                if len(matches) == 1 or len(matches) == 3:
+                    x_str = matches[0]
+                elif len(matches) == 2:
+                    x_str = matches[0]
+                    msg = f"SOURCE_LOCATION={location_str} implies two "
+                    msg += f"coordinates {matches} but should only include "
+                    msg += "one (x) or three locations (x y z);"
+                    msg += f"assuming x is equal to {x_str}."
+                    warnings.warn(msg)
+                else:
+                    msg = f"SOURCE_LOCATION={location_str} implies "
+                    msg += f"{len(matches)} coordinates but should only "
+                    msg += "include one (x) or three (x y z)."
+                    raise ValueError(msg)
+                x = float(x_str)
                 return Source(x=map_x(x), y=0, z=0)
 
         elif _format == "SU":
